@@ -113,7 +113,9 @@ TextView::TextView(int id, const std::string& tag,
                    std::unique_ptr<RenderObject> render_object,
                    PageView* page_view)
     : WithTypeInfo(id, tag, std::move(render_object), page_view),
-      weak_factory_(this) {}
+      weak_factory_(this) {
+  SetOverflow(CSSProperty::OVERFLOW_HIDDEN);
+}
 
 TextView::~TextView() { HideSelectionPopup(); }
 

@@ -306,6 +306,11 @@ TextAlignment TextRender::EffectAlign() {
 void TextRender::Measure(const MeasureConstraint& constraint,
                          ShadowLayoutContextMeasure* context) {
   inline_truncation_hidden_count_ = -1;
+  if (height_ellipsis_constraint_.has_value() &&
+      !(*height_ellipsis_constraint_ == constraint)) {
+    height_ellipsis_constraint_.reset();
+    update_flag_ = TextUpdateFlag::kUpdateFlagStyle;
+  }
   BuildTextLayout(constraint, context);
 
   if (constraint.width_mode == TextMeasureMode::kIndefinite &&
@@ -329,6 +334,7 @@ void TextRender::Measure(const MeasureConstraint& constraint,
 
   if (cache_paragraph_) {
     HandleAutoSize(constraint, context);
+    HandleHeightOverflow(constraint, context);
     HandleInlineTruncation(constraint, context);
   }
 }
@@ -756,6 +762,56 @@ void TextRender::FlexInlineFontSize(bool shrink_or_expand, float font_size,
       FlexInlineFontSize(shrink_or_expand, font_size, child);
     }
   }
+}
+
+void TextRender::HandleHeightOverflow(const MeasureConstraint& constraint,
+                                      ShadowLayoutContextMeasure* context) {
+  if (!cache_paragraph_) {
+    return;
+  }
+  if (measure_node_->text_style_->overflow != TextOverflow::kEllipsis ||
+      HasInlineTruncationShadowNode(measure_node_)) {
+    return;
+  }
+  if (constraint.height_mode == MeasureMode::kIndefinite ||
+      !constraint.height.has_value()) {
+    return;
+  }
+  if (measure_node_->text_style_->white_space == WhiteSpace::kNoWrap) {
+    return;
+  }
+  if (context->measured_height_ <= *constraint.height) {
+    return;
+  }
+  auto& line_metrics = cache_paragraph_->GetLineMetrics();
+  const size_t line_count = line_metrics.size();
+  if (line_count <= 1) {
+    return;
+  }
+  uint32_t fit_lines = 1;
+  for (size_t i = 1; i < line_count; ++i) {
+    if (line_metrics[i].height <= *constraint.height) {
+      ++fit_lines;
+    } else {
+      break;
+    }
+  }
+  if (fit_lines >= line_count) {
+    return;
+  }
+  const std::optional<uint32_t> original_max_lines =
+      measure_node_->text_style_->max_lines;
+  if (original_max_lines.has_value()) {
+    fit_lines = std::min(fit_lines, *original_max_lines);
+  }
+  if (original_max_lines == fit_lines) {
+    return;
+  }
+  measure_node_->text_style_->max_lines = fit_lines;
+  update_flag_ = TextUpdateFlag::kUpdateFlagStyle;
+  BuildTextLayout(constraint, context);
+  measure_node_->text_style_->max_lines = original_max_lines;
+  height_ellipsis_constraint_ = constraint;
 }
 
 void TextRender::HandleInlineTruncation(const MeasureConstraint& constraint,
