@@ -27,9 +27,11 @@
 #include "base/include/fml/make_copyable.h"
 {% endif %}
 
+{% if interface_name != 'PluginRenderingContext' %}
 #ifdef USE_PRIMJS_NAPI
 #include "third_party/napi/include/primjs_napi_defines.h"
 #endif
+{% endif %}
 
 using Napi::Array;
 using Napi::CallbackInfo;
