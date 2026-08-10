@@ -10,6 +10,7 @@ import("build.gni")
 lynx_core_source_set("quickjs") {
   sources = lynx_jsi_quickjs_sources_path
   sources += jscache_quickjs_sources
+  sources += [ "quickjs_heap_snapshot.cc" ]
 
   deps = [
     "../../../../../base/src:base_log_headers",

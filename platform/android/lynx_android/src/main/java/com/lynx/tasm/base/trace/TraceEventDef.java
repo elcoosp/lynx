@@ -40,6 +40,17 @@ public class TraceEventDef {
   public static final String LYNX_VIEW_UPDATE_VIEWPORT = "LynxView.updateViewport";
 
   /**
+   * @trace_description: Enqueue a BTS heap snapshot request from the API caller thread.
+   */
+  public static final String LYNX_VIEW_TAKE_BTS_HEAP_SNAPSHOT_SCHEDULE =
+      "LynxView.takeBTSHeapSnapshot.schedule";
+  /**
+   * @trace_description: Invoke the BTS heap snapshot completion callback on a background thread.
+   */
+  public static final String LYNX_VIEW_TAKE_BTS_HEAP_SNAPSHOT_CALLBACK =
+      "LynxView.takeBTSHeapSnapshot.callback";
+
+  /**
    * @trace_description: Layout of <text> element's platform layout node, where the preview text
    * are `@args{preview_text}`.
    * @history_name{text.TextShadowNode.measure}

@@ -1072,6 +1072,20 @@ base::UnsafeWeakPtr<runtime::js::Runtime> BTSRuntime::GetJSRuntimeWeak() {
                       : base::UnsafeWeakPtr<runtime::js::Runtime>();
 }
 
+std::unique_ptr<runtime::js::HeapSnapshot> BTSRuntime::TakeHeapSnapshot() {
+  TRACE_EVENT(LYNX_TRACE_CATEGORY, BTS_RUNTIME_TAKE_HEAP_SNAPSHOT);
+  if (state_ == State::kNotStarted || state_ == State::kDestroying ||
+      js_executor_ == nullptr) {
+    return nullptr;
+  }
+
+  auto* js_runtime = GetJSRuntimeWeak().Lock();
+  if (js_runtime == nullptr || !js_runtime->Valid()) {
+    return nullptr;
+  }
+  return js_runtime->TakeHeapSnapshot();
+}
+
 int64_t BTSRuntime::GenerateRuntimeId() {
   static std::atomic<int64_t> current_id_;
   return ++current_id_;

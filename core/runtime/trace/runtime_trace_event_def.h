@@ -10,6 +10,24 @@
 #if ENABLE_TRACE_PERFETTO || ENABLE_TRACE_SYSTRACE
 
 /**
+ * @trace_description: Validate the BTS runtime and request a heap snapshot from
+ * its JavaScript runtime.
+ */
+inline constexpr const char* const BTS_RUNTIME_TAKE_HEAP_SNAPSHOT =
+    "BTSRuntime::TakeHeapSnapshot";
+/**
+ * @trace_description: Capture a heap snapshot from the QuickJS runtime.
+ */
+inline constexpr const char* const QUICKJS_RUNTIME_TAKE_HEAP_SNAPSHOT =
+    "QuickjsRuntime::TakeHeapSnapshot";
+/**
+ * @trace_description: Write a captured QuickJS heap snapshot to its destination
+ * file on the dedicated heap snapshot I/O thread.
+ */
+inline constexpr const char* const QUICKJS_HEAP_SNAPSHOT_WRITE_TO_FILE =
+    "QuickjsHeapSnapshot::WriteToFile";
+
+/**
  * @trace_description: Execute the callbacks for the @args{type} event on
  * background scripting thread (historically known as "JS Thread").
  */

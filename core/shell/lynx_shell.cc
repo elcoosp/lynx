@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include "base/include/fml/thread.h"
 #include "base/include/no_destructor.h"
 #include "base/trace/native/trace_controller.h"
 #include "core/base/threading/thread_merger.h"
@@ -20,6 +21,7 @@
 #include "core/runtime/common/bindings/event/message_event.h"
 #include "core/runtime/js/bindings/modules/lynx_module_manager.h"
 #include "core/runtime/js/js_bundle_holder.h"
+#include "core/runtime/js/jsi/heap_snapshot.h"
 #include "core/runtime/js/runtime_constant.h"
 #include "core/runtime/js/runtime_manager.h"
 #include "core/services/event_report/event_tracker.h"
@@ -1535,6 +1537,49 @@ void LynxShell::GetAllJsSourceAsync(
     }
     callback->InvokeWithValue(lepus::Value(std::move(dict)));
   });
+}
+
+bool LynxShell::TakeBTSHeapSnapshotToFileAsync(
+    std::string output_path,
+    base::MoveOnlyClosure<void, bool> completion_callback) {
+  TRACE_EVENT(LYNX_TRACE_CATEGORY, LYNX_SHELL_TAKE_BTS_HEAP_SNAPSHOT_TO_FILE);
+  if (output_path.empty() || IsDestroyed() || runtime_actor_ == nullptr ||
+      !enable_runtime_) {
+    return false;
+  }
+
+  auto runtime_actor = runtime_actor_;
+  static base::NoDestructor<fml::Thread> io_thread(fml::Thread::ThreadConfig(
+      "LynxHeapSnapshotIO", fml::Thread::ThreadPriority::LOW));
+  auto io_task_runner = io_thread->GetTaskRunner();
+
+  [[maybe_unused]] uint64_t flow_id = TRACE_FLOW_ID();
+  TRACE_EVENT_INSTANT(LYNX_TRACE_CATEGORY,
+                      LYNX_SHELL_SCHEDULE_BTS_HEAP_SNAPSHOT,
+                      [flow_id](lynx::perfetto::EventContext ctx) {
+                        ctx.event()->add_flow_ids(flow_id);
+                      });
+  runtime_actor->ActAsync([output_path = std::move(output_path),
+                           completion_callback = std::move(completion_callback),
+                           io_task_runner, flow_id](auto& runtime) mutable {
+    (void)flow_id;
+    TRACE_EVENT(LYNX_TRACE_CATEGORY, LYNX_SHELL_RUN_BTS_HEAP_SNAPSHOT,
+                [flow_id](lynx::perfetto::EventContext ctx) {
+                  ctx.event()->add_terminating_flow_ids(flow_id);
+                });
+    auto snapshot = runtime->TakeHeapSnapshot();
+    io_task_runner->PostTask(
+        [output_path = std::move(output_path),
+         completion_callback = std::move(completion_callback),
+         snapshot = std::move(snapshot)]() mutable {
+          const bool success =
+              snapshot != nullptr && snapshot->WriteToFile(output_path);
+          if (completion_callback) {
+            completion_callback(success);
+          }
+        });
+  });
+  return true;
 }
 
 void LynxShell::GetLynxElementRootSignAsync(

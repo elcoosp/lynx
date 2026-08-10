@@ -155,6 +155,30 @@ inline constexpr const char* const LYNX_SHELL_UPDATE_VIEWPORT =
 inline constexpr const char* const LYNX_SHELL_ENSURE_GLOBAL_PROPS_THREAD_SAFE =
     "LynxShell.EnsureGlobalPropsThreadSafe";
 
+/**
+ * @trace_description: Enter the Android JNI bridge for writing a BTS heap
+ * snapshot to a file.
+ */
+inline constexpr const char* const
+    LYNX_TEMPLATE_RENDER_ANDROID_TAKE_BTS_HEAP_SNAPSHOT_TO_FILE =
+        "LynxTemplateRenderAndroid::TakeBTSHeapSnapshotToFile";
+/**
+ * @trace_description: Schedule BTS heap snapshot capture and file output.
+ */
+inline constexpr const char* const LYNX_SHELL_TAKE_BTS_HEAP_SNAPSHOT_TO_FILE =
+    "LynxShell::TakeBTSHeapSnapshotToFile";
+/**
+ * @trace_description: Schedule BTS heap snapshot capture on the background
+ * scripting thread.
+ */
+inline constexpr const char* const LYNX_SHELL_SCHEDULE_BTS_HEAP_SNAPSHOT =
+    "LynxShell::ScheduleBTSHeapSnapshot";
+/**
+ * @trace_description: Run BTS heap snapshot capture on the background scripting
+ * thread.
+ */
+inline constexpr const char* const LYNX_SHELL_RUN_BTS_HEAP_SNAPSHOT =
+    "LynxShell::RunBTSHeapSnapshot";
 inline constexpr const char* const UI_OPERATION_ASYNC_QUEUE_FLUSH_ON_UI_THREAD =
     "LynxUIOperationAsyncQueue::FlushOnUIThread.";
 inline constexpr const char* const UI_OPERATION_ASYNC_RENDER_FLUSH_WAIN_TASM =

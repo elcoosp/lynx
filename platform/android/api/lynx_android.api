@@ -7699,6 +7699,7 @@ public class com::lynx::tasm::LynxView : com.lynx.tasm.behavior.ui.UIBody.UIBody
   public LynxBaseUI com.lynx.tasm.LynxView.findUIByIdSelector(String id);
   public UIGroup< UIBodyView > com.lynx.tasm.LynxView.getLynxUIRoot();
   public void com.lynx.tasm.LynxView.getLynxElementRoot(@NonNull LynxElementCallback< LynxElement > callback);
+  public void com.lynx.tasm.LynxView.takeBTSHeapSnapshot( @NonNull File outputFile, @Nullable LynxConsumer< Boolean > callback);
   public void com.lynx.tasm.LynxView.syncFlush();
   public LynxBaseUI com.lynx.tasm.LynxView.findUIByIndex(int index);
   public void com.lynx.tasm.LynxView.setOnClickListener(@Nullable OnClickListener listener);
@@ -10835,6 +10836,8 @@ public class com::lynx::tasm::base::trace::TraceEventDef :  {
   public final String com.lynx.tasm.base.trace.TraceEventDef.LYNX_VIEW_ON_ATTACH_TO_WINDOW LYNX_VIEW_ON_ATTACH_TO_WINDOW;
   public final String com.lynx.tasm.base.trace.TraceEventDef.LYNX_VIEW_ON_DETACHED_FROM_WINDOW LYNX_VIEW_ON_DETACHED_FROM_WINDOW;
   public final String com.lynx.tasm.base.trace.TraceEventDef.LYNX_VIEW_UPDATE_VIEWPORT LYNX_VIEW_UPDATE_VIEWPORT;
+  public final String com.lynx.tasm.base.trace.TraceEventDef.LYNX_VIEW_TAKE_BTS_HEAP_SNAPSHOT_SCHEDULE LYNX_VIEW_TAKE_BTS_HEAP_SNAPSHOT_SCHEDULE;
+  public final String com.lynx.tasm.base.trace.TraceEventDef.LYNX_VIEW_TAKE_BTS_HEAP_SNAPSHOT_CALLBACK LYNX_VIEW_TAKE_BTS_HEAP_SNAPSHOT_CALLBACK;
   public final String com.lynx.tasm.base.trace.TraceEventDef.TEXT_SHADOW_NODE_MEASURE TEXT_SHADOW_NODE_MEASURE;
   public final String com.lynx.tasm.base.trace.TraceEventDef.TEXT_LAYOUT_MEASURE_TEXT TEXT_LAYOUT_MEASURE_TEXT;
   public final String com.lynx.tasm.base.trace.TraceEventDef.TEXT_LAYOUT_DISPATCH_LAYOUT_BEFORE TEXT_LAYOUT_DISPATCH_LAYOUT_BEFORE;
