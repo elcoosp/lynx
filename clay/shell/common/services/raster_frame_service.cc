@@ -167,6 +167,7 @@ void RasterFrameService::CommitWithNoUpdates() {
   TRACE_EVENT("clay", "RasterFrameService::CommitWithNoUpdates");
   if (force_begin_frame_) {
     force_begin_frame_ = false;
+    rasterizer_->NotifySnapshotFrameCommittedWithoutUpdates();
   } else {
     if (!using_sync_compositor_) {
       scheduler_->NotifyReadyToCommit(true);

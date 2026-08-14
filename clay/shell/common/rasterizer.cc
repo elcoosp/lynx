@@ -252,6 +252,7 @@ RasterStatus Rasterizer::DoDraw(
       last_layer_tree_->ResetServiceManagerForAnimation();
     }
     last_layer_tree_ = std::move(layer_tree);
+    FireNextFrameSnapshotCallbackIfPresent();
   } else if (raster_status == RasterStatus::kDiscarded ||
              raster_status == RasterStatus::kFailed) {
     return raster_status;
@@ -566,6 +567,14 @@ void Rasterizer::AddNextFrameCallback(const fml::closure& callback) {
   next_frame_callbacks_.push_back(callback);
 }
 
+void Rasterizer::AddNextFrameSnapshotCallback(const fml::closure& callback) {
+  next_frame_snapshot_callbacks_.push_back(callback);
+}
+
+void Rasterizer::NotifySnapshotFrameCommittedWithoutUpdates() {
+  FireNextFrameSnapshotCallbackIfPresent();
+}
+
 void Rasterizer::FireNextFrameCallbackIfPresent() {
   if (next_frame_callbacks_.empty()) {
     return;
@@ -576,6 +585,19 @@ void Rasterizer::FireNextFrameCallbackIfPresent() {
   for (auto& cb : callbacks) {
     if (cb) {
       cb();
+    }
+  }
+}
+
+void Rasterizer::FireNextFrameSnapshotCallbackIfPresent() {
+  if (next_frame_snapshot_callbacks_.empty()) {
+    return;
+  }
+  std::vector<fml::closure> callbacks;
+  callbacks.swap(next_frame_snapshot_callbacks_);
+  for (auto& callback : callbacks) {
+    if (callback) {
+      callback();
     }
   }
 }

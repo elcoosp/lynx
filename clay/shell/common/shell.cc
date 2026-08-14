@@ -1203,18 +1203,13 @@ ScreenshotData Shell::ScreenshotSync(
 void Shell::ScreenshotAsync(ScreenshotData::ScreenshotType screenshot_type,
                             uint32_t background_color,
                             std::function<void(ScreenshotData)> callback) {
-  constexpr int kScreenshotTimeoutMs = 30;
-
   fml::RefPtr<fml::TaskRunner> platform_task_runner =
       task_runners_.GetPlatformTaskRunner();
   fml::RefPtr<fml::TaskRunner> ui_task_runner = task_runners_.GetUITaskRunner();
-  fml::RefPtr<fml::TaskRunner> raster_task_runner =
-      task_runners_.GetRasterTaskRunner();
 
   rasterizer_service_.Act([callback = std::move(callback), screenshot_type,
                            background_color, platform_task_runner,
-                           ui_task_runner, raster_task_runner,
-                           screenshot = screenshot,
+                           ui_task_runner, screenshot = screenshot,
                            engine = weak_engine_](auto& impl) mutable {
     bool expected = true;
     if (!screenshot->compare_exchange_strong(expected, false)) {
@@ -1254,29 +1249,11 @@ void Shell::ScreenshotAsync(ScreenshotData::ScreenshotType screenshot_type,
     };
 
     if (rasterizer) {
-      rasterizer->AddNextFrameCallback(on_next_frame);
+      rasterizer->AddNextFrameSnapshotCallback(on_next_frame);
     } else {
       on_next_frame();
       return;
     }
-
-    raster_task_runner->PostDelayedTask(
-        [state, weak_rasterizer, screenshot_type, background_color]() mutable {
-          if (state->done.exchange(true)) {
-            return;
-          }
-          ScreenshotData result;
-          if (weak_rasterizer) {
-            result = weak_rasterizer->ScreenshotLastLayerTree(
-                screenshot_type, false, background_color);
-          }
-          state->platform_task_runner->PostTask(
-              fml::MakeCopyable([state, result = std::move(result)]() mutable {
-                state->callback(std::move(result));
-                state->screenshot->store(true);
-              }));
-        },
-        fml::TimeDelta::FromMilliseconds(kScreenshotTimeoutMs));
 
     ui_task_runner->PostTask(fml::MakeCopyable([engine]() mutable {
       if (engine) {
