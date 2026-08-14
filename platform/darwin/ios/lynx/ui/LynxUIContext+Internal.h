@@ -14,6 +14,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, assign) BOOL fixNewImageDownSampling;
 @property(nonatomic, strong, readwrite) LynxScrollFluency *fluencyInnerListener;
 
+- (void)updateScreenMetrics:(LynxScreenMetrics *)screenMetrics;
+- (void)updateViewportMetrics:(nullable LynxViewportMetrics *)viewportMetrics;
+- (void)updateScreenSize:(CGSize)screenSize;
+
 - (void)setUIConfig:(id<LUIConfig>)config;
 - (void)setDefaultOverflowVisible:(BOOL)enable;
 - (void)setDefaultImplicitAnimation:(BOOL)enable;

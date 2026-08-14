@@ -10,12 +10,11 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface LynxScreenMetrics : NSObject
-@property(nonatomic, assign, readwrite) CGSize screenSize;
-@property(nonatomic, assign, readwrite) CGFloat scale;
+@property(nonatomic, assign, readonly) CGSize screenSize;
+@property(nonatomic, assign, readonly) CGFloat scale;
 
 + (LynxScreenMetrics*)getDefaultLynxScreenMetrics;
 - (instancetype)initWithScreenSize:(CGSize)screenSize scale:(CGFloat)scale;
-- (void)setLynxScreenSize:(CGSize)screenSize;
 
 @end
 

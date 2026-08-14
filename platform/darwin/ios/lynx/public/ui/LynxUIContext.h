@@ -16,6 +16,7 @@
 #import <Lynx/LynxScrollListener.h>
 #import <Lynx/LynxTemplateResourceFetcher.h>
 #import <Lynx/LynxUIListProtocol.h>
+#import <Lynx/LynxViewportMetrics.h>
 
 NS_ASSUME_NONNULL_BEGIN
 @class LynxRootUI;
@@ -50,7 +51,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, weak) id lynxModuleExtraData;
 @property(nonatomic, assign, readwrite) int64_t shellPtr;
 @property(nonatomic, strong, nullable) id<ListNodeInfoFetcherProtocol> fetcher;
-@property(nonatomic, readwrite) LynxScreenMetrics* screenMetrics;
+@property(nonatomic, strong, readonly) LynxScreenMetrics* screenMetrics;
+@property(nonatomic, strong, nullable, readonly) LynxViewportMetrics* viewportMetrics;
 @property(nonatomic, readonly) LynxUIIntersectionObserverManager* intersectionManager;
 @property(nonatomic) LynxUIExposure* uiExposure;
 @property(nonatomic, strong, nullable, readonly) NSDictionary* keyframesDict;
@@ -100,7 +102,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, readonly) BOOL enableExposureWhenReload;
 
 - (instancetype)initWithScreenMetrics:(LynxScreenMetrics*)screenMetrics;
-- (void)updateScreenSize:(CGSize)screenSize;
 - (void)onGestureRecognized;
 - (void)onGestureRecognizedByUI:(LynxUI*)ui;
 - (void)onPlatformGestureStatusChanged:(LynxGestureHandlerState)status;
