@@ -35,13 +35,23 @@ target(lynx_harmony_type, "lynx_harmony") {
     "../lynx_xelement",
   ]
   cflags = []
-  lib_dirs = [ primjs_native_lib_dir ]
-  libs = [
-    "deviceinfo_ndk.z",
-    "napi",
-    "napi_adapter",
-    "quick",
-  ]
+  libs = [ "deviceinfo_ndk.z" ]
+  if (enable_primjs_prebuilt_lib) {
+    lib_dirs = [ primjs_native_lib_dir ]
+    libs += [
+      "napi",
+      "napi_adapter",
+      "quick",
+    ]
+  } else {
+    public_deps += [
+      "../../../third_party/napi:adapter",
+      "../../../third_party/napi:env",
+      "../../../third_party/napi:napi_lib",
+      "../../../third_party/napi:quickjs",
+      "../../../third_party/quickjs:quickjs",
+    ]
+  }
 
   public_deps += [
     "../../../core/runtime/common/napi:napi_binding_jsvm",
