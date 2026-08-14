@@ -2,7 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#import "platform/darwin/macos/common/LynxUIRenderer.h"
+#import <Lynx/LynxUIRenderer.h>
 #include "clay/common/service/service_manager.h"
 #include "clay/fml/logging.h"
 #include "clay/lynx_adaptor/native_module/lynx_module_factory.h"
@@ -12,6 +12,7 @@
 #include "clay/net/loader/resource_loader_creator_service.h"
 #include "clay/shell/common/services/instrumentation_service.h"
 #include "clay/shell/platform/darwin/macos/framework/Source/ClayViewProvider_Internal.h"
+#include "clay/shell/platform/darwin/macos/framework/Source/FlutterEngine_Internal.h"
 #import "clay/shell/platform/darwin/macos/framework/Source/FlutterTextInputPlugin.h"
 #include "clay/ui/component/view_context.h"
 #include "core/base/threading/task_runner_manufactor.h"
@@ -432,6 +433,14 @@ void LynxUIRendererImpl::RegisterIMEHandler(void* handler, void* opaque) {
   }
   LynxUIRendererMac* lynx_ui_renderer = (__bridge LynxUIRendererMac*)lynx_ui_renderer_;
   [lynx_ui_renderer RegisterIMEHandler:handler arg:opaque];
+}
+
+void LynxUIRendererImpl::SendPointerEvent(const ClayPointerEvent& event) {
+  if (!lynx_ui_renderer_) {
+    return;
+  }
+  LynxUIRendererMac* lynx_ui_renderer = (__bridge LynxUIRendererMac*)lynx_ui_renderer_;
+  [lynx_ui_renderer.clayViewProvider.engine sendPointerEvent:event];
 }
 
 void LynxUIRendererImpl::AddClient(LynxViewClients* client) {
