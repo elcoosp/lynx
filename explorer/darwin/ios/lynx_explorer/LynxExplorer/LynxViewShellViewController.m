@@ -17,6 +17,7 @@
 #import "LynxExplorerSwiftInterop.h"
 #import "LynxNodeAPILifecycleListener.h"
 #import "LynxNodeAPIModule.h"
+#import "DeviceModule.h"
 #import "LynxSettingManager.h"
 #import "UIHelper.h"
 
@@ -390,6 +391,8 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     // for homepage only
     [builder.config registerUI:LynxExplorerInput.class withName:@"explorer-input"];
     [builder.config registerModule:LynxNodeAPIModule.class param:self];
+    // lynxpo: register the iOS DeviceModule so @lynxpo/mods-device returns real data
+    [builder.config registerModule:DeviceModule.class];
     // Add fetchers
     builder.enableGenericResourceFetcher = true;
     builder.genericResourceFetcher = [[DemoGenericResourceFetcher alloc] init];
