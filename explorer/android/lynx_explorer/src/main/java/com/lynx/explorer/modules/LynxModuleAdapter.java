@@ -90,6 +90,7 @@ public class LynxModuleAdapter {
     LynxEnv.inst().registerModule("ExplorerModule", ExplorerModule.class);
     LynxEnv.inst().registerModule("LynxNodeAPI", LynxNodeAPIModule.class);
     LynxEnv.inst().registerModule("DeviceModule", DeviceModule.class);
+    LynxEnv.inst().registerModule("ApplicationModule", ApplicationModule.class);
 
     LynxDevtoolGlobalHelper.getInstance().registerCardListener(mListener);
   }
