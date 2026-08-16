@@ -171,12 +171,19 @@ def copyLynxSoToLib(String flavor, String buildType) {
     ABI_FILTERS.each { abi ->
         String soPath = "$buildDir/../../lynx_android/build/intermediates/cmake/$flavor$buildType/obj/$abi/"
         delete "$buildDir/../src/main/jniLibs/$abi/liblynx_debug.so"
-        File desFile = new File(projectDir, "src/main/jniLibs/$abi/")
-        copy {
-            from soPath
-            into desFile
-            rename 'liblynx.so', 'liblynx_debug.so'
-            include 'liblynx.so'
+        // The native build already contributes liblynx_debug.so via merged_jni_libs,
+        // so copying liblynx.so (renamed) into the default jniLibs dir double-counts
+        // it and fails the merge with "Duplicate resources". Only fall back to the
+        // copy when the native artifact is genuinely absent.
+        def nativeDebug = new File("$buildDir/../build/intermediates/merged_jni_libs/${flavor}${buildType}/out/$abi/liblynx_debug.so")
+        if (!nativeDebug.exists()) {
+            File desFile = new File(projectDir, "src/main/jniLibs/$abi/")
+            copy {
+                from soPath
+                into desFile
+                rename 'liblynx.so', 'liblynx_debug.so'
+                include 'liblynx.so'
+            }
         }
     }
 }

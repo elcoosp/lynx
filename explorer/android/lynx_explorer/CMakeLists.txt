@@ -22,12 +22,22 @@ set_target_properties(napi_adapter PROPERTIES IMPORTED_LOCATION
 
 target_link_libraries(lynx_napi_addon_loader log napi_adapter)
 
-# Optional Node-API addon packaging:
-# Put addon files under:
-#   ${PROJECT_SOURCE_DIR}/napi_addons/<abi>/
-# All regular files under the current ABI directory are copied into the
-# native libs output directory so dlopen() can resolve them from the
-# default loader search paths at runtime.
+# In-engine Node-API addon build (Option A: aligned with the upstream addon
+# model). Compiled with the same weak-node-api headers the engine uses, so the
+# addon's napi_* symbols resolve from the host runtime exactly like the loader.
+# Output is libnetwork.so so the loader's dlopen("libnetwork.so") resolves it.
+add_library(network SHARED
+    ${LYNX_ROOT_PATH}/explorer/addons/network/network_addon.cc
+)
+target_include_directories(network PUBLIC
+    ${LYNX_ROOT_PATH}
+    ${LYNX_ROOT_PATH}/third_party/weak-node-api/headers
+)
+target_link_libraries(network log napi_adapter)
+set_target_properties(network PROPERTIES CXX_STANDARD 17)
+
+# Package the built addon .so into the app's native lib dir so the loader's
+# dlopen("libnetwork.so") resolves it from the default search paths.
 set(LYNX_NODE_API_ADDON_DIR ${PROJECT_SOURCE_DIR}/napi_addons/${ANDROID_ABI})
 file(GLOB LYNX_NODE_API_ADDON_FILES LIST_DIRECTORIES false
         ${LYNX_NODE_API_ADDON_DIR}/*)
