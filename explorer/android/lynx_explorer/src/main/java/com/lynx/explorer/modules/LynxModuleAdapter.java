@@ -93,6 +93,16 @@ public class LynxModuleAdapter {
     LynxEnv.inst().registerModule("ApplicationModule", ApplicationModule.class);
     LynxEnv.inst().registerModule("BatteryModule", BatteryModule.class);
     LynxEnv.inst().registerModule("LocalizationModule", LocalizationModule.class);
+    LynxEnv.inst().registerModule("BrightnessModule", BrightnessModule.class);
+    LynxEnv.inst().registerModule("CellularModule", CellularModule.class);
+    LynxEnv.inst().registerModule("HapticsModule", HapticsModule.class);
+    LynxEnv.inst().registerModule("KeepAwakeModule", KeepAwakeModule.class);
+    LynxEnv.inst().registerModule("StoreReviewModule", StoreReviewModule.class);
+    LynxEnv.inst().registerModule("MailComposerModule", MailComposerModule.class);
+    LynxEnv.inst().registerModule("NetworkModule", NetworkModule.class);
+    LynxEnv.inst().registerModule("ScreenOrientationModule", ScreenOrientationModule.class);
+    LynxEnv.inst().registerModule("ClipboardModule", ClipboardModule.class);
+    LynxEnv.inst().registerModule("ImagePickerModule", ImagePickerModule.class);
 
     LynxDevtoolGlobalHelper.getInstance().registerCardListener(mListener);
   }

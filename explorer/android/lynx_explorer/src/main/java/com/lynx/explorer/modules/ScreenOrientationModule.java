@@ -1,0 +1,133 @@
+// Copyright 2026 The Lynxpo Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+package com.lynx.explorer.modules;
+
+import android.content.Context;
+import android.content.pm.ActivityInfo;
+import com.lynx.jsbridge.LynxMethod;
+import com.lynx.jsbridge.LynxModule;
+
+/**
+ * Android counterpart of the iOS {@code ScreenOrientationModule}. Exposes
+ * screen orientation to JS via {@code NativeModules.ScreenOrientationModule},
+ * faithfully porting the native method surface of Expo's {@code
+ * expo-screen-orientation} (latest) module. Method names MUST match the iOS
+ * methodLookup keys so the shared {@code @lynxpo/mods-screen-orientation}
+ * accessors resolve on both platforms.
+ */
+public class ScreenOrientationModule extends LynxModule {
+
+  // Orientation enum mirrors Expo's Orientation (UNKNOWN=0, PORTRAIT_UP=1,
+  // PORTRAIT_DOWN=2, LANDSCAPE_LEFT=3, LANDSCAPE_RIGHT=4).
+  public ScreenOrientationModule(Context context) {
+    super(context);
+  }
+
+  @LynxMethod
+  public int getOrientation() {
+    android.app.Activity activity = getActivity();
+    if (activity == null) {
+      return 0; // UNKNOWN
+    }
+    int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+    int width = activity.getResources().getConfiguration().screenWidthDp;
+    int height = activity.getResources().getConfiguration().screenHeightDp;
+    boolean isNaturalPortrait = height >= width;
+    switch (rotation) {
+      case android.view.Surface.ROTATION_0:
+        return isNaturalPortrait ? 1 : 4; // PORTRAIT_UP or LANDSCAPE_RIGHT
+      case android.view.Surface.ROTATION_90:
+        return isNaturalPortrait ? 3 : 1; // LANDSCAPE_LEFT or PORTRAIT_UP
+      case android.view.Surface.ROTATION_180:
+        return isNaturalPortrait ? 2 : 3; // PORTRAIT_DOWN or LANDSCAPE_LEFT
+      case android.view.Surface.ROTATION_270:
+        return isNaturalPortrait ? 4 : 2; // LANDSCAPE_RIGHT or PORTRAIT_DOWN
+      default:
+        return 0; // UNKNOWN
+    }
+  }
+
+  @LynxMethod
+  public int getOrientationLock() {
+    android.app.Activity activity = getActivity();
+    if (activity == null) {
+      return 0; // UNKNOWN
+    }
+    int req = activity.getRequestedOrientation();
+    switch (req) {
+      case ActivityInfo.SCREEN_ORIENTATION_PORTRAIT:
+        return 1; // PORTRAIT_UP
+      case ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE:
+        return 3; // LANDSCAPE_LEFT
+      case ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR:
+        return 7; // ALL
+      case ActivityInfo.SCREEN_ORIENTATION_SENSOR:
+        return 8; // SENSOR
+      default:
+        return 0; // UNKNOWN
+    }
+  }
+
+  @LynxMethod
+  public void lock(int orientation) {
+    android.app.Activity activity = getActivity();
+    if (activity == null) {
+      return;
+    }
+    activity.setRequestedOrientation(mapOrientation(orientation));
+  }
+
+  @LynxMethod
+  public void lockPlatform(int orientationLock) {
+    android.app.Activity activity = getActivity();
+    if (activity == null) {
+      return;
+    }
+    activity.setRequestedOrientation(mapOrientationLock(orientationLock));
+  }
+
+  @LynxMethod
+  public boolean supportsOrientationLock() {
+    return true;
+  }
+
+  private int mapOrientation(int orientation) {
+    switch (orientation) {
+      case 1:
+        return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+      case 2:
+        return ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+      case 3:
+        return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+      case 4:
+        return ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+      default:
+        return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+    }
+  }
+
+  private int mapOrientationLock(int lock) {
+    switch (lock) {
+      case 1:
+      case 2:
+        return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+      case 3:
+      case 4:
+        return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+      case 7:
+        return ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR;
+      case 8:
+        return ActivityInfo.SCREEN_ORIENTATION_SENSOR;
+      default:
+        return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+    }
+  }
+
+  private android.app.Activity getActivity() {
+    if (mContext instanceof android.app.Activity) {
+      return (android.app.Activity) mContext;
+    }
+    return null;
+  }
+}
