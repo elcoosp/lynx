@@ -62,5 +62,16 @@
     @"type" : @(connected ? 1 : 0),
     @"isWifiEnabled" : @(connected),
   };
+
+- (void)getIpAddressAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getIpAddress]); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)getNetworkStateAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getNetworkState]); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)addListener:(NSString *)eventName {
+  [self.lynxContext sendGlobalEvent:eventName withParams:@[[self getNetworkState]]];
+}
+- (void)removeListeners:(NSInteger)count {}
+
+}

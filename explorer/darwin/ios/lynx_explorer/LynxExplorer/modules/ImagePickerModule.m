@@ -34,5 +34,18 @@
 
 - (NSDictionary *)getMediaLibraryPermissions {
   return [self permissionStatus:@"photos"];
+
+- (void)getCameraPermissionsAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getCameraPermissions]); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)getMediaLibraryPermissionsAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getMediaLibraryPermissions]); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)launchImageLibraryAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getMediaLibraryPermissions]); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)launchCameraAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getCameraPermissions]); } @catch (NSException *e) { reject(e.reason); }
+}
+
+}

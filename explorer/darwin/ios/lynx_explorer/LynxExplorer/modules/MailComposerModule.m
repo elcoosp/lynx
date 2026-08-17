@@ -40,5 +40,15 @@
   }
   NSString *encoded = [url stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
   [[UIApplication sharedApplication] openURL:[NSURL URLWithString:encoded] options:@{} completionHandler:nil];
+
+- (void)isAvailableAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self isAvailable])); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)getClientsAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getClients]); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)composeAsync:(NSString *)subject body:(NSString *)body recipients:(NSArray<NSString *> *)recipients resolve:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self compose:subject body:body recipients:recipients]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+
+}

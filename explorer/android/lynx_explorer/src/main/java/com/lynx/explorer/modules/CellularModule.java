@@ -97,4 +97,25 @@ public class CellularModule extends LynxModule {
   private TelephonyManager telephonyManager() {
     return (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
   }
+
+  @LynxMethod
+  public void getCellularGenerationAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getCellularGeneration()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getIsoCountryCodeAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getIsoCountryCode()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getCarrierNameAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getCarrierName()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getMobileCountryCodeAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getMobileCountryCode()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getMobileNetworkCodeAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getMobileNetworkCode()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
 }

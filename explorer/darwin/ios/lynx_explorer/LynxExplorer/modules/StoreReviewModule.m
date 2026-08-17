@@ -29,5 +29,12 @@
   if (@available(iOS 10.3, *)) {
     [SKStoreReviewController requestReview];
   }
+
+- (void)isAvailableAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self isAvailable])); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)requestReviewAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self requestReview]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+
+}

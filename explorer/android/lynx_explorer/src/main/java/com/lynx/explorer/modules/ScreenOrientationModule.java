@@ -130,4 +130,55 @@ public class ScreenOrientationModule extends LynxModule {
     }
     return null;
   }
+
+  @LynxMethod
+  public void getOrientationAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getOrientation()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getOrientationLockAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getOrientationLock()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void lockAsync(int orientation, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { lock(orientation); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void unlockAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { lock(0 /* UNKNOWN/unspecified */); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void lockPlatformAsync(int orientation, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { lockPlatform(orientation); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void supportsOrientationLockAsync(int orientationLock, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(supportsOrientationLock()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void addListener(String eventName) { startOrientationObserver(eventName); }
+  @LynxMethod
+  public void removeListeners(int count) { stopOrientationObserver(); }
+
+  private android.view.OrientationEventListener mOriListener;
+  private String mOriEventName;
+  private void emitOrientation() {
+    if (mOriEventName == null) return;
+    com.lynx.tasm.behavior.LynxContext ctx = (com.lynx.tasm.behavior.LynxContext) mContext;
+    com.lynx.react.bridge.JavaOnlyArray params = new com.lynx.react.bridge.JavaOnlyArray();
+    params.add(getOrientation());
+    ctx.sendGlobalEvent(mOriEventName, params);
+  }
+  private void startOrientationObserver(String eventName) {
+    mOriEventName = eventName;
+    mOriListener = new android.view.OrientationEventListener(mContext) {
+      @Override public void onOrientationChanged(int o) { emitOrientation(); }
+    };
+    if (mOriListener.canDetectOrientation()) mOriListener.enable();
+    emitOrientation();
+  }
+  private void stopOrientationObserver() {
+    if (mOriListener != null) mOriListener.disable();
+    mOriListener = null; mOriEventName = null;
+  }
 }

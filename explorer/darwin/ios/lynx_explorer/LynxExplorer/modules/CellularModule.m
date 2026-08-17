@@ -72,5 +72,21 @@
   CTTelephonyNetworkInfo *netinfo = [[CTTelephonyNetworkInfo alloc] init];
   CTCarrier *carrier = netinfo.serviceSubscriberCellularProviders.allValues.firstObject;
   return carrier.mobileNetworkCode ?: nil;
+
+- (void)getCellularGenerationAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self getCellularGeneration])); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)getIsoCountryCodeAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getIsoCountryCode]); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)getCarrierNameAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getCarrierName]); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)getMobileCountryCodeAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getMobileCountryCode]); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)getMobileNetworkCodeAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getMobileNetworkCode]); } @catch (NSException *e) { reject(e.reason); }
+}
+
+}

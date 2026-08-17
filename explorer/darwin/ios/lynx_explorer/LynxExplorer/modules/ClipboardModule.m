@@ -30,5 +30,15 @@
 
 - (BOOL)hasString {
   return UIPasteboard.generalPasteboard.string.length > 0;
+
+- (void)getStringAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve([self getString]); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)setStringAsync:(NSString *)text resolve:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self setString:text]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)hasStringAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self hasString])); } @catch (NSException *e) { reject(e.reason); }
+}
+
+}

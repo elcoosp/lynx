@@ -29,5 +29,15 @@
 
 - (BOOL)isActivated {
   return UIApplication.sharedApplication.isIdleTimerDisabled;
+
+- (void)activateAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self activate]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)deactivateAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self deactivate]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)isActivatedAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self isActivated])); } @catch (NSException *e) { reject(e.reason); }
+}
+
+}

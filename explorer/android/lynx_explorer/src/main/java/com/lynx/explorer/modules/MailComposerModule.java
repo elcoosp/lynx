@@ -62,4 +62,17 @@ public class MailComposerModule extends LynxModule {
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     mContext.startActivity(intent);
   }
+
+  @LynxMethod
+  public void isAvailableAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(isAvailable()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getClientsAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getClients()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void composeAsync(String subject, String body, java.util.List<String> recipients, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { compose(subject, body, recipients); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
 }

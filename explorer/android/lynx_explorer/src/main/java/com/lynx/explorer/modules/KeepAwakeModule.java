@@ -64,4 +64,17 @@ public class KeepAwakeModule extends LynxModule {
     }
     return null;
   }
+
+  @LynxMethod
+  public void activateAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { activate(); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void deactivateAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { deactivate(); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void isActivatedAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(isActivated()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
 }

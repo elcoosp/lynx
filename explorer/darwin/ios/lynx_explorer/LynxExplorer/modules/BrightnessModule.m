@@ -39,5 +39,25 @@
 
 - (int)getSystemBrightnessMode {
   return 2; // MANUAL on iOS (system auto-brightness not directly readable)
+
+- (void)getBrightnessAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self getBrightness])); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)setBrightnessAsync:(double)value resolve:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self setBrightness:value]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)getSystemBrightnessAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self getSystemBrightness])); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)isUsingSystemBrightnessAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self isUsingSystemBrightness])); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)getSystemBrightnessModeAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self getSystemBrightnessMode])); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)addListener:(NSString *)eventName {
+  [self.lynxContext sendGlobalEvent:eventName withParams:@[@([self getBrightness])]];
+}
+- (void)removeListeners:(NSInteger)count {}
+
+}

@@ -104,4 +104,52 @@ public class BrightnessModule extends LynxModule {
     }
     return null;
   }
+
+  @LynxMethod
+  public void getBrightnessAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getBrightness()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void setBrightnessAsync(double value, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { setBrightness((float) value); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getSystemBrightnessAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getSystemBrightness()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void isUsingSystemBrightnessAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(isUsingSystemBrightness()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getSystemBrightnessModeAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getSystemBrightnessMode()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void addListener(String eventName) { startBrightnessObserver(eventName); }
+  @LynxMethod
+  public void removeListeners(int count) { stopBrightnessObserver(); }
+
+  private android.database.ContentObserver mBrightnessObserver;
+  private String mBrightnessEventName;
+  private void emitBrightness() {
+    if (mBrightnessEventName == null || mBrightnessObserver == null) return;
+    com.lynx.tasm.behavior.LynxContext ctx = (com.lynx.tasm.behavior.LynxContext) mContext;
+    com.lynx.react.bridge.JavaOnlyArray params = new com.lynx.react.bridge.JavaOnlyArray();
+    params.add(getBrightness());
+    ctx.sendGlobalEvent(mBrightnessEventName, params);
+  }
+  private void startBrightnessObserver(String eventName) {
+    mBrightnessEventName = eventName;
+    final android.net.Uri uri = android.provider.Settings.System.getUriFor(android.provider.Settings.System.SCREEN_BRIGHTNESS);
+    mBrightnessObserver = new android.database.ContentObserver(new android.os.Handler(android.os.Looper.getMainLooper())) {
+      @Override public void onChange(boolean selfChange) { emitBrightness(); }
+    };
+    mContext.getContentResolver().registerContentObserver(uri, true, mBrightnessObserver);
+    emitBrightness();
+  }
+  private void stopBrightnessObserver() {
+    if (mBrightnessObserver != null) mContext.getContentResolver().unregisterContentObserver(mBrightnessObserver);
+    mBrightnessObserver = null; mBrightnessEventName = null;
+  }
 }

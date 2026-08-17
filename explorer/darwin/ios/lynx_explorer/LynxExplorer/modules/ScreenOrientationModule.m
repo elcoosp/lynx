@@ -57,5 +57,28 @@
 
 - (BOOL)supportsOrientationLock {
   return NO;
+
+- (void)getOrientationAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self getOrientation])); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)getOrientationLockAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self getOrientationLock])); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)lockAsync:(NSInteger)orientation resolve:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self lock:orientation]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)unlockAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self lock:0]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)lockPlatformAsync:(NSArray<NSNumber *> *)orientations resolve:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self lockPlatform:orientations]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)supportsOrientationLockAsync:(NSInteger)orientationLock resolve:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { resolve(@([self supportsOrientationLock:orientationLock])); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)addListener:(NSString *)eventName {
+  [self.lynxContext sendGlobalEvent:eventName withParams:@[@([self getOrientation])]];
+}
+- (void)removeListeners:(NSInteger)count {}
+
+}

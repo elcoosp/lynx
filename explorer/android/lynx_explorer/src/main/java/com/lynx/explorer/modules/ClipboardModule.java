@@ -58,4 +58,17 @@ public class ClipboardModule extends LynxModule {
   private ClipboardManager clipboardManager() {
     return (ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
   }
+
+  @LynxMethod
+  public void getStringAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getString()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void setStringAsync(String text, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { setString(text); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void hasStringAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(hasString()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
 }

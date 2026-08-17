@@ -126,4 +126,17 @@ public class HapticsModule extends LynxModule {
       vibrator.vibrate(pattern, repeat);
     }
   }
+
+  @LynxMethod
+  public void impactAsync(int style, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { impactAsync(style); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void notificationAsync(int type, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { notificationAsync(type); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void selectionAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { selectionAsync(); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
 }

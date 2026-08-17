@@ -93,4 +93,44 @@ public class NetworkModule extends LynxModule {
     state.put("isWifiEnabled", wifiEnabled);
     return state;
   }
+
+  @LynxMethod
+  public void getIpAddressAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getIpAddress()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getNetworkStateAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getNetworkState()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void addListener(String eventName) { startNetworkObserver(eventName); }
+  @LynxMethod
+  public void removeListeners(int count) { stopNetworkObserver(); }
+
+  private android.net.ConnectivityManager.NetworkCallback mNetCallback;
+  private String mNetEventName;
+  private void emitNetwork() {
+    if (mNetEventName == null) return;
+    com.lynx.tasm.behavior.LynxContext ctx = (com.lynx.tasm.behavior.LynxContext) mContext;
+    com.lynx.react.bridge.JavaOnlyArray params = new com.lynx.react.bridge.JavaOnlyArray();
+    params.add(getNetworkState());
+    ctx.sendGlobalEvent(mNetEventName, params);
+  }
+  private void startNetworkObserver(String eventName) {
+    mNetEventName = eventName;
+    android.net.ConnectivityManager cm = (android.net.ConnectivityManager) mContext.getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+    mNetCallback = new android.net.ConnectivityManager.NetworkCallback() {
+      @Override public void onAvailable(android.net.Network n) { emitNetwork(); }
+      @Override public void onLost(android.net.Network n) { emitNetwork(); }
+    };
+    try { cm.registerDefaultNetworkCallback(mNetCallback); } catch (Exception ignored) {}
+    emitNetwork();
+  }
+  private void stopNetworkObserver() {
+    if (mNetCallback != null) {
+      android.net.ConnectivityManager cm = (android.net.ConnectivityManager) mContext.getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+      try { cm.unregisterNetworkCallback(mNetCallback); } catch (Exception ignored) {}
+    }
+    mNetCallback = null; mNetEventName = null;
+  }
 }

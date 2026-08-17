@@ -57,4 +57,13 @@ public class StoreReviewModule extends LynxModule {
       return false;
     }
   }
+
+  @LynxMethod
+  public void isAvailableAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(isAvailable()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void requestReviewAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { requestReview(); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
 }

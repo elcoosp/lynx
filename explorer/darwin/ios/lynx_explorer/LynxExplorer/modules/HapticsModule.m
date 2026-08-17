@@ -40,5 +40,15 @@
 - (void)selectionAsync {
   UISelectionFeedbackGenerator *gen = [[UISelectionFeedbackGenerator alloc] init];
   [gen selectionChanged];
+
+- (void)impactAsync:(NSInteger)style resolve:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self impactAsync:style]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
 }
-@end
+- (void)notificationAsync:(NSInteger)type resolve:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self notificationAsync:type]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+- (void)selectionAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
+  @try { [self selectionAsync]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
+}
+
+}

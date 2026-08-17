@@ -50,4 +50,21 @@ public class ImagePickerModule extends LynxModule {
     result.put("expires", "never");
     return result;
   }
+
+  @LynxMethod
+  public void getCameraPermissionsAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getCameraPermissions()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void getMediaLibraryPermissionsAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getMediaLibraryPermissions()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void launchImageLibraryAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getMediaLibraryPermissions()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
+  @LynxMethod
+  public void launchCameraAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
+    try { resolve.invoke(getCameraPermissions()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  }
 }
