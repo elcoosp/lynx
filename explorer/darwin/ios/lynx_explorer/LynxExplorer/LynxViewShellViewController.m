@@ -34,6 +34,8 @@
 #import "NetworkModule.h"
 #import "CryptoModule.h"
 #import "ScreenOrientationModule.h"
+#import "SecureStoreModule.h"
+#import "SensorsModule.h"
 #import "StoreReviewModule.h"
 
 NSString *const kParamHiddenNav = @"hidden_nav";

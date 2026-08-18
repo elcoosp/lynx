@@ -87,7 +87,7 @@
   @try {
     resolve([self getAccelerometer]);
   } @catch (NSException *e) {
-    reject(@"ERR_SENSORS", e.reason);
+    reject([NSString stringWithFormat:@"ERR_SENSORS: %@", e.reason]);
   }
 }
 
@@ -95,7 +95,7 @@
   @try {
     resolve([self getGyroscope]);
   } @catch (NSException *e) {
-    reject(@"ERR_SENSORS", e.reason);
+    reject([NSString stringWithFormat:@"ERR_SENSORS: %@", e.reason]);
   }
 }
 
@@ -103,7 +103,7 @@
   @try {
     resolve([self isAvailable]);
   } @catch (NSException *e) {
-    reject(@"ERR_SENSORS", e.reason);
+    reject([NSString stringWithFormat:@"ERR_SENSORS: %@", e.reason]);
   }
 }
 

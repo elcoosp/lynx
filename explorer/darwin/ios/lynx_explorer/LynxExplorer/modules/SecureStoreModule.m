@@ -42,7 +42,7 @@
               reject:(LynxCallbackBlock)reject {
   @try {
     if (key.length == 0 || value == nil) {
-      reject(@"ERR_SECURE_STORE", @"key and value are required");
+      reject([NSString stringWithFormat:@"ERR_SECURE_STORE: key and value are required"]);
       return;
     }
     NSMutableDictionary *query = [self queryFor:key];
@@ -56,20 +56,19 @@
     if (status == errSecSuccess) {
       resolve(nil);
     } else {
-      reject(@"ERR_SECURE_STORE",
-             [NSString stringWithFormat:@"SecItemAdd failed: %d", (int)status]);
+      reject([NSString stringWithFormat:@"ERR_SECURE_STORE: SecItemAdd failed: %d", (int)status]);
     }
   } @catch (NSException *e) {
-    reject(@"ERR_SECURE_STORE", e.reason);
+    reject([NSString stringWithFormat:@"ERR_SECURE_STORE: %@", e.reason]);
   }
 }
 
 - (void)getItemAsync:(NSString *)key
-              resolve:(LynxCallbackBlock)resolve
-               reject:(LynxCallbackBlock)reject {
+             resolve:(LynxCallbackBlock)resolve
+              reject:(LynxCallbackBlock)reject {
   @try {
     if (key.length == 0) {
-      reject(@"ERR_SECURE_STORE", @"key is required");
+      reject([NSString stringWithFormat:@"ERR_SECURE_STORE: key is required"]);
       return;
     }
     NSMutableDictionary *query = [self queryFor:key];
@@ -89,7 +88,7 @@
       resolve([NSNull null]);
     }
   } @catch (NSException *e) {
-    reject(@"ERR_SECURE_STORE", e.reason);
+    reject([NSString stringWithFormat:@"ERR_SECURE_STORE: %@", e.reason]);
   }
 }
 
@@ -98,14 +97,14 @@
                   reject:(LynxCallbackBlock)reject {
   @try {
     if (key.length == 0) {
-      reject(@"ERR_SECURE_STORE", @"key is required");
+      reject([NSString stringWithFormat:@"ERR_SECURE_STORE: key is required"]);
       return;
     }
     NSMutableDictionary *query = [self queryFor:key];
     SecItemDelete((__bridge CFDictionaryRef)query);
     resolve(nil);
   } @catch (NSException *e) {
-    reject(@"ERR_SECURE_STORE", e.reason);
+    reject([NSString stringWithFormat:@"ERR_SECURE_STORE: %@", e.reason]);
   }
 }
 
@@ -114,7 +113,7 @@
   @try {
     resolve([self isAvailable]);
   } @catch (NSException *e) {
-    reject(@"ERR_SECURE_STORE", e.reason);
+    reject([NSString stringWithFormat:@"ERR_SECURE_STORE: %@", e.reason]);
   }
 }
 

@@ -23,7 +23,8 @@
 		9CE1351EDBE94454A87D55EA /* StoreReviewModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */; };
 		9AB2B36A0B564BF2ACBEDDFE /* CryptoModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 23B3E621F4D640F18AA6CED6 /* CryptoModule.m */; };
 		D16A5C04876D407386A31538 /* LocalAuthenticationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 03F7D8B5124D44A9B88A47D6 /* LocalAuthenticationModule.m */; };
-		A262B0E527F44FA9B28DC871 /* SensorsModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */; };
+				A262B0E527F44FA9B28DC871 /* SensorsModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */; };
+				F1A2C3D4E5F6407192AB3C40 /* SecureStoreModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E1B2C3D4E5F6407192AB3C41 /* SecureStoreModule.m */; };
 		5206A9B80CBD431CBA942530 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1594719CAAB4881B452EF4E /* StoreKit.framework */; };
 		2B06C8442D34FF7D008D40DD /* LynxExplorerInput.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B06C8432D34FF7D008D40DD /* LynxExplorerInput.m */; };
 		2B2AA43D2CA14AC200DB0C3E /* TasmDispatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B2AA43C2CA14AC200DB0C3E /* TasmDispatcher.m */; };
@@ -32,7 +33,9 @@
 		2B382D7E2D17BD1500C67770 /* ExplorerModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B382D7D2D17BD1500C67770 /* ExplorerModule.m */; };
 		2B382D812D17BDC500C67770 /* UIHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B382D802D17BDC500C67770 /* UIHelper.m */; };
 		2B382D862D17C06D00C67770 /* ScanViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B382D852D17C06D00C67770 /* ScanViewController.m */; };
-		2B45A78F2E12870D00EA5D14 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B45A78E2E12870D00EA5D14 /* AVFoundation.framework */; };
+				2B45A78F2E12870D00EA5D14 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B45A78E2E12870D00EA5D14 /* AVFoundation.framework */; };
+				F1C2D3E4A5B6407192AB3C50 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1C2D3E4A5B6407192AB3C51 /* CoreMotion.framework */; };
+				F1C2D3E4A5B6407192AB3C52 /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1C2D3E4A5B6407192AB3C53 /* LocalAuthentication.framework */; };
 		2B590A452D633F3A0041DE80 /* DemoGenericResourceFetcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B590A442D633F3A0041DE80 /* DemoGenericResourceFetcher.m */; };
 		2B590A492D635BEB0041DE80 /* DemoMeidaResourceFetcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B590A482D635BEB0041DE80 /* DemoMeidaResourceFetcher.m */; };
 		2B590A4C2D635CF00041DE80 /* DemoTemplateResourceFetcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B590A4B2D635CF00041DE80 /* DemoTemplateResourceFetcher.m */; };
@@ -129,7 +132,9 @@
 		B014847C68FE4C51A0461BE2 /* LocalAuthenticationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalAuthenticationModule.h; sourceTree = "<group>"; };
 		03F7D8B5124D44A9B88A47D6 /* LocalAuthenticationModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LocalAuthenticationModule.m; sourceTree = "<group>"; };
 		B8DF1A23B02744EC94A14306 /* SensorsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SensorsModule.h; sourceTree = "<group>"; };
-		E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SensorsModule.m; sourceTree = "<group>"; };
+				E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SensorsModule.m; sourceTree = "<group>"; };
+				F1B2C3D4E5F6407192AB3C42 /* SecureStoreModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SecureStoreModule.h; sourceTree = "<group>"; };
+				E1B2C3D4E5F6407192AB3C41 /* SecureStoreModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SecureStoreModule.m; sourceTree = "<group>"; };
 		170544D8B6C54D73B3AC467D /* ApplicationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ApplicationModule.h; sourceTree = "<group>"; };
 		2625597F49024A54A0C40F65 /* BatteryModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BatteryModule.h; sourceTree = "<group>"; };
 		00E2D20A991C4FD9A2505C50 /* BrightnessModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BrightnessModule.h; sourceTree = "<group>"; };
@@ -202,7 +207,9 @@
 		2B382D802D17BDC500C67770 /* UIHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UIHelper.m; sourceTree = "<group>"; };
 		2B382D842D17C06D00C67770 /* ScanViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScanViewController.h; sourceTree = "<group>"; };
 		2B382D852D17C06D00C67770 /* ScanViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ScanViewController.m; sourceTree = "<group>"; };
-		2B45A78E2E12870D00EA5D14 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+				2B45A78E2E12870D00EA5D14 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+				F1C2D3E4A5B6407192AB3C51 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
+				F1C2D3E4A5B6407192AB3C53 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
 		2B590A442D633F3A0041DE80 /* DemoGenericResourceFetcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DemoGenericResourceFetcher.m; sourceTree = "<group>"; };
 		2B590A462D633F560041DE80 /* DemoGenericResourceFetcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DemoGenericResourceFetcher.h; sourceTree = "<group>"; };
 		2B590A472D635BD40041DE80 /* DemoMediaResourceFetcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DemoMediaResourceFetcher.h; sourceTree = "<group>"; };
@@ -272,8 +279,10 @@
 			files = (
 				2B45A78F2E12870D00EA5D14 /* AVFoundation.framework in Frameworks */,
 				7C3C6A602EA1433EBB1F2610 /* Photos.framework in Frameworks */,
-				5206A9B80CBD431CBA942530 /* StoreKit.framework in Frameworks */,
-				455F65A962D4C367198F43C0 /* Pods_LynxExplorer.framework in Frameworks */,
+								5206A9B80CBD431CBA942530 /* StoreKit.framework in Frameworks */,
+								F1C2D3E4A5B6407192AB3C50 /* CoreMotion.framework in Frameworks */,
+								F1C2D3E4A5B6407192AB3C52 /* LocalAuthentication.framework in Frameworks */,
+								455F65A962D4C367198F43C0 /* Pods_LynxExplorer.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -353,7 +362,9 @@
 				B014847C68FE4C51A0461BE2 /* LocalAuthenticationModule.h */,
 				03F7D8B5124D44A9B88A47D6 /* LocalAuthenticationModule.m */,
 				B8DF1A23B02744EC94A14306 /* SensorsModule.h */,
-				E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */,
+								E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */,
+								F1B2C3D4E5F6407192AB3C42 /* SecureStoreModule.h */,
+								E1B2C3D4E5F6407192AB3C41 /* SecureStoreModule.m */,
 				DC706EE4E3554D498DE8334D /* ApplicationModule.h */,
 				739F0759108C41C0A4DE0723 /* BatteryModule.h */,
 				F5FE71FAB9534DE89FE3BAC0 /* BrightnessModule.h */,
@@ -791,7 +802,8 @@
 				9CE1351EDBE94454A87D55EA /* StoreReviewModule.m in Sources */,
 				9AB2B36A0B564BF2ACBEDDFE /* CryptoModule.m in Sources */,
 				D16A5C04876D407386A31538 /* LocalAuthenticationModule.m in Sources */,
-				A262B0E527F44FA9B28DC871 /* SensorsModule.m in Sources */,
+								A262B0E527F44FA9B28DC871 /* SensorsModule.m in Sources */,
+								F1A2C3D4E5F6407192AB3C40 /* SecureStoreModule.m in Sources */,
 				2B2AA43D2CA14AC200DB0C3E /* TasmDispatcher.m in Sources */,
 				2B382D772D17B86300C67770 /* LynxInitProcessor.m in Sources */,
 				7B50D0B31E2C18D34E941800 /* SPKServiceRegistrar.swift in Sources */,
@@ -1039,10 +1051,11 @@
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "LynxExplorer/LynxExplorer-Bridging-Header.h";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
+								SWIFT_VERSION = 5.0;
+								TARGETED_DEVICE_FAMILY = "1,2";
+								DEAD_CODE_STRIPPING = NO;
+							};
+							name = Debug;
 		};
 		2B948FB82C2D9FDC00535C96 /* Release */ = {
 			isa = XCBuildConfiguration;

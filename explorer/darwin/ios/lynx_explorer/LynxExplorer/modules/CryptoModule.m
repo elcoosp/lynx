@@ -99,10 +99,10 @@
     if (result) {
       resolve(result);
     } else {
-      reject(@"ERR_CRYPTO", @"Unsupported algorithm");
+      reject([NSString stringWithFormat:@"ERR_CRYPTO: %@", @"Unsupported algorithm"]);
     }
   } @catch (NSException *e) {
-    reject(@"ERR_CRYPTO", e.reason);
+    reject([NSString stringWithFormat:@"ERR_CRYPTO: %@", e.reason]);
   }
 }
 
@@ -114,10 +114,10 @@
     if (result) {
       resolve(result);
     } else {
-      reject(@"ERR_CRYPTO", @"byteCount must be in range 1..1024");
+      reject([NSString stringWithFormat:@"ERR_CRYPTO: %@", @"byteCount must be in range 1..1024"]);
     }
   } @catch (NSException *e) {
-    reject(@"ERR_CRYPTO", e.reason);
+    reject([NSString stringWithFormat:@"ERR_CRYPTO: %@", e.reason]);
   }
 }
 

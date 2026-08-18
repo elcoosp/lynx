@@ -85,7 +85,7 @@
   @try {
     resolve([self hasHardware]);
   } @catch (NSException *e) {
-    reject(@"ERR_LA", e.reason);
+    reject([NSString stringWithFormat:@"ERR_LA: %@", e.reason]);
   }
 }
 
@@ -93,7 +93,7 @@
   @try {
     resolve([self isEnrolled]);
   } @catch (NSException *e) {
-    reject(@"ERR_LA", e.reason);
+    reject([NSString stringWithFormat:@"ERR_LA: %@", e.reason]);
   }
 }
 
@@ -101,7 +101,7 @@
   @try {
     resolve([self getEnrolledLevel]);
   } @catch (NSException *e) {
-    reject(@"ERR_LA", e.reason);
+    reject([NSString stringWithFormat:@"ERR_LA: %@", e.reason]);
   }
 }
 
@@ -110,7 +110,7 @@
   @try {
     resolve([self supportedAuthenticationTypes]);
   } @catch (NSException *e) {
-    reject(@"ERR_LA", e.reason);
+    reject([NSString stringWithFormat:@"ERR_LA: %@", e.reason]);
   }
 }
 
