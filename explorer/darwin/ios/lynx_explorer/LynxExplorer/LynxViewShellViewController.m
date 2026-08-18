@@ -36,6 +36,7 @@
 #import "ScreenOrientationModule.h"
 #import "SecureStoreModule.h"
 #import "SensorsModule.h"
+#import "FileSystemModule.h"
 #import "StoreReviewModule.h"
 
 NSString *const kParamHiddenNav = @"hidden_nav";
@@ -419,6 +420,7 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     [builder.config registerModule:LocalAuthenticationModule.class];
     [builder.config registerModule:SensorsModule.class];
     [builder.config registerModule:SecureStoreModule.class];
+    [builder.config registerModule:FileSystemModule.class];
     [builder.config registerModule:HapticsModule.class];
     [builder.config registerModule:ClipboardModule.class];
     [builder.config registerModule:CellularModule.class];

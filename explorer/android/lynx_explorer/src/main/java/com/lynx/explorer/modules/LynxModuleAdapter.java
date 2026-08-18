@@ -107,6 +107,7 @@ public class LynxModuleAdapter {
     LynxEnv.inst().registerModule("LocalAuthenticationModule", LocalAuthenticationModule.class);
     LynxEnv.inst().registerModule("SensorsModule", SensorsModule.class);
     LynxEnv.inst().registerModule("SecureStoreModule", SecureStoreModule.class);
+    LynxEnv.inst().registerModule("FileSystemModule", FileSystemModule.class);
 
     LynxDevtoolGlobalHelper.getInstance().registerCardListener(mListener);
   }
