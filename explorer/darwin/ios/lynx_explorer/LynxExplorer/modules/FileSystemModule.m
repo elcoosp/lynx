@@ -10,24 +10,34 @@
   return @"FileSystemModule";
 }
 
+// NOTE: Lynx iOS SDK 1.4.0 emits LynxError 90108 ("Use deprecated native
+// promise") for the resolve:reject: async convention — this is a WARNING, not
+// a hard failure, and the promise still resolves with real data. Using the
+// `:reject:`-only lookup form instead makes buildLookupMap skip the entry
+// (instanceMethodSignatureForSelector returns nil → "cannot be found"), so the
+// full real selector MUST be listed here. This matches the repo-wide async
+// module pattern (SecureStore/Network/Battery async all use resolve:reject:).
 + (NSDictionary<NSString *, NSString *> *)methodLookup {
   return @{
-    @"writeAsStringAsync" : NSStringFromSelector(@selector(writeAsStringAsync:
-                                                                  contents:
-                                                                  resolve:
-                                                                  reject:)),
-    @"readAsStringAsync" : NSStringFromSelector(@selector(readAsStringAsync:
-                                                                  resolve:
-                                                                  reject:)),
+    @"writeAsStringAsync" :
+        NSStringFromSelector(@selector(writeAsStringAsync:
+                                                  contents:
+                                                   resolve:
+                                                    reject:)),
+    @"readAsStringAsync" :
+        NSStringFromSelector(@selector(readAsStringAsync:
+                                                  resolve:
+                                                   reject:)),
     @"getInfoAsync" : NSStringFromSelector(@selector(getInfoAsync:
                                                         resolve:
-                                                        reject:)),
-    @"makeDirectoryAsync" : NSStringFromSelector(@selector(makeDirectoryAsync:
-                                                                resolve:
-                                                                reject:)),
+                                                         reject:)),
+    @"makeDirectoryAsync" :
+        NSStringFromSelector(@selector(makeDirectoryAsync:
+                                                  resolve:
+                                                   reject:)),
     @"deleteAsync" : NSStringFromSelector(@selector(deleteAsync:
-                                                      resolve:
-                                                      reject:)),
+                                                    resolve:
+                                                     reject:)),
   };
 }
 
