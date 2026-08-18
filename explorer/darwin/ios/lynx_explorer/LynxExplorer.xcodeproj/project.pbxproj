@@ -21,6 +21,9 @@
 		A9BD07DDD70345EF9BAFA72C /* NetworkModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE213E0AC44C8D97F8AAAB /* NetworkModule.m */; };
 		5942489A7FA6450C8A3DD298 /* ScreenOrientationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = AC566ECCC99B4F71B6D31455 /* ScreenOrientationModule.m */; };
 		9CE1351EDBE94454A87D55EA /* StoreReviewModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */; };
+		9AB2B36A0B564BF2ACBEDDFE /* CryptoModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 23B3E621F4D640F18AA6CED6 /* CryptoModule.m */; };
+		D16A5C04876D407386A31538 /* LocalAuthenticationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 03F7D8B5124D44A9B88A47D6 /* LocalAuthenticationModule.m */; };
+		A262B0E527F44FA9B28DC871 /* SensorsModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */; };
 		5206A9B80CBD431CBA942530 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1594719CAAB4881B452EF4E /* StoreKit.framework */; };
 		2B06C8442D34FF7D008D40DD /* LynxExplorerInput.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B06C8432D34FF7D008D40DD /* LynxExplorerInput.m */; };
 		2B2AA43D2CA14AC200DB0C3E /* TasmDispatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B2AA43C2CA14AC200DB0C3E /* TasmDispatcher.m */; };
@@ -121,6 +124,12 @@
 		5393521CB3574D53A6B85F6A /* NetworkModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkModule.h; sourceTree = "<group>"; };
 		FFD4827AC1E14F35A0A482C1 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
 		8D1FFF5C0E674E30B5798D81 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
+		18C5CE83491747D1898E91FB /* CryptoModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CryptoModule.h; sourceTree = "<group>"; };
+		23B3E621F4D640F18AA6CED6 /* CryptoModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CryptoModule.m; sourceTree = "<group>"; };
+		B014847C68FE4C51A0461BE2 /* LocalAuthenticationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalAuthenticationModule.h; sourceTree = "<group>"; };
+		03F7D8B5124D44A9B88A47D6 /* LocalAuthenticationModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LocalAuthenticationModule.m; sourceTree = "<group>"; };
+		B8DF1A23B02744EC94A14306 /* SensorsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SensorsModule.h; sourceTree = "<group>"; };
+		E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SensorsModule.m; sourceTree = "<group>"; };
 		170544D8B6C54D73B3AC467D /* ApplicationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ApplicationModule.h; sourceTree = "<group>"; };
 		2625597F49024A54A0C40F65 /* BatteryModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BatteryModule.h; sourceTree = "<group>"; };
 		00E2D20A991C4FD9A2505C50 /* BrightnessModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BrightnessModule.h; sourceTree = "<group>"; };
@@ -339,6 +348,12 @@
 				AC566ECCC99B4F71B6D31455 /* ScreenOrientationModule.m */,
 				0604C6009257498A9E6FD936 /* StoreReviewModule.h */,
 				8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */,
+				18C5CE83491747D1898E91FB /* CryptoModule.h */,
+				23B3E621F4D640F18AA6CED6 /* CryptoModule.m */,
+				B014847C68FE4C51A0461BE2 /* LocalAuthenticationModule.h */,
+				03F7D8B5124D44A9B88A47D6 /* LocalAuthenticationModule.m */,
+				B8DF1A23B02744EC94A14306 /* SensorsModule.h */,
+				E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */,
 				DC706EE4E3554D498DE8334D /* ApplicationModule.h */,
 				739F0759108C41C0A4DE0723 /* BatteryModule.h */,
 				F5FE71FAB9534DE89FE3BAC0 /* BrightnessModule.h */,
@@ -774,6 +789,9 @@
 				A9BD07DDD70345EF9BAFA72C /* NetworkModule.m in Sources */,
 				5942489A7FA6450C8A3DD298 /* ScreenOrientationModule.m in Sources */,
 				9CE1351EDBE94454A87D55EA /* StoreReviewModule.m in Sources */,
+				9AB2B36A0B564BF2ACBEDDFE /* CryptoModule.m in Sources */,
+				D16A5C04876D407386A31538 /* LocalAuthenticationModule.m in Sources */,
+				A262B0E527F44FA9B28DC871 /* SensorsModule.m in Sources */,
 				2B2AA43D2CA14AC200DB0C3E /* TasmDispatcher.m in Sources */,
 				2B382D772D17B86300C67770 /* LynxInitProcessor.m in Sources */,
 				7B50D0B31E2C18D34E941800 /* SPKServiceRegistrar.swift in Sources */,
