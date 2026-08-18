@@ -103,6 +103,7 @@ public class LynxModuleAdapter {
     LynxEnv.inst().registerModule("ScreenOrientationModule", ScreenOrientationModule.class);
     LynxEnv.inst().registerModule("ClipboardModule", ClipboardModule.class);
     LynxEnv.inst().registerModule("ImagePickerModule", ImagePickerModule.class);
+    LynxEnv.inst().registerModule("CryptoModule", CryptoModule.class);
 
     LynxDevtoolGlobalHelper.getInstance().registerCardListener(mListener);
   }

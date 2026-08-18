@@ -20,6 +20,20 @@
 #import "DeviceModule.h"
 #import "LynxSettingManager.h"
 #import "UIHelper.h"
+#import "ApplicationModule.h"
+#import "BatteryModule.h"
+#import "BrightnessModule.h"
+#import "CellularModule.h"
+#import "ClipboardModule.h"
+#import "HapticsModule.h"
+#import "ImagePickerModule.h"
+#import "KeepAwakeModule.h"
+#import "LocalizationModule.h"
+#import "MailComposerModule.h"
+#import "NetworkModule.h"
+#import "CryptoModule.h"
+#import "ScreenOrientationModule.h"
+#import "StoreReviewModule.h"
 
 NSString *const kParamHiddenNav = @"hidden_nav";
 NSString *const kParamFullScreen = @"fullscreen";
@@ -391,8 +405,26 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     // for homepage only
     [builder.config registerUI:LynxExplorerInput.class withName:@"explorer-input"];
     [builder.config registerModule:LynxNodeAPIModule.class param:self];
+    [builder.config registerModule:StoreReviewModule.class];
+    [builder.config registerModule:ScreenOrientationModule.class];
+    [builder.config registerModule:NetworkModule.class];
+    [builder.config registerModule:MailComposerModule.class];
+    [builder.config registerModule:LocalizationModule.class];
+    [builder.config registerModule:KeepAwakeModule.class];
+    [builder.config registerModule:ImagePickerModule.class];
+    [builder.config registerModule:CryptoModule.class];
+    [builder.config registerModule:HapticsModule.class];
+    [builder.config registerModule:ClipboardModule.class];
+    [builder.config registerModule:CellularModule.class];
+    [builder.config registerModule:BrightnessModule.class];
+    [builder.config registerModule:BatteryModule.class];
+    [builder.config registerModule:ApplicationModule.class];
     // lynxpo: register the iOS DeviceModule so @lynxpo/mods-device returns real data
     [builder.config registerModule:DeviceModule.class];
+    // lynxpo: register the rest of the Expo-port native modules so their
+    // `NativeModules.<X>Module` surface is available on iOS (mirrors Android's
+    // LynxModuleAdapter registration). Without these, every showcase card
+    // renders "—" on iOS while Android populates real values.
     // Add fetchers
     builder.enableGenericResourceFetcher = true;
     builder.genericResourceFetcher = [[DemoGenericResourceFetcher alloc] init];
