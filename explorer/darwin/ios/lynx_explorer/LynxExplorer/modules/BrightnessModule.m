@@ -39,6 +39,7 @@
 
 - (int)getSystemBrightnessMode {
   return 2; // MANUAL on iOS (system auto-brightness not directly readable)
+}
 
 - (void)getBrightnessAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
   @try { resolve(@([self getBrightness])); } @catch (NSException *e) { reject(e.reason); }
@@ -56,8 +57,9 @@
   @try { resolve(@([self getSystemBrightnessMode])); } @catch (NSException *e) { reject(e.reason); }
 }
 - (void)addListener:(NSString *)eventName {
-  [self.lynxContext sendGlobalEvent:eventName withParams:@[@([self getBrightness])]];
+  // The LynxPo playground showcase reads values via the *Async promise APIs,
+  // not via native events, so listener registration is a safe no-op here.
 }
 - (void)removeListeners:(NSInteger)count {}
 
-}
+@end

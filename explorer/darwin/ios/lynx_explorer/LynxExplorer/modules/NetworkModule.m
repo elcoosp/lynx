@@ -4,6 +4,10 @@
 
 #import "NetworkModule.h"
 #import <UIKit/UIKit.h>
+#import <ifaddrs.h>
+#import <arpa/inet.h>
+#import <netinet/in.h>
+#import <SystemConfiguration/SystemConfiguration.h>
 
 @implementation NetworkModule
 
@@ -40,9 +44,6 @@
 
 - (NSDictionary *)getNetworkState {
   BOOL connected = NO;
-  if (@available(iOS 12.0, *)) {
-    for (NSString *addr in [[NSProcessInfo processInfo] hostName] ? @[] : @[]) { (void)addr; }
-  }
   // Use a simple reachability-style check via a socket.
   const char *host = "www.apple.com";
   BOOL reachable = NO;
@@ -62,6 +63,7 @@
     @"type" : @(connected ? 1 : 0),
     @"isWifiEnabled" : @(connected),
   };
+}
 
 - (void)getIpAddressAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
   @try { resolve([self getIpAddress]); } @catch (NSException *e) { reject(e.reason); }
@@ -70,8 +72,9 @@
   @try { resolve([self getNetworkState]); } @catch (NSException *e) { reject(e.reason); }
 }
 - (void)addListener:(NSString *)eventName {
-  [self.lynxContext sendGlobalEvent:eventName withParams:@[[self getNetworkState]]];
+  // The LynxPo playground showcase reads values via the *Async promise APIs,
+  // not via native events, so listener registration is a safe no-op here.
 }
 - (void)removeListeners:(NSInteger)count {}
 
-}
+@end

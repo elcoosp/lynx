@@ -16,12 +16,16 @@
     @"getString" : NSStringFromSelector(@selector(getString)),
     @"setString" : NSStringFromSelector(@selector(setString:)),
     @"hasString" : NSStringFromSelector(@selector(hasString)),
+    // Async variants (required by the generated TS wrappers).
+    @"getStringAsync" : NSStringFromSelector(@selector(getStringAsync:reject:)),
+    @"setStringAsync" : NSStringFromSelector(@selector(setStringAsync:reject:)),
+    @"hasStringAsync" : NSStringFromSelector(@selector(hasStringAsync:reject:)),
   };
 }
 
 - (NSString *)getString {
   UIPasteboard *pb = UIPasteboard.generalPasteboard;
-  return pb.string ?: [pb.string isEqualToString:@""] ? @"" : nil;
+  return pb.string ?: @"";
 }
 
 - (void)setString:(NSString *)text {
@@ -30,6 +34,7 @@
 
 - (BOOL)hasString {
   return UIPasteboard.generalPasteboard.string.length > 0;
+}
 
 - (void)getStringAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
   @try { resolve([self getString]); } @catch (NSException *e) { reject(e.reason); }
@@ -41,4 +46,4 @@
   @try { resolve(@([self hasString])); } @catch (NSException *e) { reject(e.reason); }
 }
 
-}
+@end

@@ -10,6 +10,8 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.jsbridge.Promise;
+import com.lynx.react.bridge.JavaOnlyArray;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,23 +37,23 @@ public class MailComposerModule extends LynxModule {
   }
 
   @LynxMethod
-  public List<String> getClients() {
-    List<String> clients = new ArrayList<>();
+  public JavaOnlyArray getClients() {
+    JavaOnlyArray clients = new JavaOnlyArray();
     Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", "", null));
     PackageManager pm = mContext.getPackageManager();
     List<ResolveInfo> resolveInfos =
         pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
     for (ResolveInfo info : resolveInfos) {
-      clients.add(info.activityInfo.packageName);
+      clients.pushString(info.activityInfo.packageName);
     }
     return clients;
   }
 
   @LynxMethod
-  public void compose(String subject, String body, List<String> recipients) {
+  public void compose(String subject, String body, String recipients) {
     Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", "", null));
     if (recipients != null && !recipients.isEmpty()) {
-      intent.putExtra(Intent.EXTRA_EMAIL, recipients.toArray(new String[0]));
+      intent.putExtra(Intent.EXTRA_EMAIL, recipients.split(","));
     }
     if (subject != null) {
       intent.putExtra(Intent.EXTRA_SUBJECT, subject);
@@ -64,15 +66,30 @@ public class MailComposerModule extends LynxModule {
   }
 
   @LynxMethod
-  public void isAvailableAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(isAvailable()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void isAvailableAsync(final Promise promise) {
+    try {
+      promise.resolve(isAvailable());
+    } catch (Exception e) {
+      promise.reject("ERROR", e.getMessage());
+    }
   }
+
   @LynxMethod
-  public void getClientsAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getClients()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getClientsAsync(final Promise promise) {
+    try {
+      promise.resolve(getClients());
+    } catch (Exception e) {
+      promise.reject("ERROR", e.getMessage());
+    }
   }
+
   @LynxMethod
-  public void composeAsync(String subject, String body, java.util.List<String> recipients, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { compose(subject, body, recipients); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void composeAsync(String subject, String body, String recipients, final Promise promise) {
+    try {
+      compose(subject, body, recipients);
+      promise.resolve(null);
+    } catch (Exception e) {
+      promise.reject("ERROR", e.getMessage());
+    }
   }
 }

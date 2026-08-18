@@ -7,6 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C3C6A602EA1433EBB1F2610 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E3F070B78CB64996AE9032B7 /* Photos.framework */; };
+		656A6D24A89D4B1790C9E425 /* ApplicationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 5666580786A44098AB66AB82 /* ApplicationModule.m */; };
+		E527AAB2959A4F039663CDCF /* BatteryModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 35BDFC2BDECF4FF58097C7AE /* BatteryModule.m */; };
+		B690B54DA5164276834BED67 /* BrightnessModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 769BAEF8839C45CC90450996 /* BrightnessModule.m */; };
+		39F65BDE23CC48A38FEBE18F /* CellularModule.m in Sources */ = {isa = PBXBuildFile; fileRef = F410F51DA98F48D684D8E80F /* CellularModule.m */; };
+		FF989F79872A4298909537F6 /* ClipboardModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 9DA84C02162C49A38E2D2BD8 /* ClipboardModule.m */; };
+		0C1FCEBC12C14F129025DFF8 /* HapticsModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 37A9DF7C9C754C03AB589DDE /* HapticsModule.m */; };
+		4730819FFB5B47B2AC3BC6F9 /* ImagePickerModule.m in Sources */ = {isa = PBXBuildFile; fileRef = F7D63A000B2B4D3795ACE694 /* ImagePickerModule.m */; };
+		0D5BAAE9E1FA4DDE954A911D /* KeepAwakeModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 95378DAA6FC844A9988EA892 /* KeepAwakeModule.m */; };
+		EB870ABE7D564DFB9C535065 /* LocalizationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 319A2559533C464991DEFF3E /* LocalizationModule.m */; };
+		F1AA79FA5CC348D6BEE773F5 /* MailComposerModule.m in Sources */ = {isa = PBXBuildFile; fileRef = D04E4E22F4DB47A7983CD854 /* MailComposerModule.m */; };
+		A9BD07DDD70345EF9BAFA72C /* NetworkModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE213E0AC44C8D97F8AAAB /* NetworkModule.m */; };
+		5942489A7FA6450C8A3DD298 /* ScreenOrientationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = AC566ECCC99B4F71B6D31455 /* ScreenOrientationModule.m */; };
+		9CE1351EDBE94454A87D55EA /* StoreReviewModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */; };
+		5206A9B80CBD431CBA942530 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1594719CAAB4881B452EF4E /* StoreKit.framework */; };
 		2B06C8442D34FF7D008D40DD /* LynxExplorerInput.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B06C8432D34FF7D008D40DD /* LynxExplorerInput.m */; };
 		2B2AA43D2CA14AC200DB0C3E /* TasmDispatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B2AA43C2CA14AC200DB0C3E /* TasmDispatcher.m */; };
 		2B382D772D17B86300C67770 /* LynxInitProcessor.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B382D762D17B86300C67770 /* LynxInitProcessor.m */; };
@@ -30,10 +45,9 @@
 		2BEA8AEA2E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BEA8AE92E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.m */; };
 		3B03DDD06103F6E706441C7B /* LynxNodeAPIModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28FD8BB8690C767E28B8B1A7 /* LynxNodeAPIModule.mm */; };
 		40291E286388457AB37272AF /* DeviceModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 29593FF631FD44EEBD8E8E00 /* DeviceModule.m */; };
+		455F65A962D4C367198F43C0 /* Pods_LynxExplorer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B20C439237B8FC5CD49DAA94 /* Pods_LynxExplorer.framework */; };
 		7B50D0B31E2C18D34E941800 /* SPKServiceRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6CEA873C7121D005AC53896 /* SPKServiceRegistrar.swift */; };
-		A4E2D08FF68A40345FEBD4C7 /* Pods_LynxExplorerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 746FE5B30BC87E4125E386DD /* Pods_LynxExplorerTests.framework */; };
 		A8715579043207D37CD2D644 /* LynxNodeAPI.cc in Sources */ = {isa = PBXBuildFile; fileRef = E34A26BD2270292DB2C29E7C /* LynxNodeAPI.cc */; };
-		AE791180861A5FA78F2331B6 /* Pods_LynxExplorer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B9EEEA85C51DE5FDE295562A /* Pods_LynxExplorer.framework */; };
 		BD8C210A0F8DB920B1AEEAFA /* RouterServiceImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 788EA02E6300A547EB752932 /* RouterServiceImpl.swift */; };
 		C0DE00000000000000000011 /* LaunchDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000001 /* LaunchDescriptor.swift */; };
 		C0DE00000000000000000012 /* LaunchDescriptorParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000002 /* LaunchDescriptorParser.swift */; };
@@ -53,6 +67,7 @@
 		C0DE00000000000000000021 /* RouteEntryAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000020 /* RouteEntryAdapter.swift */; };
 		C0DE00000000000000000022 /* ExplorerLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000023 /* ExplorerLoadingView.swift */; };
 		F253146C82DD1031001E296D /* LynxNodeAPILifecycleListener.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2868314E5A1E86DB78660DF8 /* LynxNodeAPILifecycleListener.mm */; };
+		FCDCFAC8ED4DEC4A4E76E61B /* Pods_LynxExplorerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 04983DD422E04617E339C08C /* Pods_LynxExplorerTests.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +81,101 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E3F070B78CB64996AE9032B7 /* Photos.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Photos.framework; path = System/Library/Frameworks/Photos.framework; sourceTree = SDKROOT; };
+		5666580786A44098AB66AB82 /* ApplicationModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ApplicationModule.m; sourceTree = "<group>"; };
+		C9E4EB0522434A77985034FC /* ApplicationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ApplicationModule.h; sourceTree = "<group>"; };
+		35BDFC2BDECF4FF58097C7AE /* BatteryModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BatteryModule.m; sourceTree = "<group>"; };
+		B4152DB461F842E1BD11970E /* BatteryModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BatteryModule.h; sourceTree = "<group>"; };
+		769BAEF8839C45CC90450996 /* BrightnessModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BrightnessModule.m; sourceTree = "<group>"; };
+		DB1A3DB0BA0146E29258A439 /* BrightnessModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BrightnessModule.h; sourceTree = "<group>"; };
+		F410F51DA98F48D684D8E80F /* CellularModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CellularModule.m; sourceTree = "<group>"; };
+		F40BB34DC86C473682C7161B /* CellularModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CellularModule.h; sourceTree = "<group>"; };
+		9DA84C02162C49A38E2D2BD8 /* ClipboardModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ClipboardModule.m; sourceTree = "<group>"; };
+		091707EE1B434794BB0BE606 /* ClipboardModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ClipboardModule.h; sourceTree = "<group>"; };
+		37A9DF7C9C754C03AB589DDE /* HapticsModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HapticsModule.m; sourceTree = "<group>"; };
+		88BC6A96A69C4ABFAD741F29 /* HapticsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HapticsModule.h; sourceTree = "<group>"; };
+		F7D63A000B2B4D3795ACE694 /* ImagePickerModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ImagePickerModule.m; sourceTree = "<group>"; };
+		B75BF6BB7F4043E4BB99FA08 /* ImagePickerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImagePickerModule.h; sourceTree = "<group>"; };
+		95378DAA6FC844A9988EA892 /* KeepAwakeModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KeepAwakeModule.m; sourceTree = "<group>"; };
+		BC0370CA51E94022AD1D1144 /* KeepAwakeModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeepAwakeModule.h; sourceTree = "<group>"; };
+		319A2559533C464991DEFF3E /* LocalizationModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LocalizationModule.m; sourceTree = "<group>"; };
+		7204E2908E91469681EB4B43 /* LocalizationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalizationModule.h; sourceTree = "<group>"; };
+		D04E4E22F4DB47A7983CD854 /* MailComposerModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MailComposerModule.m; sourceTree = "<group>"; };
+		918A02617CE641F5B63CD982 /* MailComposerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MailComposerModule.h; sourceTree = "<group>"; };
+		7BAE213E0AC44C8D97F8AAAB /* NetworkModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NetworkModule.m; sourceTree = "<group>"; };
+		CD4F2041AC644BC09E157144 /* NetworkModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkModule.h; sourceTree = "<group>"; };
+		AC566ECCC99B4F71B6D31455 /* ScreenOrientationModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ScreenOrientationModule.m; sourceTree = "<group>"; };
+		ACC0CDB08D6240889362E0A3 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
+		8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StoreReviewModule.m; sourceTree = "<group>"; };
+		0604C6009257498A9E6FD936 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
+		DC706EE4E3554D498DE8334D /* ApplicationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ApplicationModule.h; sourceTree = "<group>"; };
+		739F0759108C41C0A4DE0723 /* BatteryModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BatteryModule.h; sourceTree = "<group>"; };
+		F5FE71FAB9534DE89FE3BAC0 /* BrightnessModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BrightnessModule.h; sourceTree = "<group>"; };
+		634CEA5EF7704543A9C591AD /* CellularModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CellularModule.h; sourceTree = "<group>"; };
+		9E20D0399785450DAA4AE9E3 /* ClipboardModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ClipboardModule.h; sourceTree = "<group>"; };
+		6CD8800CD66F47FF885E986F /* HapticsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HapticsModule.h; sourceTree = "<group>"; };
+		A68DAD346E4D4820A7116D56 /* ImagePickerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImagePickerModule.h; sourceTree = "<group>"; };
+		2C44202A8CC0485CB5EDFC9C /* KeepAwakeModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeepAwakeModule.h; sourceTree = "<group>"; };
+		6158E14131C541CAB0849AD8 /* LocalizationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalizationModule.h; sourceTree = "<group>"; };
+		F450D7CD19784037BF6D5B04 /* MailComposerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MailComposerModule.h; sourceTree = "<group>"; };
+		5393521CB3574D53A6B85F6A /* NetworkModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkModule.h; sourceTree = "<group>"; };
+		FFD4827AC1E14F35A0A482C1 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
+		8D1FFF5C0E674E30B5798D81 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
+		170544D8B6C54D73B3AC467D /* ApplicationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ApplicationModule.h; sourceTree = "<group>"; };
+		2625597F49024A54A0C40F65 /* BatteryModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BatteryModule.h; sourceTree = "<group>"; };
+		00E2D20A991C4FD9A2505C50 /* BrightnessModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BrightnessModule.h; sourceTree = "<group>"; };
+		AF4E05E7AB6E442589FCA5DC /* CellularModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CellularModule.h; sourceTree = "<group>"; };
+		AC578AE8F0214351B9343738 /* ClipboardModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ClipboardModule.h; sourceTree = "<group>"; };
+		368CE7A3BB7248EA8F9D567B /* HapticsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HapticsModule.h; sourceTree = "<group>"; };
+		6027E5BEAC4B48E4A3F923CA /* ImagePickerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImagePickerModule.h; sourceTree = "<group>"; };
+		D939F51FCB3E4E14B452F488 /* KeepAwakeModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeepAwakeModule.h; sourceTree = "<group>"; };
+		7333447EA1A844389FDA663A /* LocalizationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalizationModule.h; sourceTree = "<group>"; };
+		B83803681B96429985900FE6 /* MailComposerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MailComposerModule.h; sourceTree = "<group>"; };
+		67B576B708324EDCB81BD60C /* NetworkModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkModule.h; sourceTree = "<group>"; };
+		A13EF472D2784A36BAC0C8D0 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
+		9FD1E84D2F154E0EB65F4E4A /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
+		7FA27127CE3646FFBA4F50FE /* ApplicationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ApplicationModule.h; sourceTree = "<group>"; };
+		81DED127A49849A489E314EC /* BatteryModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BatteryModule.h; sourceTree = "<group>"; };
+		EB68C395094C48F4990BDB26 /* BrightnessModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BrightnessModule.h; sourceTree = "<group>"; };
+		EECE5EBA883C425A95E9A3A8 /* CellularModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CellularModule.h; sourceTree = "<group>"; };
+		D76E9B39AAA949CFB448DD25 /* ClipboardModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ClipboardModule.h; sourceTree = "<group>"; };
+		3A53C9EB6AC64D97AE8C0EC3 /* HapticsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HapticsModule.h; sourceTree = "<group>"; };
+		7F02743CD0C14557A71335B5 /* ImagePickerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImagePickerModule.h; sourceTree = "<group>"; };
+		A3B4637DA0F74E7FBE707324 /* KeepAwakeModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeepAwakeModule.h; sourceTree = "<group>"; };
+		9E86684F42CA4A4B9C7AF62F /* LocalizationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalizationModule.h; sourceTree = "<group>"; };
+		5F8D081322E84F89B34EC3D2 /* MailComposerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MailComposerModule.h; sourceTree = "<group>"; };
+		49D1B60059834C048C7156AD /* NetworkModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkModule.h; sourceTree = "<group>"; };
+		D6DCC8D4966745ED83FBDD89 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
+		5395CC9B37F942A3AED11869 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
+		5C342B921CA544DA87298985 /* ApplicationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ApplicationModule.h; sourceTree = "<group>"; };
+		5A04B1C4543D4D93A21A0FAB /* BatteryModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BatteryModule.h; sourceTree = "<group>"; };
+		539E2AD6E5B4473FA294C04C /* BrightnessModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BrightnessModule.h; sourceTree = "<group>"; };
+		DCD84D5BF80E4788B2D072FD /* CellularModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CellularModule.h; sourceTree = "<group>"; };
+		042CA4EBF0EC45A6A6554004 /* ClipboardModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ClipboardModule.h; sourceTree = "<group>"; };
+		DEEA616BC15C4B7695EEE4E7 /* HapticsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HapticsModule.h; sourceTree = "<group>"; };
+		B628EED911AD41AF8D1F5DDF /* ImagePickerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImagePickerModule.h; sourceTree = "<group>"; };
+		D1AFC5C3092A46B39738076D /* KeepAwakeModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeepAwakeModule.h; sourceTree = "<group>"; };
+		407B5A063057457884EFCEE9 /* LocalizationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalizationModule.h; sourceTree = "<group>"; };
+		71836C8F7E884F57A2A5E118 /* MailComposerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MailComposerModule.h; sourceTree = "<group>"; };
+		DFF3DD97818C45BE9F93FA3C /* NetworkModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkModule.h; sourceTree = "<group>"; };
+		9AB2EF7A50804C458020FA8E /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
+		A2784F2D289143008F95DDBC /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
+		4B6A0BA20C29437DB164478A /* ApplicationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ApplicationModule.h; sourceTree = "<group>"; };
+		B26CFA1E93954443AED9FDD0 /* BatteryModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BatteryModule.h; sourceTree = "<group>"; };
+		90ECD67CB3A14C2A8DC76395 /* BrightnessModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BrightnessModule.h; sourceTree = "<group>"; };
+		BD585778F6654FDF95890DFD /* CellularModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CellularModule.h; sourceTree = "<group>"; };
+		C081808C86464F7188CDEFAC /* ClipboardModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ClipboardModule.h; sourceTree = "<group>"; };
+		1A0690EE699A4B7995BC5F16 /* HapticsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HapticsModule.h; sourceTree = "<group>"; };
+		1E497ECEBEA842A1B3957F89 /* ImagePickerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImagePickerModule.h; sourceTree = "<group>"; };
+		C523AE8314A446468F079F1D /* KeepAwakeModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeepAwakeModule.h; sourceTree = "<group>"; };
+		60AFCF7924BB4FCD8F10E767 /* LocalizationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalizationModule.h; sourceTree = "<group>"; };
+		A7BF5603F88445AFB6E26372 /* MailComposerModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MailComposerModule.h; sourceTree = "<group>"; };
+		A9D81C554F2A45A7AABC0C52 /* NetworkModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkModule.h; sourceTree = "<group>"; };
+		017852EE383A4309AE7F99B6 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
+		0406A1B25AC54CF0B035A7D3 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
+		E1594719CAAB4881B452EF4E /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		04983DD422E04617E339C08C /* Pods_LynxExplorerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LynxExplorerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		06689C9657D7C23737564C9D /* Pods-LynxExplorer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.debug.xcconfig"; sourceTree = "<group>"; };
 		2868314E5A1E86DB78660DF8 /* LynxNodeAPILifecycleListener.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; name = LynxNodeAPILifecycleListener.mm; path = LynxExplorer/modules/LynxNodeAPILifecycleListener.mm; sourceTree = "<group>"; };
 		28FD8BB8690C767E28B8B1A7 /* LynxNodeAPIModule.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; name = LynxNodeAPIModule.mm; path = LynxExplorer/modules/LynxNodeAPIModule.mm; sourceTree = "<group>"; };
 		29593FF631FD44EEBD8E8E00 /* DeviceModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DeviceModule.m; sourceTree = "<group>"; };
@@ -107,15 +217,13 @@
 		2BB78AD22D1D18FA00060E1C /* LynxSettingManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LynxSettingManager.m; sourceTree = "<group>"; };
 		2BEA8AE82E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LynxRecorderDefaultActionCallback.h; sourceTree = "<group>"; };
 		2BEA8AE92E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LynxRecorderDefaultActionCallback.m; sourceTree = "<group>"; };
-		463C602489C0D0AB963BAF08 /* Pods-LynxExplorer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.debug.xcconfig"; sourceTree = "<group>"; };
-		519A41EB8FCBB810EDFC9C51 /* Pods-LynxExplorerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorerTests.release.xcconfig"; path = "Target Support Files/Pods-LynxExplorerTests/Pods-LynxExplorerTests.release.xcconfig"; sourceTree = "<group>"; };
+		3D5136B1061E6DA78988D03D /* Pods-LynxExplorer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.release.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.release.xcconfig"; sourceTree = "<group>"; };
 		53834B67B76E49F9984EEA38 /* DeviceModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DeviceModule.h; sourceTree = "<group>"; };
+		57ED863821DCD17A208774F0 /* Pods-LynxExplorerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorerTests.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorerTests/Pods-LynxExplorerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		6A2EED25F509F8799752D130 /* LynxNodeAPIModule.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = LynxNodeAPIModule.h; path = LynxExplorer/modules/LynxNodeAPIModule.h; sourceTree = "<group>"; };
-		746FE5B30BC87E4125E386DD /* Pods_LynxExplorerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LynxExplorerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		788EA02E6300A547EB752932 /* RouterServiceImpl.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RouterServiceImpl.swift; sourceTree = "<group>"; };
 		8C1370CB7EB592C4C56D8443 /* LynxNodeAPILifecycleListener.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = LynxNodeAPILifecycleListener.h; path = LynxExplorer/modules/LynxNodeAPILifecycleListener.h; sourceTree = "<group>"; };
-		B9EEEA85C51DE5FDE295562A /* Pods_LynxExplorer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LynxExplorer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		BD77C16C23E08F673DEDFB74 /* Pods-LynxExplorer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.release.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.release.xcconfig"; sourceTree = "<group>"; };
+		B20C439237B8FC5CD49DAA94 /* Pods_LynxExplorer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LynxExplorer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0DE00000000000000000001 /* LaunchDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchDescriptor.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000002 /* LaunchDescriptorParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchDescriptorParser.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000003 /* LaunchDescriptorParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchDescriptorParserTests.swift; sourceTree = "<group>"; };
@@ -136,8 +244,8 @@
 		D6CEA873C7121D005AC53896 /* SPKServiceRegistrar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SPKServiceRegistrar.swift; sourceTree = "<group>"; };
 		DF169EBBCC082EC6EA23B30F /* LynxExplorer-Bridging-Header.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "LynxExplorer-Bridging-Header.h"; sourceTree = "<group>"; };
 		E34A26BD2270292DB2C29E7C /* LynxNodeAPI.cc */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; name = LynxNodeAPI.cc; path = ../../../../explorer/cpp/LynxNodeAPI.cc; sourceTree = "<group>"; };
+		EB1305961A484453D956B5DF /* Pods-LynxExplorerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorerTests.release.xcconfig"; path = "Target Support Files/Pods-LynxExplorerTests/Pods-LynxExplorerTests.release.xcconfig"; sourceTree = "<group>"; };
 		F6836D27F25227FB38B03854 /* LynxNodeAPI.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = LynxNodeAPI.h; path = ../../../../explorer/cpp/LynxNodeAPI.h; sourceTree = "<group>"; };
-		FB082CF4F77832AEF13ED0AF /* Pods-LynxExplorerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorerTests.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorerTests/Pods-LynxExplorerTests.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,7 +253,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A4E2D08FF68A40345FEBD4C7 /* Pods_LynxExplorerTests.framework in Frameworks */,
+				FCDCFAC8ED4DEC4A4E76E61B /* Pods_LynxExplorerTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -154,7 +262,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				2B45A78F2E12870D00EA5D14 /* AVFoundation.framework in Frameworks */,
-				AE791180861A5FA78F2331B6 /* Pods_LynxExplorer.framework in Frameworks */,
+				7C3C6A602EA1433EBB1F2610 /* Photos.framework in Frameworks */,
+				5206A9B80CBD431CBA942530 /* StoreKit.framework in Frameworks */,
+				455F65A962D4C367198F43C0 /* Pods_LynxExplorer.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -164,10 +274,10 @@
 		00E4BAD064BBA6BEF5495D94 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				463C602489C0D0AB963BAF08 /* Pods-LynxExplorer.debug.xcconfig */,
-				BD77C16C23E08F673DEDFB74 /* Pods-LynxExplorer.release.xcconfig */,
-				FB082CF4F77832AEF13ED0AF /* Pods-LynxExplorerTests.debug.xcconfig */,
-				519A41EB8FCBB810EDFC9C51 /* Pods-LynxExplorerTests.release.xcconfig */,
+				06689C9657D7C23737564C9D /* Pods-LynxExplorer.debug.xcconfig */,
+				3D5136B1061E6DA78988D03D /* Pods-LynxExplorer.release.xcconfig */,
+				57ED863821DCD17A208774F0 /* Pods-LynxExplorerTests.debug.xcconfig */,
+				EB1305961A484453D956B5DF /* Pods-LynxExplorerTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -203,6 +313,97 @@
 				2B382D7D2D17BD1500C67770 /* ExplorerModule.m */,
 				53834B67B76E49F9984EEA38 /* DeviceModule.h */,
 				29593FF631FD44EEBD8E8E00 /* DeviceModule.m */,
+				C9E4EB0522434A77985034FC /* ApplicationModule.h */,
+				5666580786A44098AB66AB82 /* ApplicationModule.m */,
+				B4152DB461F842E1BD11970E /* BatteryModule.h */,
+				35BDFC2BDECF4FF58097C7AE /* BatteryModule.m */,
+				DB1A3DB0BA0146E29258A439 /* BrightnessModule.h */,
+				769BAEF8839C45CC90450996 /* BrightnessModule.m */,
+				F40BB34DC86C473682C7161B /* CellularModule.h */,
+				F410F51DA98F48D684D8E80F /* CellularModule.m */,
+				091707EE1B434794BB0BE606 /* ClipboardModule.h */,
+				9DA84C02162C49A38E2D2BD8 /* ClipboardModule.m */,
+				88BC6A96A69C4ABFAD741F29 /* HapticsModule.h */,
+				37A9DF7C9C754C03AB589DDE /* HapticsModule.m */,
+				B75BF6BB7F4043E4BB99FA08 /* ImagePickerModule.h */,
+				F7D63A000B2B4D3795ACE694 /* ImagePickerModule.m */,
+				BC0370CA51E94022AD1D1144 /* KeepAwakeModule.h */,
+				95378DAA6FC844A9988EA892 /* KeepAwakeModule.m */,
+				7204E2908E91469681EB4B43 /* LocalizationModule.h */,
+				319A2559533C464991DEFF3E /* LocalizationModule.m */,
+				918A02617CE641F5B63CD982 /* MailComposerModule.h */,
+				D04E4E22F4DB47A7983CD854 /* MailComposerModule.m */,
+				CD4F2041AC644BC09E157144 /* NetworkModule.h */,
+				7BAE213E0AC44C8D97F8AAAB /* NetworkModule.m */,
+				ACC0CDB08D6240889362E0A3 /* ScreenOrientationModule.h */,
+				AC566ECCC99B4F71B6D31455 /* ScreenOrientationModule.m */,
+				0604C6009257498A9E6FD936 /* StoreReviewModule.h */,
+				8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */,
+				DC706EE4E3554D498DE8334D /* ApplicationModule.h */,
+				739F0759108C41C0A4DE0723 /* BatteryModule.h */,
+				F5FE71FAB9534DE89FE3BAC0 /* BrightnessModule.h */,
+				634CEA5EF7704543A9C591AD /* CellularModule.h */,
+				9E20D0399785450DAA4AE9E3 /* ClipboardModule.h */,
+				6CD8800CD66F47FF885E986F /* HapticsModule.h */,
+				A68DAD346E4D4820A7116D56 /* ImagePickerModule.h */,
+				2C44202A8CC0485CB5EDFC9C /* KeepAwakeModule.h */,
+				6158E14131C541CAB0849AD8 /* LocalizationModule.h */,
+				F450D7CD19784037BF6D5B04 /* MailComposerModule.h */,
+				5393521CB3574D53A6B85F6A /* NetworkModule.h */,
+				FFD4827AC1E14F35A0A482C1 /* ScreenOrientationModule.h */,
+				8D1FFF5C0E674E30B5798D81 /* StoreReviewModule.h */,
+				170544D8B6C54D73B3AC467D /* ApplicationModule.h */,
+				2625597F49024A54A0C40F65 /* BatteryModule.h */,
+				00E2D20A991C4FD9A2505C50 /* BrightnessModule.h */,
+				AF4E05E7AB6E442589FCA5DC /* CellularModule.h */,
+				AC578AE8F0214351B9343738 /* ClipboardModule.h */,
+				368CE7A3BB7248EA8F9D567B /* HapticsModule.h */,
+				6027E5BEAC4B48E4A3F923CA /* ImagePickerModule.h */,
+				D939F51FCB3E4E14B452F488 /* KeepAwakeModule.h */,
+				7333447EA1A844389FDA663A /* LocalizationModule.h */,
+				B83803681B96429985900FE6 /* MailComposerModule.h */,
+				67B576B708324EDCB81BD60C /* NetworkModule.h */,
+				A13EF472D2784A36BAC0C8D0 /* ScreenOrientationModule.h */,
+				9FD1E84D2F154E0EB65F4E4A /* StoreReviewModule.h */,
+				7FA27127CE3646FFBA4F50FE /* ApplicationModule.h */,
+				81DED127A49849A489E314EC /* BatteryModule.h */,
+				EB68C395094C48F4990BDB26 /* BrightnessModule.h */,
+				EECE5EBA883C425A95E9A3A8 /* CellularModule.h */,
+				D76E9B39AAA949CFB448DD25 /* ClipboardModule.h */,
+				3A53C9EB6AC64D97AE8C0EC3 /* HapticsModule.h */,
+				7F02743CD0C14557A71335B5 /* ImagePickerModule.h */,
+				A3B4637DA0F74E7FBE707324 /* KeepAwakeModule.h */,
+				9E86684F42CA4A4B9C7AF62F /* LocalizationModule.h */,
+				5F8D081322E84F89B34EC3D2 /* MailComposerModule.h */,
+				49D1B60059834C048C7156AD /* NetworkModule.h */,
+				D6DCC8D4966745ED83FBDD89 /* ScreenOrientationModule.h */,
+				5395CC9B37F942A3AED11869 /* StoreReviewModule.h */,
+				5C342B921CA544DA87298985 /* ApplicationModule.h */,
+				5A04B1C4543D4D93A21A0FAB /* BatteryModule.h */,
+				539E2AD6E5B4473FA294C04C /* BrightnessModule.h */,
+				DCD84D5BF80E4788B2D072FD /* CellularModule.h */,
+				042CA4EBF0EC45A6A6554004 /* ClipboardModule.h */,
+				DEEA616BC15C4B7695EEE4E7 /* HapticsModule.h */,
+				B628EED911AD41AF8D1F5DDF /* ImagePickerModule.h */,
+				D1AFC5C3092A46B39738076D /* KeepAwakeModule.h */,
+				407B5A063057457884EFCEE9 /* LocalizationModule.h */,
+				71836C8F7E884F57A2A5E118 /* MailComposerModule.h */,
+				DFF3DD97818C45BE9F93FA3C /* NetworkModule.h */,
+				9AB2EF7A50804C458020FA8E /* ScreenOrientationModule.h */,
+				A2784F2D289143008F95DDBC /* StoreReviewModule.h */,
+				4B6A0BA20C29437DB164478A /* ApplicationModule.h */,
+				B26CFA1E93954443AED9FDD0 /* BatteryModule.h */,
+				90ECD67CB3A14C2A8DC76395 /* BrightnessModule.h */,
+				BD585778F6654FDF95890DFD /* CellularModule.h */,
+				C081808C86464F7188CDEFAC /* ClipboardModule.h */,
+				1A0690EE699A4B7995BC5F16 /* HapticsModule.h */,
+				1E497ECEBEA842A1B3957F89 /* ImagePickerModule.h */,
+				C523AE8314A446468F079F1D /* KeepAwakeModule.h */,
+				60AFCF7924BB4FCD8F10E767 /* LocalizationModule.h */,
+				A7BF5603F88445AFB6E26372 /* MailComposerModule.h */,
+				A9D81C554F2A45A7AABC0C52 /* NetworkModule.h */,
+				017852EE383A4309AE7F99B6 /* ScreenOrientationModule.h */,
+				0406A1B25AC54CF0B035A7D3 /* StoreReviewModule.h */,
 			);
 			path = modules;
 			sourceTree = "<group>";
@@ -328,8 +529,10 @@
 			isa = PBXGroup;
 			children = (
 				2B45A78E2E12870D00EA5D14 /* AVFoundation.framework */,
-				B9EEEA85C51DE5FDE295562A /* Pods_LynxExplorer.framework */,
-				746FE5B30BC87E4125E386DD /* Pods_LynxExplorerTests.framework */,
+				E3F070B78CB64996AE9032B7 /* Photos.framework */,
+				E1594719CAAB4881B452EF4E /* StoreKit.framework */,
+				B20C439237B8FC5CD49DAA94 /* Pods_LynxExplorer.framework */,
+				04983DD422E04617E339C08C /* Pods_LynxExplorerTests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -358,7 +561,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2B736B912D096F8A000A35F6 /* Build configuration list for PBXNativeTarget "LynxExplorerTests" */;
 			buildPhases = (
-				2E15B323B9614CCE1284B74F /* [CP] Check Pods Manifest.lock */,
+				0B118B90DCF890F39E0FBAFC /* [CP] Check Pods Manifest.lock */,
 				2B736B852D096F8A000A35F6 /* Sources */,
 				2B736B862D096F8A000A35F6 /* Frameworks */,
 				2B736B872D096F8A000A35F6 /* Resources */,
@@ -377,11 +580,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2B948FB62C2D9FDC00535C96 /* Build configuration list for PBXNativeTarget "LynxExplorer" */;
 			buildPhases = (
-				030B49B06B7842D956C80C2E /* [CP] Check Pods Manifest.lock */,
+				BC2FFAED995ABA387F0728EC /* [CP] Check Pods Manifest.lock */,
 				2B948F992C2D9FD900535C96 /* Sources */,
 				2B948F9A2C2D9FD900535C96 /* Frameworks */,
 				2B948F9B2C2D9FD900535C96 /* Resources */,
-				9E9781CCD5E6DE71E5929F64 /* [CP] Copy Pods Resources */,
+				1884EAAF347C59DE363EEF1A /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -451,29 +654,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		030B49B06B7842D956C80C2E /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-LynxExplorer-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		2E15B323B9614CCE1284B74F /* [CP] Check Pods Manifest.lock */ = {
+		0B118B90DCF890F39E0FBAFC /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -495,7 +676,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9E9781CCD5E6DE71E5929F64 /* [CP] Copy Pods Resources */ = {
+		1884EAAF347C59DE363EEF1A /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -510,6 +691,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		BC2FFAED995ABA387F0728EC /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-LynxExplorer-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -558,6 +761,19 @@
 				2B948FB32C2D9FDC00535C96 /* main.m in Sources */,
 				2B382D7E2D17BD1500C67770 /* ExplorerModule.m in Sources */,
 				40291E286388457AB37272AF /* DeviceModule.m in Sources */,
+				656A6D24A89D4B1790C9E425 /* ApplicationModule.m in Sources */,
+				E527AAB2959A4F039663CDCF /* BatteryModule.m in Sources */,
+				B690B54DA5164276834BED67 /* BrightnessModule.m in Sources */,
+				39F65BDE23CC48A38FEBE18F /* CellularModule.m in Sources */,
+				FF989F79872A4298909537F6 /* ClipboardModule.m in Sources */,
+				0C1FCEBC12C14F129025DFF8 /* HapticsModule.m in Sources */,
+				4730819FFB5B47B2AC3BC6F9 /* ImagePickerModule.m in Sources */,
+				0D5BAAE9E1FA4DDE954A911D /* KeepAwakeModule.m in Sources */,
+				EB870ABE7D564DFB9C535065 /* LocalizationModule.m in Sources */,
+				F1AA79FA5CC348D6BEE773F5 /* MailComposerModule.m in Sources */,
+				A9BD07DDD70345EF9BAFA72C /* NetworkModule.m in Sources */,
+				5942489A7FA6450C8A3DD298 /* ScreenOrientationModule.m in Sources */,
+				9CE1351EDBE94454A87D55EA /* StoreReviewModule.m in Sources */,
 				2B2AA43D2CA14AC200DB0C3E /* TasmDispatcher.m in Sources */,
 				2B382D772D17B86300C67770 /* LynxInitProcessor.m in Sources */,
 				7B50D0B31E2C18D34E941800 /* SPKServiceRegistrar.swift in Sources */,
@@ -600,7 +816,7 @@
 /* Begin XCBuildConfiguration section */
 		2B736B8F2D096F8A000A35F6 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = FB082CF4F77832AEF13ED0AF /* Pods-LynxExplorerTests.debug.xcconfig */;
+			baseConfigurationReference = 57ED863821DCD17A208774F0 /* Pods-LynxExplorerTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
@@ -630,7 +846,7 @@
 		};
 		2B736B902D096F8A000A35F6 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 519A41EB8FCBB810EDFC9C51 /* Pods-LynxExplorerTests.release.xcconfig */;
+			baseConfigurationReference = EB1305961A484453D956B5DF /* Pods-LynxExplorerTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
@@ -776,7 +992,7 @@
 		};
 		2B948FB72C2D9FDC00535C96 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 463C602489C0D0AB963BAF08 /* Pods-LynxExplorer.debug.xcconfig */;
+			baseConfigurationReference = 06689C9657D7C23737564C9D /* Pods-LynxExplorer.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -812,7 +1028,7 @@
 		};
 		2B948FB82C2D9FDC00535C96 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = BD77C16C23E08F673DEDFB74 /* Pods-LynxExplorer.release.xcconfig */;
+			baseConfigurationReference = 3D5136B1061E6DA78988D03D /* Pods-LynxExplorer.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

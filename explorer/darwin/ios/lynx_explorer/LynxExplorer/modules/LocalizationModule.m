@@ -22,41 +22,32 @@
 
 + (NSString *)unicodeCalendarIdentifier:(NSCalendar *)calendar {
   // Maps iOS calendar identifiers to BCP 47 calendar types (per Expo).
-  if (@available(iOS 16, tvOS 16, *)) {
-    NSDictionary<NSNumber *, NSString *> *map = @{
-      @(NSCalendarIdentifierBuddhist) : @"buddhist",
-      @(NSCalendarIdentifierChinese) : @"chinese",
-      @(NSCalendarIdentifierCoptic) : @"coptic",
-      @(NSCalendarIdentifierEthiopicAmeteAlem) : @"ethioaa",
-      @(NSCalendarIdentifierEthiopicAmeteMihret) : @"ethiopic",
-      @(NSCalendarIdentifierGregorian) : @"gregory",
-      @(NSCalendarIdentifierHebrew) : @"hebrew",
-      @(NSCalendarIdentifierIndian) : @"indian",
-      @(NSCalendarIdentifierIslamic) : @"islamic",
-      @(NSCalendarIdentifierIslamicCivil) : @"islamic-civil",
-      @(NSCalendarIdentifierIslamicTabular) : @"islamic-tbla",
-      @(NSCalendarIdentifierIslamicUmmAlQura) : @"islamic-umalqura",
-      @(NSCalendarIdentifierJapanese) : @"japanese",
-      @(NSCalendarIdentifierPersian) : @"persian",
-      @(NSCalendarIdentifierRepublicOfChina) : @"roc",
-      @(NSCalendarIdentifierISO8601) : @"iso8601",
-    };
-    NSString *mapped = map[@(calendar.calendarIdentifier)];
-    return mapped ?: @"iso8601";
-  }
-  return @"gregory";
+  NSDictionary<NSString *, NSString *> *map = @{
+    NSCalendarIdentifierBuddhist : @"buddhist",
+    NSCalendarIdentifierChinese : @"chinese",
+    NSCalendarIdentifierCoptic : @"coptic",
+    NSCalendarIdentifierEthiopicAmeteAlem : @"ethioaa",
+    NSCalendarIdentifierEthiopicAmeteMihret : @"ethiopic",
+    NSCalendarIdentifierGregorian : @"gregory",
+    NSCalendarIdentifierHebrew : @"hebrew",
+    NSCalendarIdentifierIndian : @"indian",
+    NSCalendarIdentifierIslamic : @"islamic",
+    NSCalendarIdentifierIslamicCivil : @"islamic-civil",
+    NSCalendarIdentifierIslamicTabular : @"islamic-tbla",
+    NSCalendarIdentifierIslamicUmmAlQura : @"islamic-umalqura",
+    NSCalendarIdentifierJapanese : @"japanese",
+    NSCalendarIdentifierPersian : @"persian",
+    NSCalendarIdentifierRepublicOfChina : @"roc",
+    NSCalendarIdentifierISO8601 : @"iso8601",
+  };
+  NSString *mapped = map[calendar.calendarIdentifier];
+  return mapped ?: @"iso8601";
 }
 
 + (NSString *)measurementSystemForLocale:(NSLocale *)locale {
-  if (@available(iOS 16, tvOS 16, *)) {
-    NSDictionary<NSNumber *, NSString *> *systems = @{
-      @(NSLocaleMeasurementSystemUS) : @"us",
-      @(NSLocaleMeasurementSystemUK) : @"uk",
-      @(NSLocaleMeasurementSystemMetric) : @"metric",
-    };
-    NSString *mapped = systems[@(locale.measurementSystem)];
-    return mapped ?: @"metric";
-  }
+  // `NSLocale.measurementSystem` is only available on iOS 16+, but the Explorer
+  // deployment target is iOS 12. `usesMetricSystem` has always been available and
+  // is sufficient to map to the Expo BCP-47 values ("metric" / "us").
   return locale.usesMetricSystem ? @"metric" : @"us";
 }
 

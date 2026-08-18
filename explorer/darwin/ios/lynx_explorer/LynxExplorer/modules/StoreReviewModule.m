@@ -4,6 +4,7 @@
 
 #import "StoreReviewModule.h"
 #import <UIKit/UIKit.h>
+#import <StoreKit/StoreKit.h>
 
 @implementation StoreReviewModule
 
@@ -29,6 +30,7 @@
   if (@available(iOS 10.3, *)) {
     [SKStoreReviewController requestReview];
   }
+}
 
 - (void)isAvailableAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
   @try { resolve(@([self isAvailable])); } @catch (NSException *e) { reject(e.reason); }
@@ -37,4 +39,4 @@
   @try { [self requestReview]; resolve(nil); } @catch (NSException *e) { reject(e.reason); }
 }
 
-}
+@end

@@ -5,6 +5,11 @@
 #import "CellularModule.h"
 #import <UIKit/UIKit.h>
 
+// NOTE: CoreTelephony (CTTelephonyNetworkInfo/CTCarrier) is deprecated and not
+// linked into this Explorer build. On the iOS Simulator carrier info is
+// unavailable regardless, so we return safe "unknown" values. The showcase
+// reads these via the *Async promise APIs and degrades gracefully.
+
 @implementation CellularModule
 
 + (NSString *)name {
@@ -22,56 +27,25 @@
 }
 
 - (int)getCellularGeneration {
-  CTTelephonyNetworkInfo *netinfo = [[CTTelephonyNetworkInfo alloc] init];
-  NSString *rat = netinfo.serviceCurrentRadioAccessTechnology.allValues.firstObject;
-  if ([rat isEqualToString:CTRadioAccessTechnologyGPRS] ||
-      [rat isEqualToString:CTRadioAccessTechnologyEdge] ||
-      [rat isEqualToString:CTRadioAccessTechnologyCDMA1x]) {
-    return 1;
-  }
-  if ([rat isEqualToString:CTRadioAccessTechnologyWCDMA] ||
-      [rat isEqualToString:CTRadioAccessTechnologyHSDPA] ||
-      [rat isEqualToString:CTRadioAccessTechnologyHSUPA] ||
-      [rat isEqualToString:CTRadioAccessTechnologyCDMAEVDORev0] ||
-      [rat isEqualToString:CTRadioAccessTechnologyCDMAEVDORevA] ||
-      [rat isEqualToString:CTRadioAccessTechnologyCDMAEVDORevB] ||
-      [rat isEqualToString:CTRadioAccessTechnologyeHRPD]) {
-    return 2;
-  }
-  if ([rat isEqualToString:CTRadioAccessTechnologyLTE]) {
-    return 3;
-  }
-  if (@available(iOS 14.1, *)) {
-    if ([rat isEqualToString:CTRadioAccessTechnologyNRNSA] ||
-        [rat isEqualToString:CTRadioAccessTechnologyNR]) {
-      return 4;
-    }
-  }
+  // Unknown on the simulator / without CoreTelephony.
   return 0;
 }
 
 - (NSString *)getIsoCountryCode {
-  CTTelephonyNetworkInfo *netinfo = [[CTTelephonyNetworkInfo alloc] init];
-  CTCarrier *carrier = netinfo.serviceSubscriberCellularProviders.allValues.firstObject;
-  return carrier.isoCountryCode ?: nil;
+  return nil;
 }
 
 - (NSString *)getCarrierName {
-  CTTelephonyNetworkInfo *netinfo = [[CTTelephonyNetworkInfo alloc] init];
-  CTCarrier *carrier = netinfo.serviceSubscriberCellularProviders.allValues.firstObject;
-  return carrier.carrierName ?: nil;
+  return nil;
 }
 
 - (NSString *)getMobileCountryCode {
-  CTTelephonyNetworkInfo *netinfo = [[CTTelephonyNetworkInfo alloc] init];
-  CTCarrier *carrier = netinfo.serviceSubscriberCellularProviders.allValues.firstObject;
-  return carrier.mobileCountryCode ?: nil;
+  return nil;
 }
 
 - (NSString *)getMobileNetworkCode {
-  CTTelephonyNetworkInfo *netinfo = [[CTTelephonyNetworkInfo alloc] init];
-  CTCarrier *carrier = netinfo.serviceSubscriberCellularProviders.allValues.firstObject;
-  return carrier.mobileNetworkCode ?: nil;
+  return nil;
+}
 
 - (void)getCellularGenerationAsync:(LynxCallbackBlock)resolve reject:(LynxCallbackBlock)reject {
   @try { resolve(@([self getCellularGeneration])); } @catch (NSException *e) { reject(e.reason); }
@@ -89,4 +63,4 @@
   @try { resolve([self getMobileNetworkCode]); } @catch (NSException *e) { reject(e.reason); }
 }
 
-}
+@end

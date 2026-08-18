@@ -13,6 +13,8 @@ import android.util.LayoutDirection;
 import androidx.core.os.LocaleListCompat;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.react.bridge.JavaOnlyArray;
+import com.lynx.react.bridge.JavaOnlyMap;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -48,8 +50,8 @@ public class LocalizationModule extends LynxModule {
   }
 
   @LynxMethod
-  public List<Map<String, Object>> getLocales() {
-    List<Map<String, Object>> locales = new ArrayList<>();
+  public JavaOnlyArray getLocales() {
+    JavaOnlyArray locales = new JavaOnlyArray();
     LocaleListCompat localeList = LocaleListCompat.getDefault();
     for (int i = 0; i < localeList.size(); i++) {
       Locale locale = localeList.get(i);
@@ -72,7 +74,7 @@ public class LocalizationModule extends LynxModule {
         entry.put("measurementSystem", getMeasurementSystem(locale));
         entry.put("temperatureUnit", getTemperatureUnit(locale));
         entry.putAll(getCurrencyProperties(locale));
-        locales.add(entry);
+        locales.pushMap(toJavaOnlyMap(entry));
       } catch (Exception ignored) {
         // skip problematic locale, mirroring Expo
       }
@@ -81,15 +83,44 @@ public class LocalizationModule extends LynxModule {
   }
 
   @LynxMethod
-  public List<Map<String, Object>> getCalendars() {
+  public JavaOnlyArray getCalendars() {
     Map<String, Object> calendar = new HashMap<>();
     calendar.put("calendar", getCalendarType());
     calendar.put("uses24hourClock", uses24HourFormat());
     calendar.put("firstWeekday", Calendar.getInstance().getFirstDayOfWeek());
     calendar.put("timeZone", Calendar.getInstance().getTimeZone().getID());
-    List<Map<String, Object>> result = new ArrayList<>();
-    result.add(calendar);
+    JavaOnlyArray result = new JavaOnlyArray();
+    result.pushMap(toJavaOnlyMap(calendar));
     return result;
+  }
+
+  /**
+   * Convert a plain {@link Map} to a {@link JavaOnlyMap} so Lynx can serialize it
+   * across the bridge. {@link JavaOnlyMap} only accepts typed puts, so each value
+   * is coerced by its runtime type (null-safe).
+   */
+  private static JavaOnlyMap toJavaOnlyMap(Map<String, Object> src) {
+    JavaOnlyMap map = new JavaOnlyMap();
+    for (Map.Entry<String, Object> e : src.entrySet()) {
+      String key = e.getKey();
+      Object value = e.getValue();
+      if (value == null) {
+        map.putNull(key);
+      } else if (value instanceof Boolean) {
+        map.putBoolean(key, (Boolean) value);
+      } else if (value instanceof Integer) {
+        map.putInt(key, (Integer) value);
+      } else if (value instanceof Long) {
+        map.putDouble(key, ((Long) value).doubleValue());
+      } else if (value instanceof Double) {
+        map.putDouble(key, (Double) value);
+      } else if (value instanceof Float) {
+        map.putDouble(key, ((Float) value).doubleValue());
+      } else {
+        map.putString(key, String.valueOf(value));
+      }
+    }
+    return map;
   }
 
   private Map<String, Object> getCurrencyProperties(Locale locale) {

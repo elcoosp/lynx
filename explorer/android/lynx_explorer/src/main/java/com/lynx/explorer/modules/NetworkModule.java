@@ -11,12 +11,13 @@ import android.net.NetworkCapabilities;
 import android.os.Build;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.jsbridge.Promise;
+import com.lynx.jsbridge.Arguments;
+import com.lynx.react.bridge.WritableMap;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Android counterpart of the iOS {@code NetworkModule}. Exposes network state to
@@ -58,15 +59,15 @@ public class NetworkModule extends LynxModule {
   }
 
   @LynxMethod
-  public Map<String, Object> getNetworkState() {
-    Map<String, Object> state = new HashMap<>();
+  public WritableMap getNetworkState() {
+    WritableMap state = Arguments.createMap();
     ConnectivityManager cm =
         (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
     if (cm == null) {
-      state.put("isConnected", false);
-      state.put("isInternetReachable", false);
-      state.put("type", 0); // UNKNOWN
-      state.put("isWifiEnabled", false);
+      state.putBoolean("isConnected", false);
+      state.putBoolean("isInternetReachable", false);
+      state.putInt("type", 0); // UNKNOWN
+      state.putBoolean("isWifiEnabled", false);
       return state;
     }
     NetworkCapabilities caps = null;
@@ -75,14 +76,14 @@ public class NetworkModule extends LynxModule {
       caps = network != null ? cm.getNetworkCapabilities(network) : null;
     }
     boolean connected = caps != null;
-    state.put("isConnected", connected);
-    state.put("isInternetReachable", connected);
+    state.putBoolean("isConnected", connected);
+    state.putBoolean("isInternetReachable", connected);
     if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-      state.put("type", 1); // WIFI
+      state.putInt("type", 1); // WIFI
     } else if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-      state.put("type", 2); // CELLULAR
+      state.putInt("type", 2); // CELLULAR
     } else {
-      state.put("type", 0); // UNKNOWN
+      state.putInt("type", 0); // UNKNOWN
     }
     boolean wifiEnabled = false;
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
@@ -90,17 +91,17 @@ public class NetworkModule extends LynxModule {
       wifiEnabled = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI) != null
           && cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnectedOrConnecting();
     }
-    state.put("isWifiEnabled", wifiEnabled);
+    state.putBoolean("isWifiEnabled", wifiEnabled);
     return state;
   }
 
   @LynxMethod
-  public void getIpAddressAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getIpAddress()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getIpAddressAsync(final Promise promise) {
+    try { promise.resolve(getIpAddress()); } catch (Exception e) { promise.reject("ERROR", e.getMessage()); }
   }
   @LynxMethod
-  public void getNetworkStateAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getNetworkState()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getNetworkStateAsync(final Promise promise) {
+    try { promise.resolve(getNetworkState()); } catch (Exception e) { promise.reject("ERROR", e.getMessage()); }
   }
   @LynxMethod
   public void addListener(String eventName) { startNetworkObserver(eventName); }

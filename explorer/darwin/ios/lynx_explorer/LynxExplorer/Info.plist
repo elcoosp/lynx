@@ -24,5 +24,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Lynx Explorer uses the camera to scan Lynx page QR codes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Lynx Explorer uses the photo library to pick images for the native module showcase.</string>
+
 </dict>
 </plist>
