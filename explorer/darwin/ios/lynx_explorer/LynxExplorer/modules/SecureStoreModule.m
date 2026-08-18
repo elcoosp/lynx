@@ -13,6 +13,9 @@
 + (NSDictionary<NSString *, NSString *> *)methodLookup {
   return @{
     @"isAvailable" : NSStringFromSelector(@selector(isAvailable)),
+    @"getItemAsync" : NSStringFromSelector(@selector(getItemAsync:resolve:reject:)),
+    @"setItemAsync" : NSStringFromSelector(@selector(setItemAsync:value:resolve:reject:)),
+    @"deleteItemAsync" : NSStringFromSelector(@selector(deleteItemAsync:resolve:reject:)),
   };
 }
 
