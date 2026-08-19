@@ -133,6 +133,19 @@ class CSSKeyframeManagerTest : public ::testing::Test {
         *element->keyframes_map_, name, lepus::Value(keyframes), configs);
   }
 
+  void UpdateToOnlyOpacityKeyframes(tasm::Element* element,
+                                    const base::String& name, double to) {
+    auto keyframes = lepus::Dictionary::Create();
+    keyframes->SetValue("0", lepus::Value(lepus::Dictionary::Create()));
+    auto to_frame = lepus::Dictionary::Create();
+    to_frame->SetValue("opacity", lepus::Value(to));
+    keyframes->SetValue("100", lepus::Value(to_frame));
+
+    lynx::tasm::CSSParserConfigs configs;
+    starlight::CSSStyleUtils::UpdateCSSKeyframes(
+        *element->keyframes_map_, name, lepus::Value(keyframes), configs);
+  }
+
   void UpdateLeftKeyframes(tasm::Element* element, const base::String& name,
                            const char* from, const char* to) {
     auto keyframes = lepus::Dictionary::Create();
@@ -141,6 +154,38 @@ class CSSKeyframeManagerTest : public ::testing::Test {
     keyframes->SetValue("0", lepus::Value(from_frame));
     auto to_frame = lepus::Dictionary::Create();
     to_frame->SetValue("left", lepus::Value(to));
+    keyframes->SetValue("100", lepus::Value(to_frame));
+
+    lynx::tasm::CSSParserConfigs configs;
+    starlight::CSSStyleUtils::UpdateCSSKeyframes(
+        *element->keyframes_map_, name, lepus::Value(keyframes), configs);
+  }
+
+  void UpdateToOnlyLeftKeyframes(tasm::Element* element,
+                                 const base::String& name, const char* to) {
+    auto keyframes = lepus::Dictionary::Create();
+    keyframes->SetValue("0", lepus::Value(lepus::Dictionary::Create()));
+    auto to_frame = lepus::Dictionary::Create();
+    to_frame->SetValue("left", lepus::Value(to));
+    keyframes->SetValue("100", lepus::Value(to_frame));
+
+    lynx::tasm::CSSParserConfigs configs;
+    starlight::CSSStyleUtils::UpdateCSSKeyframes(
+        *element->keyframes_map_, name, lepus::Value(keyframes), configs);
+  }
+
+  void UpdateBorderRadiusKeyframes(tasm::Element* element,
+                                   const base::String& name,
+                                   const char* property, const char* from,
+                                   const char* to) {
+    auto keyframes = lepus::Dictionary::Create();
+    if (from != nullptr) {
+      auto from_frame = lepus::Dictionary::Create();
+      from_frame->SetValue(property, lepus::Value(from));
+      keyframes->SetValue("0", lepus::Value(from_frame));
+    }
+    auto to_frame = lepus::Dictionary::Create();
+    to_frame->SetValue(property, lepus::Value(to));
     keyframes->SetValue("100", lepus::Value(to_frame));
 
     lynx::tasm::CSSParserConfigs configs;
@@ -237,6 +282,9 @@ class CSSKeyframeManagerTest : public ::testing::Test {
 
 TEST_F(CSSKeyframeManagerTest, ConstructModel) {
   auto test_element = manager->CreateFiberElement("view");
+  const auto underlying_opacity = CSSValue(0.75f, CSSValuePattern::NUMBER);
+  ASSERT_TRUE(test_element->computed_css_style()->SetValue(kPropertyIDOpacity,
+                                                           underlying_opacity));
   auto test_manager = InitTestKeyframeManager(test_element.get());
   auto test_curve = animation::KeyframedOpacityAnimationCurve::Create();
   auto test_type = animation::AnimationCurve::CurveType::OPACITY;
@@ -248,6 +296,140 @@ TEST_F(CSSKeyframeManagerTest, ConstructModel) {
             gfx::TimingFunction::Type::LINEAR);
   EXPECT_EQ(test_model->animation_curve()->scaled_duration(),
             test_animation->get_animation_data().duration / 1000.0);
+  EXPECT_EQ(test_model->animation_curve()->underlying_value_,
+            underlying_opacity);
+}
+
+TEST_F(CSSKeyframeManagerTest,
+       NewPipelineRefreshesUnderlyingValueAfterBaseResetAndUpdate) {
+  auto test_element = InitElement();
+  auto* base_style = test_element->computed_css_style();
+  ASSERT_TRUE(base_style->SetValue(kPropertyIDOpacity,
+                                   CSSValue(0.5f, CSSValuePattern::NUMBER)));
+  UpdateToOnlyOpacityKeyframes(test_element.get(), base::String("test"), 0);
+
+  auto test_manager = InitTestKeyframeManager(test_element.get());
+  base::Vector<starlight::AnimationData> animation_data;
+  animation_data.emplace_back(InitAnimationData(
+      base::String("test"), 1000, 0, starlight::TimingFunctionData(), -1,
+      starlight::AnimationFillModeType::kBoth,
+      starlight::AnimationDirectionType::kNormal,
+      starlight::AnimationPlayStateType::kRunning));
+  test_manager->SyncAnimationDataForNewPipeline(
+      animation_data, false, &base_style->GetResolvedValues(), nullptr, nullptr,
+      base_style);
+
+  auto start_time = TimePointFromMs(1000);
+  test_manager->CollectAnimationUpdatesForNewPipeline(start_time);
+  auto first_mid_time = TimePointFromMs(1500);
+  auto first_mid_sample =
+      test_manager->CollectAnimationUpdatesForNewPipeline(first_mid_time);
+  const auto* first_mid_opacity =
+      FindSampledStyle(first_mid_sample, kPropertyIDOpacity);
+  ASSERT_NE(nullptr, first_mid_opacity);
+  EXPECT_NEAR(0.25, first_mid_opacity->AsNumber(), 0.001);
+
+  ASSERT_TRUE(base_style->ResetValue(kPropertyIDOpacity));
+  EXPECT_EQ(base_style->GetResolvedValues().end(),
+            base_style->GetResolvedValues().find(kPropertyIDOpacity));
+  test_manager->SyncAnimationDataForNewPipeline(
+      animation_data, false, &base_style->GetResolvedValues(), nullptr, nullptr,
+      base_style);
+  auto reset_mid_sample =
+      test_manager->CollectAnimationUpdatesForNewPipeline(first_mid_time);
+  const auto* reset_mid_opacity =
+      FindSampledStyle(reset_mid_sample, kPropertyIDOpacity);
+  ASSERT_NE(nullptr, reset_mid_opacity);
+  EXPECT_NEAR(0.5, reset_mid_opacity->AsNumber(), 0.001);
+
+  ASSERT_TRUE(base_style->SetValue(kPropertyIDOpacity,
+                                   CSSValue(0.8f, CSSValuePattern::NUMBER)));
+  test_manager->SyncAnimationDataForNewPipeline(
+      animation_data, false, &base_style->GetResolvedValues(), nullptr, nullptr,
+      base_style);
+  auto updated_mid_sample =
+      test_manager->CollectAnimationUpdatesForNewPipeline(first_mid_time);
+  const auto* updated_mid_opacity =
+      FindSampledStyle(updated_mid_sample, kPropertyIDOpacity);
+  ASSERT_NE(nullptr, updated_mid_opacity);
+  EXPECT_NEAR(0.4, updated_mid_opacity->AsNumber(), 0.001);
+}
+
+TEST_F(CSSKeyframeManagerTest,
+       LegacyPipelineRefreshesUnderlyingValueAfterBaseResetAndUpdate) {
+  auto test_element = manager->CreateFiberElement("view");
+  ASSERT_TRUE(test_element->computed_css_style()->SetValue(
+      kPropertyIDOpacity, CSSValue(0.5f, CSSValuePattern::NUMBER)));
+  UpdateToOnlyOpacityKeyframes(test_element.get(), base::String("test"), 0);
+
+  auto test_manager = InitTestKeyframeManager(test_element.get());
+  base::Vector<starlight::AnimationData> animation_data;
+  animation_data.emplace_back(InitAnimationData(
+      base::String("test"), 1000, 0, starlight::TimingFunctionData(), -1,
+      starlight::AnimationFillModeType::kBoth,
+      starlight::AnimationDirectionType::kNormal,
+      starlight::AnimationPlayStateType::kRunning));
+  test_manager->SetAnimationDataAndPlay(animation_data);
+
+  ASSERT_TRUE(test_manager->animations_map().count(base::String("test")));
+  auto* model = test_manager->animations_map()[base::String("test")]
+                    ->keyframe_effect()
+                    ->GetKeyframeModelByCurveType(
+                        animation::AnimationCurve::CurveType::OPACITY);
+  ASSERT_NE(nullptr, model);
+  auto* curve = static_cast<animation::KeyframedOpacityAnimationCurve*>(
+      model->animation_curve());
+  test_element->css_keyframe_manager_ = std::move(test_manager);
+
+  test_element->SetStyleInternal(kPropertyIDOpacity,
+                                 CSSValue(0.8f, CSSValuePattern::NUMBER));
+  auto mid_time = fml::TimeDelta::FromSecondsF(0.5);
+  EXPECT_NEAR(0.4, curve->GetValue(mid_time).AsNumber(), 0.001);
+
+  test_element->FlushAnimatedStyleInternal(
+      kPropertyIDOpacity, CSSValue(0.4f, CSSValuePattern::NUMBER));
+  EXPECT_NEAR(0.4, curve->GetValue(mid_time).AsNumber(), 0.001);
+
+  test_element->ResetStyleInternal(kPropertyIDOpacity);
+  EXPECT_NEAR(0.5, curve->GetValue(mid_time).AsNumber(), 0.001);
+}
+
+TEST_F(CSSKeyframeManagerTest,
+       LegacyLayoutOnlyResetUsesDefaultUnderlyingValue) {
+  auto test_element = manager->CreateFiberElement("view");
+  ASSERT_FALSE(test_element->EnableLayoutInElementMode());
+  UpdateToOnlyLeftKeyframes(test_element.get(), base::String("test"), "100px");
+
+  auto test_manager = InitTestKeyframeManager(test_element.get());
+  base::Vector<starlight::AnimationData> animation_data;
+  animation_data.emplace_back(InitAnimationData(
+      base::String("test"), 1000, 0, starlight::TimingFunctionData(), -1,
+      starlight::AnimationFillModeType::kBoth,
+      starlight::AnimationDirectionType::kNormal,
+      starlight::AnimationPlayStateType::kRunning));
+  test_manager->SetAnimationDataAndPlay(animation_data);
+
+  ASSERT_TRUE(test_manager->animations_map().count(base::String("test")));
+  auto* model = test_manager->animations_map()[base::String("test")]
+                    ->keyframe_effect()
+                    ->GetKeyframeModelByCurveType(
+                        animation::AnimationCurve::CurveType::LEFT);
+  ASSERT_NE(nullptr, model);
+  auto* curve = static_cast<animation::KeyframedLayoutAnimationCurve*>(
+      model->animation_curve());
+  test_element->css_keyframe_manager_ = std::move(test_manager);
+
+  test_element->SetStyleInternal(kPropertyIDLeft,
+                                 CSSValue(20.f, CSSValuePattern::PX));
+  const auto& resolved_values =
+      test_element->computed_css_style()->GetResolvedValues();
+  EXPECT_EQ(resolved_values.end(), resolved_values.find(kPropertyIDLeft));
+  auto mid_time = fml::TimeDelta::FromSecondsF(0.5);
+  EXPECT_NEAR(60.f, curve->GetValue(mid_time).AsNumber(), 0.001);
+
+  test_element->ResetStyleInternal(kPropertyIDLeft);
+  EXPECT_EQ(resolved_values.end(), resolved_values.find(kPropertyIDLeft));
+  EXPECT_NEAR(100.f, curve->GetValue(mid_time).AsNumber(), 0.001);
 }
 
 TEST_F(CSSKeyframeManagerTest, InitCurveAndModelAndKeyframe) {
@@ -322,6 +504,213 @@ TEST_F(CSSKeyframeManagerTest, InitCurveAndModelAndKeyframe) {
       test_type4, test_animation4.get(), test_offset,
       std::move(test_timing_function4), id4, raw_value4);
   EXPECT_EQ(init_success4, false);
+}
+
+TEST_F(CSSKeyframeManagerTest, AcceptsExpandedBorderRadiusKeyframes) {
+  auto test_element = InitElement();
+  auto test_manager = InitTestKeyframeManager(test_element.get());
+  const base::String animation_name("radius");
+
+  auto keyframes = lepus::Dictionary::Create();
+  auto from_frame = lepus::Dictionary::Create();
+  from_frame->SetValue("border-radius", lepus::Value("10px 20px"));
+  keyframes->SetValue("0", lepus::Value(from_frame));
+  auto to_frame = lepus::Dictionary::Create();
+  to_frame->SetValue("border-radius", lepus::Value("30px 40px"));
+  keyframes->SetValue("100", lepus::Value(to_frame));
+
+  lynx::tasm::CSSParserConfigs configs;
+  starlight::CSSStyleUtils::UpdateCSSKeyframes(
+      *test_element->keyframes_map_, animation_name, lepus::Value(keyframes),
+      configs);
+  auto token_iter = test_element->keyframes_map_->find(animation_name);
+  ASSERT_NE(token_iter, test_element->keyframes_map_->end());
+  auto& content = token_iter->second->GetKeyframesContent();
+  ASSERT_EQ(content.size(), 2U);
+  for (const auto& [_, styles] : content) {
+    ASSERT_NE(styles, nullptr);
+    EXPECT_TRUE(styles->contains(kPropertyIDBorderTopLeftRadius));
+    EXPECT_TRUE(styles->contains(kPropertyIDBorderTopRightRadius));
+    EXPECT_TRUE(styles->contains(kPropertyIDBorderBottomRightRadius));
+    EXPECT_TRUE(styles->contains(kPropertyIDBorderBottomLeftRadius));
+  }
+
+  auto data = InitAnimationData(animation_name, 1000, 0,
+                                starlight::TimingFunctionData(), 1,
+                                starlight::AnimationFillModeType::kNone,
+                                starlight::AnimationDirectionType::kNormal,
+                                starlight::AnimationPlayStateType::kRunning);
+  auto radius_animation = test_manager->CreateAnimation(data);
+  ASSERT_NE(radius_animation, nullptr);
+  ASSERT_EQ(radius_animation->keyframe_effect()->keyframe_models().size(), 4U);
+
+  EXPECT_NE(radius_animation->keyframe_effect()->GetKeyframeModelByCurveType(
+                animation::AnimationCurve::CurveType::BORDER_TOP_LEFT_RADIUS),
+            nullptr);
+  EXPECT_NE(radius_animation->keyframe_effect()->GetKeyframeModelByCurveType(
+                animation::AnimationCurve::CurveType::BORDER_TOP_RIGHT_RADIUS),
+            nullptr);
+  EXPECT_NE(
+      radius_animation->keyframe_effect()->GetKeyframeModelByCurveType(
+          animation::AnimationCurve::CurveType::BORDER_BOTTOM_RIGHT_RADIUS),
+      nullptr);
+  EXPECT_NE(
+      radius_animation->keyframe_effect()->GetKeyframeModelByCurveType(
+          animation::AnimationCurve::CurveType::BORDER_BOTTOM_LEFT_RADIUS),
+      nullptr);
+}
+
+TEST_F(CSSKeyframeManagerTest, AcceptsOnlyBorderRadiusSingletonKeyframeTable) {
+  auto test_element = InitElement();
+  lynx::tasm::CSSParserConfigs configs;
+
+  auto radius_keyframes = lepus::Dictionary::Create();
+  auto radius_frame = lepus::Dictionary::Create();
+  radius_frame->SetValue("border-radius", lepus::Value("10px 20px"));
+  radius_keyframes->SetValue("100", lepus::Value(radius_frame));
+  const base::String radius_name("radius");
+  starlight::CSSStyleUtils::UpdateCSSKeyframes(
+      *test_element->keyframes_map_, radius_name,
+      lepus::Value(radius_keyframes), configs);
+  auto radius_iter = test_element->keyframes_map_->find(radius_name);
+  ASSERT_NE(radius_iter, test_element->keyframes_map_->end());
+  const auto& radius_content = radius_iter->second->GetKeyframesContent();
+  ASSERT_EQ(1U, radius_content.size());
+  const auto& radius_styles = radius_content.begin()->second;
+  ASSERT_NE(nullptr, radius_styles);
+  EXPECT_TRUE(radius_styles->contains(tasm::kPropertyIDBorderTopLeftRadius));
+  EXPECT_TRUE(radius_styles->contains(tasm::kPropertyIDBorderTopRightRadius));
+  EXPECT_TRUE(
+      radius_styles->contains(tasm::kPropertyIDBorderBottomRightRadius));
+  EXPECT_TRUE(radius_styles->contains(tasm::kPropertyIDBorderBottomLeftRadius));
+
+  auto opacity_keyframes = lepus::Dictionary::Create();
+  auto opacity_frame = lepus::Dictionary::Create();
+  opacity_frame->SetValue("opacity", lepus::Value(0.5));
+  opacity_keyframes->SetValue("100", lepus::Value(opacity_frame));
+  const base::String opacity_name("opacity");
+  starlight::CSSStyleUtils::UpdateCSSKeyframes(
+      *test_element->keyframes_map_, opacity_name,
+      lepus::Value(opacity_keyframes), configs);
+  EXPECT_EQ(test_element->keyframes_map_->end(),
+            test_element->keyframes_map_->find(opacity_name));
+}
+
+TEST_F(CSSKeyframeManagerTest,
+       LegacyBorderRadiusImplicitFromUsesCurrentStyleOnInitialFrame) {
+  auto test_element = InitElement();
+  tasm::StyleMap resolved_styles;
+  lynx::tasm::CSSParserConfigs configs;
+  tasm::UnitHandler::Process(tasm::kPropertyIDBorderTopLeftRadius,
+                             lepus::Value("50%"), resolved_styles, configs);
+  test_element->computed_css_style()->SetResolvedValue(
+      tasm::kPropertyIDBorderTopLeftRadius,
+      resolved_styles.at(tasm::kPropertyIDBorderTopLeftRadius));
+  auto test_manager = InitTestKeyframeManager(test_element.get());
+  const base::String animation_name("radius");
+  UpdateBorderRadiusKeyframes(test_element.get(), animation_name,
+                              "border-top-left-radius", nullptr, "100%");
+
+  base::Vector<starlight::AnimationData> animation_data;
+  animation_data.emplace_back(InitAnimationData(
+      animation_name, 1000, 0, starlight::TimingFunctionData(), 1,
+      starlight::AnimationFillModeType::kForwards,
+      starlight::AnimationDirectionType::kNormal,
+      starlight::AnimationPlayStateType::kRunning));
+
+  test_manager->SetAnimationDataAndPlay(animation_data);
+
+  ASSERT_TRUE(test_element->final_animator_map_.has_value());
+  auto iter = test_element->final_animator_map_->find(
+      tasm::kPropertyIDBorderTopLeftRadius);
+  ASSERT_NE(iter, test_element->final_animator_map_->end());
+  auto radius = iter->second.GetArray();
+  ASSERT_TRUE(radius);
+  EXPECT_FLOAT_EQ(50.f, radius->get(0).Number());
+  EXPECT_EQ(static_cast<uint32_t>(tasm::CSSValuePattern::PERCENT),
+            static_cast<uint32_t>(radius->get(1).Number()));
+}
+
+TEST_F(CSSKeyframeManagerTest,
+       NewPipelineBorderRadiusImplicitFromUsesCurrentBaseStyle) {
+  struct TestCase {
+    const char* property;
+    tasm::CSSPropertyID id;
+  };
+  const TestCase test_cases[] = {
+      {"border-top-left-radius", tasm::kPropertyIDBorderTopLeftRadius},
+      {"border-top-right-radius", tasm::kPropertyIDBorderTopRightRadius},
+      {"border-bottom-right-radius", tasm::kPropertyIDBorderBottomRightRadius},
+  };
+  for (const auto& test_case : test_cases) {
+    auto test_element = InitElement();
+    test_element->SetStyle(test_case.id, lepus::Value("10px"));
+    auto test_manager = InitTestKeyframeManager(test_element.get());
+    const base::String animation_name(test_case.property);
+    UpdateBorderRadiusKeyframes(test_element.get(), animation_name,
+                                test_case.property, nullptr, "100%");
+
+    base::Vector<starlight::AnimationData> animation_data;
+    animation_data.emplace_back(InitAnimationData(
+        animation_name, 1000, 0, starlight::TimingFunctionData(), 1,
+        starlight::AnimationFillModeType::kForwards,
+        starlight::AnimationDirectionType::kNormal,
+        starlight::AnimationPlayStateType::kRunning));
+    tasm::StyleMap new_base_styles;
+    lynx::tasm::CSSParserConfigs configs;
+    tasm::UnitHandler::Process(test_case.id, lepus::Value("50%"),
+                               new_base_styles, configs);
+
+    test_manager->SyncAnimationDataForNewPipeline(animation_data, false,
+                                                  &new_base_styles);
+    auto start_time = TimePointFromMs(1000);
+    auto start_sample =
+        test_manager->CollectAnimationUpdatesForNewPipeline(start_time);
+    const auto* start_radius = FindSampledStyle(start_sample, test_case.id);
+    ASSERT_NE(nullptr, start_radius) << test_case.property;
+    auto start_array = start_radius->GetArray();
+    ASSERT_TRUE(start_array) << test_case.property;
+    EXPECT_FLOAT_EQ(50.f, start_array->get(0).Number()) << test_case.property;
+    EXPECT_EQ(static_cast<uint32_t>(tasm::CSSValuePattern::PERCENT),
+              static_cast<uint32_t>(start_array->get(1).Number()))
+        << test_case.property;
+  }
+}
+
+TEST_F(CSSKeyframeManagerTest,
+       NewPipelineBorderRadiusMixedUnitsKeepsTimelineAndForwardsFill) {
+  auto test_element = InitElement();
+  auto test_manager = InitTestKeyframeManager(test_element.get());
+  const base::String animation_name("radius");
+  UpdateBorderRadiusKeyframes(test_element.get(), animation_name,
+                              "border-top-left-radius", "10px", "50%");
+
+  base::Vector<starlight::AnimationData> animation_data;
+  animation_data.emplace_back(InitAnimationData(
+      animation_name, 1000, 0, starlight::TimingFunctionData(), 1,
+      starlight::AnimationFillModeType::kForwards,
+      starlight::AnimationDirectionType::kNormal,
+      starlight::AnimationPlayStateType::kRunning));
+  test_manager->SyncAnimationDataForNewPipeline(animation_data);
+
+  auto start_time = TimePointFromMs(1000);
+  test_manager->CollectAnimationUpdatesForNewPipeline(start_time);
+  test_manager->TakePendingAnimationEventsForNewPipeline();
+
+  auto end_time = TimePointFromMs(2000);
+  auto end_sample =
+      test_manager->CollectAnimationUpdatesForNewPipeline(end_time);
+  const auto* end_radius =
+      FindSampledStyle(end_sample, tasm::kPropertyIDBorderTopLeftRadius);
+  ASSERT_NE(nullptr, end_radius);
+  auto end_array = end_radius->GetArray();
+  ASSERT_TRUE(end_array);
+  EXPECT_FLOAT_EQ(50.f, end_array->get(0).Number());
+  EXPECT_EQ(static_cast<uint32_t>(tasm::CSSValuePattern::PERCENT),
+            static_cast<uint32_t>(end_array->get(1).Number()));
+  auto end_events = test_manager->TakePendingAnimationEventsForNewPipeline();
+  ASSERT_EQ(1U, end_events.size());
+  EXPECT_TRUE(end_events[0].send_end_event);
 }
 
 TEST_F(CSSKeyframeManagerTest, GetDefaultValue) {
@@ -676,6 +1065,58 @@ TEST_F(CSSKeyframeManagerTest,
 
   ASSERT_NE(nullptr, paused_opacity);
   EXPECT_NEAR(mid_opacity->AsNumber(), paused_opacity->AsNumber(), 0.001);
+}
+
+TEST_F(CSSKeyframeManagerTest,
+       PausedAnimationRefreshesUnderlyingValueAtFrozenSampleTime) {
+  auto test_element = InitElement();
+  auto* base_style = test_element->computed_css_style();
+  ASSERT_TRUE(base_style->SetValue(kPropertyIDOpacity,
+                                   CSSValue(0.5f, CSSValuePattern::NUMBER)));
+  UpdateToOnlyOpacityKeyframes(test_element.get(), base::String("test"), 0);
+
+  auto test_manager = InitTestKeyframeManager(test_element.get());
+  base::Vector<starlight::AnimationData> animation_data;
+  animation_data.emplace_back(InitAnimationData(
+      base::String("test"), 1000, 0, starlight::TimingFunctionData(), -1,
+      starlight::AnimationFillModeType::kBoth,
+      starlight::AnimationDirectionType::kNormal,
+      starlight::AnimationPlayStateType::kRunning));
+  test_manager->SyncAnimationDataForNewPipeline(
+      animation_data, false, &base_style->GetResolvedValues(), nullptr, nullptr,
+      base_style);
+
+  auto start_time = TimePointFromMs(1000);
+  test_manager->CollectAnimationUpdatesForNewPipeline(start_time);
+  auto mid_time = TimePointFromMs(1500);
+  auto mid_sample =
+      test_manager->CollectAnimationUpdatesForNewPipeline(mid_time);
+  const auto* mid_opacity =
+      FindSampledStyle(mid_sample, tasm::kPropertyIDOpacity);
+  ASSERT_NE(nullptr, mid_opacity);
+  EXPECT_NEAR(0.25, mid_opacity->AsNumber(), 0.001);
+  test_manager->TakePendingAnimationEventsForNewPipeline();
+
+  animation_data[0].play_state = starlight::AnimationPlayStateType::kPaused;
+  test_manager->SyncAnimationDataForNewPipeline(
+      animation_data, false, &base_style->GetResolvedValues(), nullptr, nullptr,
+      base_style);
+  auto dummy_time = animation::Animation::GetAnimationDummyStartTime();
+  test_manager->CollectAnimationUpdatesForNewPipeline(dummy_time);
+  test_manager->TakePendingAnimationEventsForNewPipeline();
+
+  ASSERT_TRUE(base_style->ResetValue(kPropertyIDOpacity));
+  test_manager->SyncAnimationDataForNewPipeline(
+      animation_data, false, &base_style->GetResolvedValues(), nullptr, nullptr,
+      base_style);
+  auto refreshed_sample =
+      test_manager->CollectAnimationUpdatesForNewPipeline(dummy_time);
+  const auto* refreshed_opacity =
+      FindSampledStyle(refreshed_sample, tasm::kPropertyIDOpacity);
+
+  ASSERT_NE(nullptr, refreshed_opacity);
+  EXPECT_NEAR(0.5, refreshed_opacity->AsNumber(), 0.001);
+  EXPECT_TRUE(test_manager->TakePendingAnimationEventsForNewPipeline().empty());
 }
 
 TEST_F(CSSKeyframeManagerTest,
@@ -1165,6 +1606,14 @@ TEST_F(CSSKeyframeManagerTest, GetPropertyIDToAnimationPropertyTypeMap) {
            starlight::AnimationPropertyType::kTransformOrigin},
           {tasm::kPropertyIDVisibility,
            starlight::AnimationPropertyType::kVisibility},
+          {tasm::kPropertyIDBorderTopLeftRadius,
+           starlight::AnimationPropertyType::kBorderTopLeftRadius},
+          {tasm::kPropertyIDBorderTopRightRadius,
+           starlight::AnimationPropertyType::kBorderTopRightRadius},
+          {tasm::kPropertyIDBorderBottomRightRadius,
+           starlight::AnimationPropertyType::kBorderBottomRightRadius},
+          {tasm::kPropertyIDBorderBottomLeftRadius,
+           starlight::AnimationPropertyType::kBorderBottomLeftRadius},
       });
   EXPECT_EQ(test_map, *base_map);
 }
@@ -1211,6 +1660,10 @@ TEST_F(CSSKeyframeManagerTest, GetAnimatablePropertyIDSet) {
           tasm::kPropertyIDBackgroundPosition,
           tasm::kPropertyIDTransformOrigin,
           tasm::kPropertyIDVisibility,
+          tasm::kPropertyIDBorderTopLeftRadius,
+          tasm::kPropertyIDBorderTopRightRadius,
+          tasm::kPropertyIDBorderBottomRightRadius,
+          tasm::kPropertyIDBorderBottomLeftRadius,
       });
   EXPECT_EQ(test_set, *base_set);
   bool test_flag = animation::IsAnimatableProperty(tasm::kPropertyIDOpacity);
@@ -1283,6 +1736,22 @@ TEST_F(CSSKeyframeManagerTest,
            starlight::AnimationPropertyType::kPaddingBottom},
       });
   EXPECT_EQ(test_map, *kIDPropertyPaddingMap);
+
+  test_map = animation::GetPolymericPropertyIDToAnimationPropertyTypeMap(
+      starlight::AnimationPropertyType::kBorderRadius);
+  static const base::NoDestructor<
+      std::unordered_map<tasm::CSSPropertyID, starlight::AnimationPropertyType>>
+      kIDPropertyBorderRadiusMap({
+          {tasm::kPropertyIDBorderTopLeftRadius,
+           starlight::AnimationPropertyType::kBorderTopLeftRadius},
+          {tasm::kPropertyIDBorderTopRightRadius,
+           starlight::AnimationPropertyType::kBorderTopRightRadius},
+          {tasm::kPropertyIDBorderBottomRightRadius,
+           starlight::AnimationPropertyType::kBorderBottomRightRadius},
+          {tasm::kPropertyIDBorderBottomLeftRadius,
+           starlight::AnimationPropertyType::kBorderBottomLeftRadius},
+      });
+  EXPECT_EQ(test_map, *kIDPropertyBorderRadiusMap);
 }
 
 }  // namespace testing

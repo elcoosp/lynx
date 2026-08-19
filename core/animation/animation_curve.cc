@@ -72,8 +72,8 @@ KeyframeCallbacks MakeKeyframeCallbacks(BackgroundPositionKeyframe* keyframe) {
           NotifyUnitValuesUpdated<BackgroundPositionKeyframe>};
 }
 
-KeyframeCallbacks MakeKeyframeCallbacks(TransformOriginKeyframe* keyframe) {
-  return {keyframe, nullptr, NotifyUnitValuesUpdated<TransformOriginKeyframe>};
+KeyframeCallbacks MakeKeyframeCallbacks(Vec2LengthKeyframe* keyframe) {
+  return {keyframe, nullptr, NotifyUnitValuesUpdated<Vec2LengthKeyframe>};
 }
 
 KeyframeCallbacks MakeKeyframeCallbacks(TransformKeyframe* keyframe) {
@@ -105,6 +105,10 @@ void AnimationCurve::NotifyUnitValuesUpdated(tasm::CSSValuePattern type) {
                                            static_cast<uint32_t>(type));
     }
   }
+}
+
+tasm::CSSValue AnimationCurve::GetUnderlyingValue() const {
+  return underlying_value_;
 }
 
 std::unique_ptr<gfx::Keyframe> LayoutAnimationCurve::MakeEmptyKeyframe(
@@ -140,7 +144,7 @@ BackgroundPositionAnimationCurve::MakeEmptyKeyframe(
 
 std::unique_ptr<gfx::Keyframe> TransformOriginAnimationCurve::MakeEmptyKeyframe(
     const fml::TimeDelta& offset) {
-  return TransformOriginKeyframe::Create(offset, nullptr);
+  return Vec2LengthKeyframe::Create(offset, nullptr);
 }
 
 std::unique_ptr<gfx::Keyframe> VisibilityAnimationCurve::MakeEmptyKeyframe(

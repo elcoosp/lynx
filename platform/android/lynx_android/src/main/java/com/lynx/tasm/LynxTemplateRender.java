@@ -45,6 +45,7 @@ import com.lynx.react.bridge.ReadableMap;
 import com.lynx.tasm.base.CalledByNative;
 import com.lynx.tasm.base.CleanupReference;
 import com.lynx.tasm.base.LLog;
+import com.lynx.tasm.base.LynxConsumer;
 import com.lynx.tasm.base.LynxPageLoadListener;
 import com.lynx.tasm.base.TraceEvent;
 import com.lynx.tasm.base.trace.TraceEventDef;
@@ -414,7 +415,7 @@ public class LynxTemplateRender
     mRuntime = builder.lynxBackgroundRuntime;
     mTemplateProvider = builder.templateProvider;
     mEnableSyncFlush = mLynxViewConfigProvider.isEnableSyncFlush();
-    mEnableJSRuntime = mLynxViewConfigProvider.isEnableJSRuntime();
+    mEnableJSRuntime = mLogicExecutor == null && mLynxViewConfigProvider.isEnableJSRuntime();
     mEnableGenericResourceFetcher =
         checkEnableGenericResourceFetcher(mLynxViewConfigProvider.isEnableGenericResourceFetcher());
     mEnableAirStrictMode = mLynxViewConfigProvider.isEnableAirStrictMode();
@@ -1018,7 +1019,7 @@ public class LynxTemplateRender
     mLoader = new LynxResourceLoader(null, mLynxViewBuilder.fetcher, this,
         mLynxContext.getTemplateResourceFetcher(), mLynxContext.getGenericResourceFetcher());
     mLynxContext.setEnableAutoExpose(mLynxViewConfigProvider.isEnableAutoExpose());
-    mNativeFacade = new NativeFacade(mLynxViewBuilder.isEnableJSRuntime());
+    mNativeFacade = new NativeFacade(mEnableJSRuntime);
     mNativeFacade.setCallback(new TASMCallback());
     DisplayMetrics screenMetrics = mLynxContext.getScreenMetrics();
     long runtimeWrapperPtr = (mRuntime == null) ? 0 : mRuntime.getNativePtr();
@@ -1036,7 +1037,7 @@ public class LynxTemplateRender
         mPerformanceController.isEmbeddedMode() ? null : mPerformanceController, mLoader,
         mThreadStrategyForRendering.id(), mLynxViewConfigProvider.isEnableLayoutSafepoint(),
         mLynxViewBuilder.enableLayoutOnly, screenMetrics.widthPixels, screenMetrics.heightPixels,
-        screenMetrics.density, LynxEnv.inst().getLocale(), mLynxViewBuilder.isEnableJSRuntime(),
+        screenMetrics.density, LynxEnv.inst().getLocale(), mEnableJSRuntime,
         mLynxViewConfigProvider.isEnableMultiAsyncThread(),
         mLynxViewConfigProvider.isEnablePreUpdateData(), enableVSyncAligned,
         mLynxViewConfigProvider.isEnableAsyncHydration(),
@@ -1171,7 +1172,7 @@ public class LynxTemplateRender
   }
 
   private void notifyExtensionModulesTemplateLoad(String url) {
-    if (!mLynxViewBuilder.isEnableJSRuntime()) {
+    if (!mEnableJSRuntime) {
       LLog.e(TAG, "notifyExtensionModulesTemplateLoad failed, isEnableJSRuntime is false");
       return;
     }
@@ -1578,20 +1579,21 @@ public class LynxTemplateRender
   }
 
   private void updateGenericInfoURL(String url) {
-    if (mLynxContext == null || !mLynxContext.enableEventReporter()) {
+    if (mLynxContext == null) {
       return;
     }
+    int instanceId = mLynxContext.getInstanceId();
+    HashMap<String, Object> propMap = new HashMap<String, Object>();
+    propMap.put(LynxEventReporter.PROP_NAME_THREAD_MODE, mThreadStrategyForRendering.id());
     if (url != null) {
-      int instanceId = mLynxContext.getInstanceId();
-      HashMap<String, Object> propMap = new HashMap<String, Object>();
       propMap.put(LynxEventReporter.PROP_NAME_URL, url);
       // TODO(kechenglong): Remove relative_path.
       propMap.put(LynxEventReporter.PROP_NAME_RELATIVE_PATH, url);
-      LynxEventReporter.updateGenericInfo(propMap, instanceId);
       if (mReportHelper != null) {
         mReportHelper.reportLynxCrashContext(LynxInfoReportHelper.KEY_LAST_LYNX_URL, url);
       }
     }
+    LynxEventReporter.updateGenericInfo(propMap, instanceId);
   }
 
   public void renderTemplate(final byte[] template, final Map<String, Object> initData) {
@@ -1728,6 +1730,7 @@ public class LynxTemplateRender
         nativeReattachLynxEngineWrapper(mNativePtr, mNativeLifecycle, mLynxEngineRef.getNativePtr(),
             mEngineProxy != null ? mEngineProxy.getNativePtr() : 0);
         registerMemoryUsageFetcherIfNeeded();
+        updateGenericInfoURL(mUrl);
         if (mThreadStrategyForRendering == ThreadStrategyForRendering.ALL_ON_UI
             && mThreadStrategyForRendering != mLynxEngineRef.getThreadStrategy()) {
           attachEngineToUIThread();
@@ -1751,6 +1754,7 @@ public class LynxTemplateRender
         updateViewport(getLynxView().getCurrentWidthMeasureSpec(),
             getLynxView().getCurrentHeightMeasureSpec(), false);
       }
+      updateGenericInfoURL(mUrl);
       dispatchOnPageStart(mUrl);
       updateData(data, true);
       onTraceEventEnd(eventName);
@@ -3652,6 +3656,10 @@ public class LynxTemplateRender
     }
   }
 
+  boolean hasLogicExecutor() {
+    return mLogicExecutor != null;
+  }
+
   @Nullable
   public LynxBaseUI findUIByIndex(int index) {
     return (mLynxUIRender != null) ? mLynxUIRender.findLynxUIByIndex(index) : null;
@@ -3665,6 +3673,22 @@ public class LynxTemplateRender
 
   public Map<String, Object> getAllJsSource() {
     return mNativePtr != 0 ? nativeGetAllJsSource(mNativePtr, mNativeLifecycle) : null;
+  }
+
+  boolean takeBTSHeapSnapshot(
+      @NonNull String outputPath, @Nullable LynxConsumer<Boolean> callback) {
+    if (!checkIfEnvPrepared() || mNativePtr == 0 || mNativeLifecycle == 0 || mIsDestroyed.get()
+        || mHasDestroy || mDestroying) {
+      return false;
+    }
+    return nativeTakeBTSHeapSnapshotToFile(mNativePtr, mNativeLifecycle, outputPath, callback);
+  }
+
+  @CalledByNative
+  static void dispatchBTSHeapSnapshotResult(LynxConsumer<Boolean> callback, boolean success) {
+    if (callback != null) {
+      callback.accept(success);
+    }
   }
 
   public boolean enableJSRuntime() {
@@ -4751,6 +4775,9 @@ public class LynxTemplateRender
   private static native Object nativeGetPageDataByKey(long ptr, long lifecycle, String[] keys);
 
   private static native JavaOnlyMap nativeGetAllJsSource(long ptr, long lifecycle);
+
+  private static native boolean nativeTakeBTSHeapSnapshotToFile(
+      long ptr, long lifecycle, String outputPath, Object callback);
 
   private static native void nativeQueryNativeMemoryUsageAsync(
       long ptr, long lifecycle, Object receiver);

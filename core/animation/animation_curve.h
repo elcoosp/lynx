@@ -42,7 +42,7 @@ class LayoutKeyframe;
 class FilterKeyframe;
 class BoxShadowKeyframe;
 class BackgroundPositionKeyframe;
-class TransformOriginKeyframe;
+class Vec2LengthKeyframe;
 class TransformKeyframe;
 
 struct KeyframeCallbacks {
@@ -59,7 +59,7 @@ KeyframeCallbacks MakeKeyframeCallbacks(LayoutKeyframe* keyframe);
 KeyframeCallbacks MakeKeyframeCallbacks(FilterKeyframe* keyframe);
 KeyframeCallbacks MakeKeyframeCallbacks(BoxShadowKeyframe* keyframe);
 KeyframeCallbacks MakeKeyframeCallbacks(BackgroundPositionKeyframe* keyframe);
-KeyframeCallbacks MakeKeyframeCallbacks(TransformOriginKeyframe* keyframe);
+KeyframeCallbacks MakeKeyframeCallbacks(Vec2LengthKeyframe* keyframe);
 KeyframeCallbacks MakeKeyframeCallbacks(TransformKeyframe* keyframe);
 
 gfx::TimingFunctionData ToGfxTimingFunctionData(
@@ -130,6 +130,10 @@ class AnimationCurve : public gfx::AnimationCurve {
     OFFSET_DISTANCE = tasm::kPropertyIDOffsetDistance,
     BACKGROUND_POSITION = tasm::kPropertyIDBackgroundPosition,
     TRANSFORM_ORIGIN = tasm::kPropertyIDTransformOrigin,
+    BORDER_TOP_LEFT_RADIUS = tasm::kPropertyIDBorderTopLeftRadius,
+    BORDER_TOP_RIGHT_RADIUS = tasm::kPropertyIDBorderTopRightRadius,
+    BORDER_BOTTOM_RIGHT_RADIUS = tasm::kPropertyIDBorderBottomRightRadius,
+    BORDER_BOTTOM_LEFT_RADIUS = tasm::kPropertyIDBorderBottomLeftRadius,
     VISIBILITY = tasm::kPropertyIDVisibility,
     BOX_SHADOW = tasm::kPropertyIDBoxShadow,
   };
@@ -140,6 +144,14 @@ class AnimationCurve : public gfx::AnimationCurve {
   AnimationCurve::CurveType type_;
 
   void SetElement(tasm::Element* element) { element_ = element; }
+
+  bool SetUnderlyingValue(tasm::CSSValue value) {
+    if (underlying_value_ == value) {
+      return false;
+    }
+    underlying_value_ = std::move(value);
+    return true;
+  }
 
   template <typename T>
   void AddKeyframe(std::unique_ptr<T> keyframe) {
@@ -160,7 +172,10 @@ class AnimationCurve : public gfx::AnimationCurve {
   virtual tasm::CSSValue GetValue(fml::TimeDelta& t) const = 0;
 
  protected:
+  tasm::CSSValue GetUnderlyingValue() const;
+
   tasm::Element* element_{nullptr};
+  tasm::CSSValue underlying_value_;
   std::vector<KeyframeCallbacks> keyframe_callbacks_;
 };
 
