@@ -38,6 +38,24 @@
 #import "SensorsModule.h"
 #import "FileSystemModule.h"
 #import "StoreReviewModule.h"
+#import "ConstantsModule.h"
+#import "FontModule.h"
+#import "LocationModule.h"
+#import "MediaLibraryModule.h"
+#import "ContactsModule.h"
+#import "SpeechModule.h"
+#import "WebBrowserModule.h"
+#import "SqliteModule.h"
+#import "CameraModule.h"
+#import "NotificationsModule.h"
+#import "ScreenCapture.h"
+#import "AppIntegrity.h"
+#import "AppleAuthentication.h"
+#import "Asset.h"
+#import "AuthSession.h"
+#import "LivePhoto.h"
+#import "NetworkAddons.h"
+#import "StandardWebCrypto.h"
 
 NSString *const kParamHiddenNav = @"hidden_nav";
 NSString *const kParamFullScreen = @"fullscreen";
@@ -421,6 +439,16 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     [builder.config registerModule:SensorsModule.class];
     [builder.config registerModule:SecureStoreModule.class];
     [builder.config registerModule:FileSystemModule.class];
+    [builder.config registerModule:ConstantsModule.class];
+    [builder.config registerModule:FontModule.class];
+    [builder.config registerModule:LocationModule.class];
+    [builder.config registerModule:MediaLibraryModule.class];
+    [builder.config registerModule:ContactsModule.class];
+    [builder.config registerModule:SpeechModule.class];
+    [builder.config registerModule:WebBrowserModule.class];
+    [builder.config registerModule:SqliteModule.class];
+    [builder.config registerModule:CameraModule.class];
+    [builder.config registerModule:NotificationsModule.class];
     [builder.config registerModule:HapticsModule.class];
     [builder.config registerModule:ClipboardModule.class];
     [builder.config registerModule:CellularModule.class];
@@ -429,6 +457,14 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     [builder.config registerModule:ApplicationModule.class];
     // lynxpo: register the iOS DeviceModule so @lynxpo/mods-device returns real data
     [builder.config registerModule:DeviceModule.class];
+    [builder.config registerModule:ScreenCapture.class];
+    [builder.config registerModule:AppIntegrity.class];
+    [builder.config registerModule:AppleAuthentication.class];
+    [builder.config registerModule:Asset.class];
+    [builder.config registerModule:AuthSession.class];
+    [builder.config registerModule:LivePhoto.class];
+    [builder.config registerModule:NetworkAddons.class];
+    [builder.config registerModule:StandardWebCrypto.class];
     // lynxpo: register the rest of the Expo-port native modules so their
     // `NativeModules.<X>Module` surface is available on iOS (mirrors Android's
     // LynxModuleAdapter registration). Without these, every showcase card

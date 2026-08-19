@@ -141,6 +141,13 @@ public class LynxModuleAdapter {
     LynxEnv.inst().registerModule("Health", Health.class);
     LynxEnv.inst().registerModule("IntentLauncher", IntentLauncher.class);
     LynxEnv.inst().registerModule("ScreenCapture", ScreenCapture.class);
+    LynxEnv.inst().registerModule("AppIntegrity", AppIntegrity.class);
+    LynxEnv.inst().registerModule("AppleAuthentication", AppleAuthentication.class);
+    LynxEnv.inst().registerModule("Asset", Asset.class);
+    LynxEnv.inst().registerModule("AuthSession", AuthSession.class);
+    LynxEnv.inst().registerModule("LivePhoto", LivePhoto.class);
+    LynxEnv.inst().registerModule("NetworkAddons", NetworkAddons.class);
+    LynxEnv.inst().registerModule("StandardWebCrypto", StandardWebCrypto.class);
 
     LynxDevtoolGlobalHelper.getInstance().registerCardListener(mListener);
   }
