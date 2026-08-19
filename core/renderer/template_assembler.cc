@@ -411,13 +411,6 @@ void TemplateAssembler::DidDecodeTemplate(
   if (card && card->GetVm()) {
     auto vm_context_ptr = card->GetVm();
     vm_context_ptr->UpdateGCTiming(true);
-    if (page_config_->GetEnableLepusNG() &&
-        vm_context_ptr->IsTracingGCEnabled()) {
-      page_proxy()->element_manager()->RegisterVMUpdateOuterObjSizeCallback(
-          [vm_context_ptr_ = vm_context_ptr](int size) {
-            vm_context_ptr_->UpdateVMOuterObjSize(size);
-          });
-    }
   }
 
   if (card && page_proxy_.element_manager()) {
@@ -924,6 +917,42 @@ void TemplateAssembler::LoadTemplate(
               card_entry->GetTemplateBundleRecycler());
         }
 
+        return true;
+      });
+  ClearCacheData();
+}
+
+void TemplateAssembler::LoadLynxML(
+    const std::string& url, std::string source,
+    const std::shared_ptr<TemplateData>& template_data,
+    std::shared_ptr<PipelineOptions>& pipeline_options) {
+  source_size_ = source.size();
+  url_ = url;
+  pre_painting_ = pipeline_options->enable_pre_painting;
+  if (pre_painting_) {
+    page_proxy_.SetPrePaintingStage(PrePaintingStage::kStartPrePainting);
+  }
+  LoadTemplateInternal(
+      url, template_data, pipeline_options,
+      [this, source = std::move(source)](
+          const std::shared_ptr<TemplateEntry>& card_entry) mutable {
+        auto report_decode_error =
+            [this, &card_entry](const std::string& error_message) {
+              auto message = ConstructDecodeErrorMessage(
+                  true, card_entry->GetName(), error_message);
+              ReportError(base::LynxError(error::E_APP_BUNDLE_LOAD_PARSE_FAILED,
+                                          std::move(message)));
+            };
+        std::string error_message =
+            card_entry->template_bundle().FromLynxML(source);
+        if (!error_message.empty()) {
+          report_decode_error(error_message);
+          return false;
+        }
+        if (!card_entry->InitWithPageConfigger(this, page_options_)) {
+          report_decode_error(card_entry->GetErrorMsg());
+          return false;
+        }
         return true;
       });
   ClearCacheData();
@@ -3922,12 +3951,6 @@ void TemplateAssembler::OnLayoutAfter(PipelineLayoutData& layout_data) {
       current_pipeline_context->ResetFlushUIOperationRequested();
     }
 
-    // TODO(@zhouzhitao): Move this to Pipeline Lifecycle Observer if provided;
-    if (page_proxy()->element_manager()->EnableFiberElementMemoryReport()) {
-      page_proxy()->element_manager()->UpdateElementMemoryUsage(
-          page_proxy()->element_manager()->CalcTotalMemoryUsageDiff());
-    }
-
     // TODO(@limeng.amer): Move this to Pipeline Lifecycle Observer if provided;
     // Since OnPatchFinish can be called nestedly, memory collection only needs
     // to
@@ -3947,6 +3970,45 @@ void TemplateAssembler::OnLayoutAfter(PipelineLayoutData& layout_data) {
       current_pipeline_context->GetVersion());
 
   DrainDeferredTasks();
+}
+
+void TemplateAssembler::ReportExternalMemory(
+    ExternalMemorySnapshot ui_snapshot) {
+  auto* manager = page_proxy()->element_manager().get();
+  if (manager == nullptr || !manager->EnableFiberElementMemoryReport()) {
+    return;
+  }
+
+  auto default_entry = FindTemplateEntry(DEFAULT_ENTRY_NAME);
+  auto runtime = default_entry == nullptr ? nullptr : default_entry->GetVm();
+  if (runtime == nullptr) {
+    return;
+  }
+
+  const auto element_snapshot =
+      manager->node_manager()->GetExternalMemorySnapshot();
+  const ExternalMemorySnapshot combined_snapshot{
+      ui_snapshot.total_size + element_snapshot.total_size,
+      ui_snapshot.garbage_size + element_snapshot.garbage_size};
+
+  TRACE_EVENT(LYNX_TRACE_CATEGORY, "TemplateAssembler::ReportExternalMemory",
+              [&ui_snapshot, &element_snapshot,
+               &combined_snapshot](lynx::perfetto::EventContext ctx) {
+                auto add_value = [&ctx](const char* name, int64_t value) {
+                  auto* annotation = ctx.event()->add_debug_annotations();
+                  annotation->set_name(name);
+                  annotation->set_int_value(value);
+                };
+                add_value("ui_total_size", ui_snapshot.total_size);
+                add_value("ui_garbage_size", ui_snapshot.garbage_size);
+                add_value("element_total_size", element_snapshot.total_size);
+                add_value("element_garbage_size",
+                          element_snapshot.garbage_size);
+                add_value("total_size", combined_snapshot.total_size);
+                add_value("garbage_size", combined_snapshot.garbage_size);
+              });
+  runtime->ReportExternalMemory(combined_snapshot.total_size,
+                                combined_snapshot.garbage_size);
 }
 
 }  // namespace tasm
