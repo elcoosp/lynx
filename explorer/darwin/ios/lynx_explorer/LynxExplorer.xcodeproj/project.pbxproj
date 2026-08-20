@@ -22,6 +22,24 @@
 		5942489A7FA6450C8A3DD298 /* ScreenOrientationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = AC566ECCC99B4F71B6D31455 /* ScreenOrientationModule.m */; };
 		9CE1351EDBE94454A87D55EA /* StoreReviewModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */; };
 		9AB2B36A0B564BF2ACBEDDFE /* CryptoModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 23B3E621F4D640F18AA6CED6 /* CryptoModule.m */; };
+			682B67F61DE3E32B2F7A07F8 /* AppIntegrity.m in Sources */ = {isa = PBXBuildFile; fileRef = E83094A8B68437BDE5296D17 /* AppIntegrity.m */; };
+			20828B5F519682337686E6AB /* AppleAuthentication.m in Sources */ = {isa = PBXBuildFile; fileRef = CF737E6675BD6A65B2E18818 /* AppleAuthentication.m */; };
+			090DEEA90E4720E32397BB08 /* LivePhoto.m in Sources */ = {isa = PBXBuildFile; fileRef = 0FD02E7AF6E2B3999D37F3D5 /* LivePhoto.m */; };
+			ACC256407BD31CF3E75DC442 /* Asset.m in Sources */ = {isa = PBXBuildFile; fileRef = 790043D4828184C566DF9E47 /* Asset.m */; };
+			8509597AB07BF5074942436E /* AuthSession.m in Sources */ = {isa = PBXBuildFile; fileRef = 7A69B700286FD2A5CDEEF7C7 /* AuthSession.m */; };
+			8E0110485A8462363F17309B /* NetworkAddons.m in Sources */ = {isa = PBXBuildFile; fileRef = 7000E63B5221E5BF70878105 /* NetworkAddons.m */; };
+			188CE2EAF4B8B79C4EE492EA /* StandardWebCrypto.m in Sources */ = {isa = PBXBuildFile; fileRef = DD411771AFBA3649874B9D59 /* StandardWebCrypto.m */; };
+			94600125007C8F38FA456601 /* ScreenCapture.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F27D97D4ECD8C7C42D69352 /* ScreenCapture.m */; };
+			99704E18148330D1469C265B /* CameraModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 572145D589BE80E3180E80AB /* CameraModule.m */; };
+			15251E1558AA47961F849905 /* ConstantsModule.m in Sources */ = {isa = PBXBuildFile; fileRef = FAE7374AB2C54F940B87D35C /* ConstantsModule.m */; };
+			978FA671C966E77AD5A47BA3 /* ContactsModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 719DE1E625383CFC68E40B65 /* ContactsModule.m */; };
+			B3518537A4324DA7502BF469 /* FontModule.m in Sources */ = {isa = PBXBuildFile; fileRef = CB8ABE5505EF62696A60B37D /* FontModule.m */; };
+			DC287053DB37B4B06CAA970E /* LocationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 45AC0AD46D23CE4A585AB14A /* LocationModule.m */; };
+			BABAA8B9EF303CE8171B58DF /* MediaLibraryModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 258DBB7476953495F8FAC8A2 /* MediaLibraryModule.m */; };
+			2E25ABB8B1209BE2069362B8 /* NotificationsModule.m in Sources */ = {isa = PBXBuildFile; fileRef = A0472663DBC8F510A9FF2DC6 /* NotificationsModule.m */; };
+			D209B4491C260D850650ADD0 /* SpeechModule.m in Sources */ = {isa = PBXBuildFile; fileRef = CA21ABD98E65980CD2EB9362 /* SpeechModule.m */; };
+			DD1EA86D46865321866AE2EB /* SqliteModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 834E5B2303C0B67AAD1A1ECA /* SqliteModule.m */; };
+			BE975D3851D81395C56F6DC6 /* WebBrowserModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E50A0403A58B30B50E1AC2D3 /* WebBrowserModule.m */; };
 		D16A5C04876D407386A31538 /* LocalAuthenticationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 03F7D8B5124D44A9B88A47D6 /* LocalAuthenticationModule.m */; };
 				A262B0E527F44FA9B28DC871 /* SensorsModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E27D4CB4E7754CCCA0C8D8EF /* SensorsModule.m */; };
 				F1A2C3D4E5F6407192AB3C40 /* SecureStoreModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E1B2C3D4E5F6407192AB3C41 /* SecureStoreModule.m */; };
@@ -35,6 +53,11 @@
 		2B382D812D17BDC500C67770 /* UIHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B382D802D17BDC500C67770 /* UIHelper.m */; };
 		2B382D862D17C06D00C67770 /* ScanViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B382D852D17C06D00C67770 /* ScanViewController.m */; };
 				2B45A78F2E12870D00EA5D14 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B45A78E2E12870D00EA5D14 /* AVFoundation.framework */; };
+			2382D8A5F0D0A9100CA44442 /* AuthenticationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC2CC7D9164DC2513BE9FEB1 /* AuthenticationServices.framework */; };
+			276D4833F930276D810921AB /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E6C8E36ABF9AB4BF49541073 /* CoreLocation.framework */; };
+			C59796EA39994462B82C30C0 /* Contacts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CDACD126FE6D74CEC6E4F36 /* Contacts.framework */; };
+			273703F1FC57768D832C5E66 /* DeviceCheck.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA407DD98613E910D66C32E2 /* DeviceCheck.framework */; };
+			17F62A1220D5B5DBBBD287A3 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECEF2F43479250C4CAA513EF /* UserNotifications.framework */; };
 				F1C2D3E4A5B6407192AB3C50 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1C2D3E4A5B6407192AB3C51 /* CoreMotion.framework */; };
 				F1C2D3E4A5B6407192AB3C52 /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1C2D3E4A5B6407192AB3C53 /* LocalAuthentication.framework */; };
 		2B590A452D633F3A0041DE80 /* DemoGenericResourceFetcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B590A442D633F3A0041DE80 /* DemoGenericResourceFetcher.m */; };
@@ -130,6 +153,42 @@
 		8D1FFF5C0E674E30B5798D81 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
 		18C5CE83491747D1898E91FB /* CryptoModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CryptoModule.h; sourceTree = "<group>"; };
 		23B3E621F4D640F18AA6CED6 /* CryptoModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CryptoModule.m; sourceTree = "<group>"; };
+			DF1947407F64B77EB923EDEE /* AppIntegrity.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppIntegrity.h; sourceTree = "<group>"; };
+			E83094A8B68437BDE5296D17 /* AppIntegrity.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppIntegrity.m; sourceTree = "<group>"; };
+			ED938958FD88DBAF6454D033 /* AppleAuthentication.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppleAuthentication.h; sourceTree = "<group>"; };
+			CF737E6675BD6A65B2E18818 /* AppleAuthentication.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppleAuthentication.m; sourceTree = "<group>"; };
+			9047A459F21B3005D8BBC3DF /* LivePhoto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LivePhoto.h; sourceTree = "<group>"; };
+			0FD02E7AF6E2B3999D37F3D5 /* LivePhoto.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LivePhoto.m; sourceTree = "<group>"; };
+			99215D596BF9FC477F2BE8E3 /* Asset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Asset.h; sourceTree = "<group>"; };
+			790043D4828184C566DF9E47 /* Asset.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Asset.m; sourceTree = "<group>"; };
+			398E0912FECE9B7701A4DC0E /* AuthSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AuthSession.h; sourceTree = "<group>"; };
+			7A69B700286FD2A5CDEEF7C7 /* AuthSession.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AuthSession.m; sourceTree = "<group>"; };
+			B4690F9BF9ECA9A77BA4DB6C /* NetworkAddons.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkAddons.h; sourceTree = "<group>"; };
+			7000E63B5221E5BF70878105 /* NetworkAddons.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NetworkAddons.m; sourceTree = "<group>"; };
+			467A541DD8F0C236B18BEE4C /* StandardWebCrypto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StandardWebCrypto.h; sourceTree = "<group>"; };
+			DD411771AFBA3649874B9D59 /* StandardWebCrypto.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StandardWebCrypto.m; sourceTree = "<group>"; };
+			35C4E2BEDCA92601405467E2 /* ScreenCapture.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenCapture.h; sourceTree = "<group>"; };
+			4F27D97D4ECD8C7C42D69352 /* ScreenCapture.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ScreenCapture.m; sourceTree = "<group>"; };
+			3B6574E56FA0E8747A472226 /* CameraModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CameraModule.h; sourceTree = "<group>"; };
+			572145D589BE80E3180E80AB /* CameraModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CameraModule.m; sourceTree = "<group>"; };
+			41F449C55306B55F71025A6F /* ConstantsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ConstantsModule.h; sourceTree = "<group>"; };
+			FAE7374AB2C54F940B87D35C /* ConstantsModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ConstantsModule.m; sourceTree = "<group>"; };
+			D925817B22D63BF9D385B9CD /* ContactsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ContactsModule.h; sourceTree = "<group>"; };
+			719DE1E625383CFC68E40B65 /* ContactsModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ContactsModule.m; sourceTree = "<group>"; };
+			E7DB4F3C16157CE5B0709D7C /* FontModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FontModule.h; sourceTree = "<group>"; };
+			CB8ABE5505EF62696A60B37D /* FontModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FontModule.m; sourceTree = "<group>"; };
+			4EF3EED64DD960BE50A620F0 /* LocationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocationModule.h; sourceTree = "<group>"; };
+			45AC0AD46D23CE4A585AB14A /* LocationModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LocationModule.m; sourceTree = "<group>"; };
+			3A44040A4732774F178A2E33 /* MediaLibraryModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaLibraryModule.h; sourceTree = "<group>"; };
+			258DBB7476953495F8FAC8A2 /* MediaLibraryModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MediaLibraryModule.m; sourceTree = "<group>"; };
+			6C8AC90A94C05488244C76D7 /* NotificationsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NotificationsModule.h; sourceTree = "<group>"; };
+			A0472663DBC8F510A9FF2DC6 /* NotificationsModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NotificationsModule.m; sourceTree = "<group>"; };
+			BFE7AF785CE16F1E0A94D0EE /* SpeechModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SpeechModule.h; sourceTree = "<group>"; };
+			CA21ABD98E65980CD2EB9362 /* SpeechModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SpeechModule.m; sourceTree = "<group>"; };
+			5995201389F63576D8165326 /* SqliteModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SqliteModule.h; sourceTree = "<group>"; };
+			834E5B2303C0B67AAD1A1ECA /* SqliteModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SqliteModule.m; sourceTree = "<group>"; };
+			B6521990E39E00B624CEF87B /* WebBrowserModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebBrowserModule.h; sourceTree = "<group>"; };
+			E50A0403A58B30B50E1AC2D3 /* WebBrowserModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = WebBrowserModule.m; sourceTree = "<group>"; };
 		B014847C68FE4C51A0461BE2 /* LocalAuthenticationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalAuthenticationModule.h; sourceTree = "<group>"; };
 		03F7D8B5124D44A9B88A47D6 /* LocalAuthenticationModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LocalAuthenticationModule.m; sourceTree = "<group>"; };
 		B8DF1A23B02744EC94A14306 /* SensorsModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SensorsModule.h; sourceTree = "<group>"; };
@@ -211,6 +270,11 @@
 		2B382D842D17C06D00C67770 /* ScanViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScanViewController.h; sourceTree = "<group>"; };
 		2B382D852D17C06D00C67770 /* ScanViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ScanViewController.m; sourceTree = "<group>"; };
 				2B45A78E2E12870D00EA5D14 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+			BC2CC7D9164DC2513BE9FEB1 /* AuthenticationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AuthenticationServices.framework; path = System/Library/Frameworks/AuthenticationServices.framework; sourceTree = SDKROOT; };
+			E6C8E36ABF9AB4BF49541073 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+			4CDACD126FE6D74CEC6E4F36 /* Contacts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Contacts.framework; path = System/Library/Frameworks/Contacts.framework; sourceTree = SDKROOT; };
+			CA407DD98613E910D66C32E2 /* DeviceCheck.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceCheck.framework; path = System/Library/Frameworks/DeviceCheck.framework; sourceTree = SDKROOT; };
+			ECEF2F43479250C4CAA513EF /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 				F1C2D3E4A5B6407192AB3C51 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 				F1C2D3E4A5B6407192AB3C53 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
 		2B590A442D633F3A0041DE80 /* DemoGenericResourceFetcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DemoGenericResourceFetcher.m; sourceTree = "<group>"; };
@@ -281,6 +345,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				2B45A78F2E12870D00EA5D14 /* AVFoundation.framework in Frameworks */,
+				2382D8A5F0D0A9100CA44442 /* AuthenticationServices.framework in Frameworks */,
+				276D4833F930276D810921AB /* CoreLocation.framework in Frameworks */,
+				C59796EA39994462B82C30C0 /* Contacts.framework in Frameworks */,
+				273703F1FC57768D832C5E66 /* DeviceCheck.framework in Frameworks */,
+				17F62A1220D5B5DBBBD287A3 /* UserNotifications.framework in Frameworks */,
 				7C3C6A602EA1433EBB1F2610 /* Photos.framework in Frameworks */,
 								5206A9B80CBD431CBA942530 /* StoreKit.framework in Frameworks */,
 								F1C2D3E4A5B6407192AB3C50 /* CoreMotion.framework in Frameworks */,
@@ -362,6 +431,42 @@
 				8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */,
 				18C5CE83491747D1898E91FB /* CryptoModule.h */,
 				23B3E621F4D640F18AA6CED6 /* CryptoModule.m */,
+				DF1947407F64B77EB923EDEE /* AppIntegrity.h */,
+				E83094A8B68437BDE5296D17 /* AppIntegrity.m */,
+				ED938958FD88DBAF6454D033 /* AppleAuthentication.h */,
+				CF737E6675BD6A65B2E18818 /* AppleAuthentication.m */,
+				9047A459F21B3005D8BBC3DF /* LivePhoto.h */,
+				0FD02E7AF6E2B3999D37F3D5 /* LivePhoto.m */,
+				99215D596BF9FC477F2BE8E3 /* Asset.h */,
+				790043D4828184C566DF9E47 /* Asset.m */,
+				398E0912FECE9B7701A4DC0E /* AuthSession.h */,
+				7A69B700286FD2A5CDEEF7C7 /* AuthSession.m */,
+				B4690F9BF9ECA9A77BA4DB6C /* NetworkAddons.h */,
+				7000E63B5221E5BF70878105 /* NetworkAddons.m */,
+				467A541DD8F0C236B18BEE4C /* StandardWebCrypto.h */,
+				DD411771AFBA3649874B9D59 /* StandardWebCrypto.m */,
+				35C4E2BEDCA92601405467E2 /* ScreenCapture.h */,
+				4F27D97D4ECD8C7C42D69352 /* ScreenCapture.m */,
+				3B6574E56FA0E8747A472226 /* CameraModule.h */,
+				572145D589BE80E3180E80AB /* CameraModule.m */,
+				41F449C55306B55F71025A6F /* ConstantsModule.h */,
+				FAE7374AB2C54F940B87D35C /* ConstantsModule.m */,
+				D925817B22D63BF9D385B9CD /* ContactsModule.h */,
+				719DE1E625383CFC68E40B65 /* ContactsModule.m */,
+				E7DB4F3C16157CE5B0709D7C /* FontModule.h */,
+				CB8ABE5505EF62696A60B37D /* FontModule.m */,
+				4EF3EED64DD960BE50A620F0 /* LocationModule.h */,
+				45AC0AD46D23CE4A585AB14A /* LocationModule.m */,
+				3A44040A4732774F178A2E33 /* MediaLibraryModule.h */,
+				258DBB7476953495F8FAC8A2 /* MediaLibraryModule.m */,
+				6C8AC90A94C05488244C76D7 /* NotificationsModule.h */,
+				A0472663DBC8F510A9FF2DC6 /* NotificationsModule.m */,
+				BFE7AF785CE16F1E0A94D0EE /* SpeechModule.h */,
+				CA21ABD98E65980CD2EB9362 /* SpeechModule.m */,
+				5995201389F63576D8165326 /* SqliteModule.h */,
+				834E5B2303C0B67AAD1A1ECA /* SqliteModule.m */,
+				B6521990E39E00B624CEF87B /* WebBrowserModule.h */,
+				E50A0403A58B30B50E1AC2D3 /* WebBrowserModule.m */,
 				B014847C68FE4C51A0461BE2 /* LocalAuthenticationModule.h */,
 				03F7D8B5124D44A9B88A47D6 /* LocalAuthenticationModule.m */,
 				B8DF1A23B02744EC94A14306 /* SensorsModule.h */,
@@ -560,6 +665,11 @@
 			isa = PBXGroup;
 			children = (
 				2B45A78E2E12870D00EA5D14 /* AVFoundation.framework */,
+				BC2CC7D9164DC2513BE9FEB1 /* AuthenticationServices.framework */,
+				E6C8E36ABF9AB4BF49541073 /* CoreLocation.framework */,
+				4CDACD126FE6D74CEC6E4F36 /* Contacts.framework */,
+				CA407DD98613E910D66C32E2 /* DeviceCheck.framework */,
+				ECEF2F43479250C4CAA513EF /* UserNotifications.framework */,
 				E3F070B78CB64996AE9032B7 /* Photos.framework */,
 				E1594719CAAB4881B452EF4E /* StoreKit.framework */,
 				B20C439237B8FC5CD49DAA94 /* Pods_LynxExplorer.framework */,
@@ -806,6 +916,24 @@
 				5942489A7FA6450C8A3DD298 /* ScreenOrientationModule.m in Sources */,
 				9CE1351EDBE94454A87D55EA /* StoreReviewModule.m in Sources */,
 				9AB2B36A0B564BF2ACBEDDFE /* CryptoModule.m in Sources */,
+				682B67F61DE3E32B2F7A07F8 /* AppIntegrity.m in Sources */,
+				20828B5F519682337686E6AB /* AppleAuthentication.m in Sources */,
+				090DEEA90E4720E32397BB08 /* LivePhoto.m in Sources */,
+				ACC256407BD31CF3E75DC442 /* Asset.m in Sources */,
+				8509597AB07BF5074942436E /* AuthSession.m in Sources */,
+				8E0110485A8462363F17309B /* NetworkAddons.m in Sources */,
+				188CE2EAF4B8B79C4EE492EA /* StandardWebCrypto.m in Sources */,
+				94600125007C8F38FA456601 /* ScreenCapture.m in Sources */,
+				99704E18148330D1469C265B /* CameraModule.m in Sources */,
+				15251E1558AA47961F849905 /* ConstantsModule.m in Sources */,
+				978FA671C966E77AD5A47BA3 /* ContactsModule.m in Sources */,
+				B3518537A4324DA7502BF469 /* FontModule.m in Sources */,
+				DC287053DB37B4B06CAA970E /* LocationModule.m in Sources */,
+				BABAA8B9EF303CE8171B58DF /* MediaLibraryModule.m in Sources */,
+				2E25ABB8B1209BE2069362B8 /* NotificationsModule.m in Sources */,
+				D209B4491C260D850650ADD0 /* SpeechModule.m in Sources */,
+				DD1EA86D46865321866AE2EB /* SqliteModule.m in Sources */,
+				BE975D3851D81395C56F6DC6 /* WebBrowserModule.m in Sources */,
 				D16A5C04876D407386A31538 /* LocalAuthenticationModule.m in Sources */,
 								A262B0E527F44FA9B28DC871 /* SensorsModule.m in Sources */,
 								F1A2C3D4E5F6407192AB3C40 /* SecureStoreModule.m in Sources */,
