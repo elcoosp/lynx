@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.jsbridge.Promise;
 
 /**
  * Android counterpart of the iOS {@code StoreReviewModule}. Exposes store
@@ -59,11 +60,11 @@ public class StoreReviewModule extends LynxModule {
   }
 
   @LynxMethod
-  public void isAvailableAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(isAvailable()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void isAvailableAsync(final Promise promise) {
+    try { promise.resolve(isAvailable()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void requestReviewAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { requestReview(); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void requestReviewAsync(final Promise promise) {
+    try { requestReview(); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
 }

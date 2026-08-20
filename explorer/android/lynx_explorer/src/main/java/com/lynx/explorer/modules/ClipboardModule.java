@@ -8,6 +8,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.jsbridge.Promise;
 
 /**
  * Android counterpart of the iOS {@code ClipboardModule}. Exposes clipboard
@@ -60,15 +61,15 @@ public class ClipboardModule extends LynxModule {
   }
 
   @LynxMethod
-  public void getStringAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getString()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getStringAsync(final Promise promise) {
+    try { promise.resolve(getString()); } catch (Exception e) { promise.reject("ERR_CLIPBOARD", e.getMessage()); }
   }
   @LynxMethod
-  public void setStringAsync(String text, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { setString(text); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void setStringAsync(String text, final Promise promise) {
+    try { setString(text); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_CLIPBOARD", e.getMessage()); }
   }
   @LynxMethod
-  public void hasStringAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(hasString()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void hasStringAsync(final Promise promise) {
+    try { promise.resolve(hasString()); } catch (Exception e) { promise.reject("ERR_CLIPBOARD", e.getMessage()); }
   }
 }

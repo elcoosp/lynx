@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.pm.ActivityInfo;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.jsbridge.Promise;
 
 /**
  * Android counterpart of the iOS {@code ScreenOrientationModule}. Exposes
@@ -132,28 +133,28 @@ public class ScreenOrientationModule extends LynxModule {
   }
 
   @LynxMethod
-  public void getOrientationAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getOrientation()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getOrientationAsync(final Promise promise) {
+    try { promise.resolve(getOrientation()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void getOrientationLockAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getOrientationLock()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getOrientationLockAsync(final Promise promise) {
+    try { promise.resolve(getOrientationLock()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void lockAsync(int orientation, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { lock(orientation); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void lockAsync(int orientation, final Promise promise) {
+    try { lock(orientation); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void unlockAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { lock(0 /* UNKNOWN/unspecified */); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void unlockAsync(final Promise promise) {
+    try { lock(0 /* UNKNOWN/unspecified */); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void lockPlatformAsync(int orientation, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { lockPlatform(orientation); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void lockPlatformAsync(int orientation, final Promise promise) {
+    try { lockPlatform(orientation); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void supportsOrientationLockAsync(int orientationLock, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(supportsOrientationLock()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void supportsOrientationLockAsync(int orientationLock, final Promise promise) {
+    try { promise.resolve(supportsOrientationLock()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
   public void addListener(String eventName) { startOrientationObserver(eventName); }

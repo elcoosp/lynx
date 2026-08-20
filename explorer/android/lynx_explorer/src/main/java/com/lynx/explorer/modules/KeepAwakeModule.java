@@ -7,6 +7,7 @@ import android.content.Context;
 import android.view.WindowManager;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.jsbridge.Promise;
 
 /**
  * Android counterpart of the iOS {@code KeepAwakeModule}. Exposes screen-keep
@@ -66,15 +67,15 @@ public class KeepAwakeModule extends LynxModule {
   }
 
   @LynxMethod
-  public void activateAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { activate(); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void activateAsync(final Promise promise) {
+    try { activate(); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void deactivateAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { deactivate(); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void deactivateAsync(final Promise promise) {
+    try { deactivate(); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void isActivatedAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(isActivated()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void isActivatedAsync(final Promise promise) {
+    try { promise.resolve(isActivated()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
 }

@@ -12,8 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.lynx.react.bridge.JavaOnlyMap;
 
 /**
  * Android counterpart of the iOS {@code FileSystemModule}. Exposes a scoped
@@ -94,12 +93,12 @@ public class FileSystemModule extends LynxModule {
         return;
       }
       File file = resolve(path);
-      JSONObject info = new JSONObject();
-      info.put("exists", file.exists());
-      info.put("isDirectory", file.isDirectory());
-      info.put("size", file.exists() ? file.length() : 0);
-      info.put("uri", file.toURI().toString());
-      promise.resolve(info.toString());
+      JavaOnlyMap info = new JavaOnlyMap();
+      info.putBoolean("exists", file.exists());
+      info.putBoolean("isDirectory", file.isDirectory());
+      info.putDouble("size", file.exists() ? (double) file.length() : 0.0);
+      info.putString("uri", file.toURI().toString());
+      promise.resolve(info);
     } catch (Exception e) {
       promise.reject("ERR_FILE_SYSTEM", e.getMessage());
     }

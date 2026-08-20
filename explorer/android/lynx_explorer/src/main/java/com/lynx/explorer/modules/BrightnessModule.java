@@ -7,6 +7,7 @@ import android.provider.Settings;
 import android.view.WindowManager;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.jsbridge.Promise;
 
 /**
  * Android counterpart of the iOS {@code BrightnessModule}. Exposes screen
@@ -106,24 +107,24 @@ public class BrightnessModule extends LynxModule {
   }
 
   @LynxMethod
-  public void getBrightnessAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getBrightness()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getBrightnessAsync(final Promise promise) {
+    try { promise.resolve(getBrightness()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void setBrightnessAsync(double value, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { setBrightness((float) value); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void setBrightnessAsync(double value, final Promise promise) {
+    try { setBrightness((float) value); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void getSystemBrightnessAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getSystemBrightness()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getSystemBrightnessAsync(final Promise promise) {
+    try { promise.resolve(getSystemBrightness()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void isUsingSystemBrightnessAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(isUsingSystemBrightness()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void isUsingSystemBrightnessAsync(final Promise promise) {
+    try { promise.resolve(isUsingSystemBrightness()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void getSystemBrightnessModeAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getSystemBrightnessMode()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getSystemBrightnessModeAsync(final Promise promise) {
+    try { promise.resolve(getSystemBrightnessMode()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
   public void addListener(String eventName) { startBrightnessObserver(eventName); }

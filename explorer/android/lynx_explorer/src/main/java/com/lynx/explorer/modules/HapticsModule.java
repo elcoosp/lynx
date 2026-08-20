@@ -9,6 +9,7 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.jsbridge.Promise;
 
 /**
  * Android counterpart of the iOS {@code HapticsModule}. Exposes haptic feedback
@@ -128,15 +129,15 @@ public class HapticsModule extends LynxModule {
   }
 
   @LynxMethod
-  public void impactAsync(int style, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { impactAsync(style); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void impactAsync(int style, final Promise promise) {
+    try { impactAsync(style); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void notificationAsync(int type, final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { notificationAsync(type); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void notificationAsync(int type, final Promise promise) {
+    try { notificationAsync(type); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void selectionAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { selectionAsync(); resolve.invoke(null); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void selectionAsync(final Promise promise) {
+    try { selectionAsync(); promise.resolve(null); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
 }

@@ -10,6 +10,7 @@ import android.telephony.TelephonyManager;
 import androidx.core.content.ContextCompat;
 import com.lynx.jsbridge.LynxMethod;
 import com.lynx.jsbridge.LynxModule;
+import com.lynx.jsbridge.Promise;
 
 /**
  * Android counterpart of the iOS {@code CellularModule}. Exposes cellular info
@@ -99,23 +100,23 @@ public class CellularModule extends LynxModule {
   }
 
   @LynxMethod
-  public void getCellularGenerationAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getCellularGeneration()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getCellularGenerationAsync(final Promise promise) {
+    try { promise.resolve(getCellularGeneration()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void getIsoCountryCodeAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getIsoCountryCode()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getIsoCountryCodeAsync(final Promise promise) {
+    try { promise.resolve(getIsoCountryCode()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void getCarrierNameAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getCarrierName()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getCarrierNameAsync(final Promise promise) {
+    try { promise.resolve(getCarrierName()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void getMobileCountryCodeAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getMobileCountryCode()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getMobileCountryCodeAsync(final Promise promise) {
+    try { promise.resolve(getMobileCountryCode()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
   @LynxMethod
-  public void getMobileNetworkCodeAsync(final com.lynx.react.bridge.Callback resolve, final com.lynx.react.bridge.Callback reject) {
-    try { resolve.invoke(getMobileNetworkCode()); } catch (Exception e) { reject.invoke(e.getMessage()); }
+  public void getMobileNetworkCodeAsync(final Promise promise) {
+    try { promise.resolve(getMobileNetworkCode()); } catch (Exception e) { promise.reject("ERR_LYNX_MODULE", e.getMessage()); }
   }
 }
