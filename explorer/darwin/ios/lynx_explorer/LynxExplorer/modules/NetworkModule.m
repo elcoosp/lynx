@@ -19,7 +19,6 @@
   return @{
     @"getIpAddress" : NSStringFromSelector(@selector(getIpAddress)),
     @"getNetworkState" : NSStringFromSelector(@selector(getNetworkState)),
-    @"getNetworkStateAsync" : NSStringFromSelector(@selector(getNetworkStateAsync:reject:)),
   };
 }
 
