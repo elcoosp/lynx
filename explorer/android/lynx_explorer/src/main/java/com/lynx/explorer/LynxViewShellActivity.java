@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -22,8 +23,11 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.lynx.explorer.input.LynxExplorerInput;
@@ -58,6 +62,9 @@ public class LynxViewShellActivity extends AppCompatActivity {
   private static final String DEFAULT_TOP_BAR_COLOR = "#F0F2F5";
   private static final String DEFAULT_TOP_BAR_TITLE_COLOR = "#000000";
   private static final String DEFAULT_TOP_BAR_BACK_BUTTON_STYLE = "light";
+  private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
+  public static final String ACTION_CAMERA_PERMISSION_GRANTED =
+      "com.lynx.explorer.action.CAMERA_PERMISSION_GRANTED";
   private ViewGroup mLynxContainer;
   private LynxView mLynxView;
   private String mFrontendTheme;
@@ -85,12 +92,35 @@ public class LynxViewShellActivity extends AppCompatActivity {
       Log.d(TAG, "Opening initial URL: " + initialUrl);
     }
 
+    // The explorer is camera-centric (QR scanning + the LynxPo camera module), so ensure the
+    // CAMERA permission is requested up-front. If it is currently denied we prompt the user;
+    // the LynxPo camera preview then starts once the grant lands via onRequestPermissionsResult.
+    if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
+        != PackageManager.PERMISSION_GRANTED) {
+      ActivityCompat.requestPermissions(
+          this, new String[] {android.Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
+    }
+
     setTopBarAppearance(url);
     mLynxContainer = findViewById(R.id.lynx_container);
 
     extraTimingInfo.mContainerInitEnd = System.currentTimeMillis();
 
     openTargetUrl(url);
+  }
+
+  @Override
+  public void onRequestPermissionsResult(
+      int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    if (requestCode == CAMERA_PERMISSION_REQUEST_CODE
+        && grantResults.length > 0
+        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      // Permission just granted: broadcast so any live CameraPreview can start its session.
+      Intent granted = new Intent(ACTION_CAMERA_PERMISSION_GRANTED);
+      androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(this)
+          .sendBroadcast(granted);
+    }
   }
 
   @Override
