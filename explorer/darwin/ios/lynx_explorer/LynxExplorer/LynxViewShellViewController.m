@@ -17,45 +17,15 @@
 #import "LynxExplorerSwiftInterop.h"
 #import "LynxNodeAPILifecycleListener.h"
 #import "LynxNodeAPIModule.h"
-#import "DeviceModule.h"
-#import "EnvInfoModule.h"
+// NOTE: DeviceModule.h no longer imported here — it is auto-linked via Autolink.
 #import "SplashScreenModule.h"
 #import "LynxSettingManager.h"
 #import "UIHelper.h"
-#import "ApplicationModule.h"
-#import "BatteryModule.h"
-#import "BrightnessModule.h"
-#import "CellularModule.h"
-#import "ClipboardModule.h"
-#import "HapticsModule.h"
-#import "ImagePickerModule.h"
-#import "KeepAwakeModule.h"
-#import "LocalizationModule.h"
-#import "LocalAuthenticationModule.h"
-#import "MailComposerModule.h"
-#import "NetworkModule.h"
-#import "CryptoModule.h"
 #import "ScreenOrientationModule.h"
 #import "SecureStoreModule.h"
-#import "SensorsModule.h"
-#import "FileSystemModule.h"
 #import "StoreReviewModule.h"
-#import "ConstantsModule.h"
-#import "FontModule.h"
-#import "LocationModule.h"
-#import "MediaLibraryModule.h"
-#import "ContactsModule.h"
-#import "SpeechModule.h"
 #import "WebBrowserModule.h"
 #import "SqliteModule.h"
-#import "CameraModule.h"
-#import "NotificationsModule.h"
-#import "ScreenCapture.h"
-#import "AppIntegrity.h"
-#import "AppleAuthentication.h"
-#import "Asset.h"
-#import "AuthSession.h"
-#import "LivePhoto.h"
 #import "NetworkAddons.h"
 #import "StandardWebCrypto.h"
 
@@ -431,44 +401,14 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     [builder.config registerModule:LynxNodeAPIModule.class param:self];
     [builder.config registerModule:StoreReviewModule.class];
     [builder.config registerModule:ScreenOrientationModule.class];
-    [builder.config registerModule:NetworkModule.class];
-    [builder.config registerModule:MailComposerModule.class];
-    [builder.config registerModule:LocalizationModule.class];
-    [builder.config registerModule:KeepAwakeModule.class];
-    [builder.config registerModule:ImagePickerModule.class];
-    [builder.config registerModule:CryptoModule.class];
-    [builder.config registerModule:LocalAuthenticationModule.class];
-    [builder.config registerModule:SensorsModule.class];
     [builder.config registerModule:SecureStoreModule.class];
-    [builder.config registerModule:FileSystemModule.class];
-    [builder.config registerModule:ConstantsModule.class];
-    [builder.config registerModule:FontModule.class];
-    [builder.config registerModule:LocationModule.class];
-    [builder.config registerModule:MediaLibraryModule.class];
-    [builder.config registerModule:ContactsModule.class];
-    [builder.config registerModule:SpeechModule.class];
     [builder.config registerModule:WebBrowserModule.class];
     [builder.config registerModule:SqliteModule.class];
-    [builder.config registerModule:CameraModule.class];
-    [builder.config registerModule:NotificationsModule.class];
-    [builder.config registerModule:HapticsModule.class];
-    [builder.config registerModule:ClipboardModule.class];
-    [builder.config registerModule:CellularModule.class];
-    [builder.config registerModule:BrightnessModule.class];
-    [builder.config registerModule:BatteryModule.class];
-    [builder.config registerModule:ApplicationModule.class];
-    // lynxpo: register the iOS DeviceModule so @lynxpo/mods-device returns real data
-    [builder.config registerModule:DeviceModule.class];
+    // NOTE: DeviceModule is now auto-linked via Autolink (lynx.lib.json in
+    // @lynxpo/mods-device) — no manual registration required.
     // lynxpo: register EnvInfoModule so @lynxpo/mods-env-info returns real data
-    [builder.config registerModule:EnvInfoModule.class];
     // lynxpo: register SplashScreenModule so @lynxpo/mods-splash-screen is present
     [builder.config registerModule:SplashScreenModule.class];
-    [builder.config registerModule:ScreenCapture.class];
-    [builder.config registerModule:AppIntegrity.class];
-    [builder.config registerModule:AppleAuthentication.class];
-    [builder.config registerModule:Asset.class];
-    [builder.config registerModule:AuthSession.class];
-    [builder.config registerModule:LivePhoto.class];
     [builder.config registerModule:NetworkAddons.class];
     [builder.config registerModule:StandardWebCrypto.class];
     // lynxpo: register the rest of the Expo-port native modules so their
