@@ -18,6 +18,7 @@
 #import "LynxNodeAPILifecycleListener.h"
 #import "LynxNodeAPIModule.h"
 #import "DeviceModule.h"
+#import "EnvInfoModule.h"
 #import "LynxSettingManager.h"
 #import "UIHelper.h"
 #import "ApplicationModule.h"
@@ -457,6 +458,8 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     [builder.config registerModule:ApplicationModule.class];
     // lynxpo: register the iOS DeviceModule so @lynxpo/mods-device returns real data
     [builder.config registerModule:DeviceModule.class];
+    // lynxpo: register EnvInfoModule so @lynxpo/mods-env-info returns real data
+    [builder.config registerModule:EnvInfoModule.class];
     [builder.config registerModule:ScreenCapture.class];
     [builder.config registerModule:AppIntegrity.class];
     [builder.config registerModule:AppleAuthentication.class];
