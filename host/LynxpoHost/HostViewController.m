@@ -6,6 +6,7 @@
 #import <Lynx/LynxConfig.h>
 #import <Lynx/LynxEnv.h>
 #import <Lynx/LynxView.h>
+#import <Lynx/LynxTemplateData.h>
 #import "LynxGeneratedLibraryRegistry.h"
 
 @interface HostViewController () <LynxViewLifecycle>
@@ -37,12 +38,12 @@
   self.lynxView = lynxView;
   [lynxView addLifecycleClient:self];
 
-  // Load the bundled showcase template if present; otherwise the view stays
-  // blank. The build + Autolink module registration is the verification target.
-  NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"host" ofType:@"lynx.bundle"];
-  if (bundlePath) {
-    [lynxView loadTemplateFromURL:[NSURL fileURLWithPath:bundlePath] initData:nil];
-  }
+  // Load the bundled showcase template. The URL is a bare resource name that
+  // HostTemplateProvider resolves against the app bundle. loadTemplateFromURL:
+  // takes an NSString*, NOT an NSURL* (passing an NSURL crashes with an
+  // unrecognized selector inside -[LynxTemplateRender processUrl:]).
+  LynxTemplateData *initData = [[LynxTemplateData alloc] initWithDictionary:@{}];
+  [lynxView loadTemplateFromURL:@"host.lynx.bundle" initData:initData];
   [lynxView triggerLayout];
 }
 
