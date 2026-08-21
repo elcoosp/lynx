@@ -198,7 +198,11 @@ target 'LynxExplorer' do
   ]
 
   use_lynx_library!(
-    :root => __dir__,
+    # Point autolink at the pnpm workspace root so libraries under
+    # packages/playground/node_modules (e.g. @lynxpo/mods-device) are discovered.
+    # The vendored engine's scanner only walks 6 levels up, but the monorepo
+    # workspace node_modules sits 7 levels above this Explorer dir.
+    :root => File.join(lynx_root, '..'),
     :output_dir => File.join(__dir__, 'generated/lynx-library')
   )
 

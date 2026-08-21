@@ -74,7 +74,6 @@
 		2BB78AD32D1D18FA00060E1C /* LynxSettingManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BB78AD22D1D18FA00060E1C /* LynxSettingManager.m */; };
 		2BEA8AEA2E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BEA8AE92E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.m */; };
 		3B03DDD06103F6E706441C7B /* LynxNodeAPIModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28FD8BB8690C767E28B8B1A7 /* LynxNodeAPIModule.mm */; };
-		40291E286388457AB37272AF /* DeviceModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 29593FF631FD44EEBD8E8E00 /* DeviceModule.m */; };
 		EB376B4ABE0DD0809AE056A4 /* EnvInfoModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A4C3BFADCB0DD1FCC940D10 /* EnvInfoModule.m */; };
 		F3A1B2C4D5E60718293A4B5C /* SplashScreenModule.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D1 /* SplashScreenModule.m */; };
 		455F65A962D4C367198F43C0 /* Pods_LynxExplorer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B20C439237B8FC5CD49DAA94 /* Pods_LynxExplorer.framework */; };
@@ -256,7 +255,6 @@
 		06689C9657D7C23737564C9D /* Pods-LynxExplorer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.debug.xcconfig"; sourceTree = "<group>"; };
 		2868314E5A1E86DB78660DF8 /* LynxNodeAPILifecycleListener.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; name = LynxNodeAPILifecycleListener.mm; path = LynxExplorer/modules/LynxNodeAPILifecycleListener.mm; sourceTree = "<group>"; };
 		28FD8BB8690C767E28B8B1A7 /* LynxNodeAPIModule.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; name = LynxNodeAPIModule.mm; path = LynxExplorer/modules/LynxNodeAPIModule.mm; sourceTree = "<group>"; };
-		29593FF631FD44EEBD8E8E00 /* DeviceModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DeviceModule.m; sourceTree = "<group>"; };
 		2A4C3BFADCB0DD1FCC940D10 /* EnvInfoModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EnvInfoModule.m; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5D1 /* SplashScreenModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SplashScreenModule.m; sourceTree = "<group>"; };
 		2B06C8422D34FF7D008D40DD /* LynxExplorerInput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LynxExplorerInput.h; sourceTree = "<group>"; };
@@ -305,7 +303,6 @@
 		2BEA8AE82E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LynxRecorderDefaultActionCallback.h; sourceTree = "<group>"; };
 		2BEA8AE92E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LynxRecorderDefaultActionCallback.m; sourceTree = "<group>"; };
 		3D5136B1061E6DA78988D03D /* Pods-LynxExplorer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.release.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.release.xcconfig"; sourceTree = "<group>"; };
-		53834B67B76E49F9984EEA38 /* DeviceModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DeviceModule.h; sourceTree = "<group>"; };
 		9D4CED38718D5551D86C4EFA /* EnvInfoModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EnvInfoModule.h; sourceTree = "<group>"; };
 		B2C3D4E5F60718293A4B5D2A /* SplashScreenModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SplashScreenModule.h; sourceTree = "<group>"; };
 		57ED863821DCD17A208774F0 /* Pods-LynxExplorerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorerTests.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorerTests/Pods-LynxExplorerTests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -407,8 +404,6 @@
 				2BB78AD22D1D18FA00060E1C /* LynxSettingManager.m */,
 				2B382D7C2D17BD1500C67770 /* ExplorerModule.h */,
 				2B382D7D2D17BD1500C67770 /* ExplorerModule.m */,
-				53834B67B76E49F9984EEA38 /* DeviceModule.h */,
-				29593FF631FD44EEBD8E8E00 /* DeviceModule.m */,
 				9D4CED38718D5551D86C4EFA /* EnvInfoModule.h */,
 				2A4C3BFADCB0DD1FCC940D10 /* EnvInfoModule.m */,
 				B2C3D4E5F60718293A4B5D2A /* SplashScreenModule.h */,
@@ -911,7 +906,6 @@
 				2B590A492D635BEB0041DE80 /* DemoMeidaResourceFetcher.m in Sources */,
 				2B948FB32C2D9FDC00535C96 /* main.m in Sources */,
 				2B382D7E2D17BD1500C67770 /* ExplorerModule.m in Sources */,
-				40291E286388457AB37272AF /* DeviceModule.m in Sources */,
 				EB376B4ABE0DD0809AE056A4 /* EnvInfoModule.m in Sources */,
 				F3A1B2C4D5E60718293A4B5C /* SplashScreenModule.m in Sources */,
 				656A6D24A89D4B1790C9E425 /* ApplicationModule.m in Sources */,
