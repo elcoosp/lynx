@@ -112,10 +112,7 @@ public class LynxModuleAdapter {
     LynxEnv.inst().registerModule("BackgroundTask", BackgroundTask.class);
     LynxEnv.inst().registerModule("Health", Health.class);
     LynxEnv.inst().registerModule("IntentLauncher", IntentLauncher.class);
-    LynxEnv.inst().registerModule("ScreenCapture", ScreenCapture.class);    LynxEnv.inst().registerModule("NetworkAddons", NetworkAddons.class);
-    LynxEnv.inst().registerModule("StandardWebCrypto", StandardWebCrypto.class);
-
-    LynxDevtoolGlobalHelper.getInstance().registerCardListener(mListener);
+    LynxEnv.inst().registerModule("ScreenCapture", ScreenCapture.class);    LynxDevtoolGlobalHelper.getInstance().registerCardListener(mListener);
   }
 
   public void openScan() {

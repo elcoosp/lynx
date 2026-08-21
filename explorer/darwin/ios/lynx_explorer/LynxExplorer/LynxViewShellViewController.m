@@ -20,9 +20,6 @@
 // NOTE: DeviceModule.h no longer imported here — it is auto-linked via Autolink.
 #import "LynxSettingManager.h"
 #import "UIHelper.h"
-#import "NetworkAddons.h"
-#import "StandardWebCrypto.h"
-
 NSString *const kParamHiddenNav = @"hidden_nav";
 NSString *const kParamFullScreen = @"fullscreen";
 NSString *const kParamTitle = @"title";
@@ -397,8 +394,6 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     // @lynxpo/mods-device) — no manual registration required.
     // lynxpo: register EnvInfoModule so @lynxpo/mods-env-info returns real data
     // lynxpo: register SplashScreenModule so @lynxpo/mods-splash-screen is present
-    [builder.config registerModule:NetworkAddons.class];
-    [builder.config registerModule:StandardWebCrypto.class];
     // lynxpo: register the rest of the Expo-port native modules so their
     // `NativeModules.<X>Module` surface is available on iOS (mirrors Android's
     // LynxModuleAdapter registration). Without these, every showcase card

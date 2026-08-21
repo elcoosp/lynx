@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		7C3C6A602EA1433EBB1F2610 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E3F070B78CB64996AE9032B7 /* Photos.framework */; };
-			8E0110485A8462363F17309B /* NetworkAddons.m in Sources */ = {isa = PBXBuildFile; fileRef = 7000E63B5221E5BF70878105 /* NetworkAddons.m */; };
-			188CE2EAF4B8B79C4EE492EA /* StandardWebCrypto.m in Sources */ = {isa = PBXBuildFile; fileRef = DD411771AFBA3649874B9D59 /* StandardWebCrypto.m */; };
 		5206A9B80CBD431CBA942530 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1594719CAAB4881B452EF4E /* StoreKit.framework */; };
 		2B06C8442D34FF7D008D40DD /* LynxExplorerInput.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B06C8432D34FF7D008D40DD /* LynxExplorerInput.m */; };
 		2B2AA43D2CA14AC200DB0C3E /* TasmDispatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B2AA43C2CA14AC200DB0C3E /* TasmDispatcher.m */; };
@@ -77,10 +75,6 @@
 
 /* Begin PBXFileReference section */
 		E3F070B78CB64996AE9032B7 /* Photos.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Photos.framework; path = System/Library/Frameworks/Photos.framework; sourceTree = SDKROOT; };
-			B4690F9BF9ECA9A77BA4DB6C /* NetworkAddons.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkAddons.h; sourceTree = "<group>"; };
-			7000E63B5221E5BF70878105 /* NetworkAddons.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NetworkAddons.m; sourceTree = "<group>"; };
-			467A541DD8F0C236B18BEE4C /* StandardWebCrypto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StandardWebCrypto.h; sourceTree = "<group>"; };
-			DD411771AFBA3649874B9D59 /* StandardWebCrypto.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StandardWebCrypto.m; sourceTree = "<group>"; };
 		E1594719CAAB4881B452EF4E /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		04983DD422E04617E339C08C /* Pods_LynxExplorerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LynxExplorerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		06689C9657D7C23737564C9D /* Pods-LynxExplorer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.debug.xcconfig"; sourceTree = "<group>"; };
@@ -231,10 +225,6 @@
 				2BB78AD22D1D18FA00060E1C /* LynxSettingManager.m */,
 				2B382D7C2D17BD1500C67770 /* ExplorerModule.h */,
 				2B382D7D2D17BD1500C67770 /* ExplorerModule.m */,
-				B4690F9BF9ECA9A77BA4DB6C /* NetworkAddons.h */,
-				7000E63B5221E5BF70878105 /* NetworkAddons.m */,
-				467A541DD8F0C236B18BEE4C /* StandardWebCrypto.h */,
-				DD411771AFBA3649874B9D59 /* StandardWebCrypto.m */,
 			);
 			path = modules;
 			sourceTree = "<group>";
