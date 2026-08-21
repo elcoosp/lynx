@@ -76,6 +76,7 @@
 		3B03DDD06103F6E706441C7B /* LynxNodeAPIModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28FD8BB8690C767E28B8B1A7 /* LynxNodeAPIModule.mm */; };
 		40291E286388457AB37272AF /* DeviceModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 29593FF631FD44EEBD8E8E00 /* DeviceModule.m */; };
 		EB376B4ABE0DD0809AE056A4 /* EnvInfoModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A4C3BFADCB0DD1FCC940D10 /* EnvInfoModule.m */; };
+		F3A1B2C4D5E60718293A4B5C /* SplashScreenModule.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D1 /* SplashScreenModule.m */; };
 		455F65A962D4C367198F43C0 /* Pods_LynxExplorer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B20C439237B8FC5CD49DAA94 /* Pods_LynxExplorer.framework */; };
 		7B50D0B31E2C18D34E941800 /* SPKServiceRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6CEA873C7121D005AC53896 /* SPKServiceRegistrar.swift */; };
 		A8715579043207D37CD2D644 /* LynxNodeAPI.cc in Sources */ = {isa = PBXBuildFile; fileRef = E34A26BD2270292DB2C29E7C /* LynxNodeAPI.cc */; };
@@ -257,6 +258,7 @@
 		28FD8BB8690C767E28B8B1A7 /* LynxNodeAPIModule.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; name = LynxNodeAPIModule.mm; path = LynxExplorer/modules/LynxNodeAPIModule.mm; sourceTree = "<group>"; };
 		29593FF631FD44EEBD8E8E00 /* DeviceModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DeviceModule.m; sourceTree = "<group>"; };
 		2A4C3BFADCB0DD1FCC940D10 /* EnvInfoModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EnvInfoModule.m; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5D1 /* SplashScreenModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SplashScreenModule.m; sourceTree = "<group>"; };
 		2B06C8422D34FF7D008D40DD /* LynxExplorerInput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LynxExplorerInput.h; sourceTree = "<group>"; };
 		2B06C8432D34FF7D008D40DD /* LynxExplorerInput.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LynxExplorerInput.m; sourceTree = "<group>"; };
 		2B2AA43B2CA14AC200DB0C3E /* TasmDispatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TasmDispatcher.h; sourceTree = "<group>"; };
@@ -305,6 +307,7 @@
 		3D5136B1061E6DA78988D03D /* Pods-LynxExplorer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.release.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.release.xcconfig"; sourceTree = "<group>"; };
 		53834B67B76E49F9984EEA38 /* DeviceModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DeviceModule.h; sourceTree = "<group>"; };
 		9D4CED38718D5551D86C4EFA /* EnvInfoModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EnvInfoModule.h; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5D2A /* SplashScreenModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SplashScreenModule.h; sourceTree = "<group>"; };
 		57ED863821DCD17A208774F0 /* Pods-LynxExplorerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorerTests.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorerTests/Pods-LynxExplorerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		6A2EED25F509F8799752D130 /* LynxNodeAPIModule.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = LynxNodeAPIModule.h; path = LynxExplorer/modules/LynxNodeAPIModule.h; sourceTree = "<group>"; };
 		788EA02E6300A547EB752932 /* RouterServiceImpl.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RouterServiceImpl.swift; sourceTree = "<group>"; };
@@ -408,6 +411,8 @@
 				29593FF631FD44EEBD8E8E00 /* DeviceModule.m */,
 				9D4CED38718D5551D86C4EFA /* EnvInfoModule.h */,
 				2A4C3BFADCB0DD1FCC940D10 /* EnvInfoModule.m */,
+				B2C3D4E5F60718293A4B5D2A /* SplashScreenModule.h */,
+				A1B2C3D4E5F60718293A4B5D1 /* SplashScreenModule.m */,
 				C9E4EB0522434A77985034FC /* ApplicationModule.h */,
 				5666580786A44098AB66AB82 /* ApplicationModule.m */,
 				B4152DB461F842E1BD11970E /* BatteryModule.h */,
@@ -908,6 +913,7 @@
 				2B382D7E2D17BD1500C67770 /* ExplorerModule.m in Sources */,
 				40291E286388457AB37272AF /* DeviceModule.m in Sources */,
 				EB376B4ABE0DD0809AE056A4 /* EnvInfoModule.m in Sources */,
+				F3A1B2C4D5E60718293A4B5C /* SplashScreenModule.m in Sources */,
 				656A6D24A89D4B1790C9E425 /* ApplicationModule.m in Sources */,
 				E527AAB2959A4F039663CDCF /* BatteryModule.m in Sources */,
 				B690B54DA5164276834BED67 /* BrightnessModule.m in Sources */,

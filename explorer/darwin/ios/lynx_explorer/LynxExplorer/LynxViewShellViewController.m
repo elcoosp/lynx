@@ -19,6 +19,7 @@
 #import "LynxNodeAPIModule.h"
 #import "DeviceModule.h"
 #import "EnvInfoModule.h"
+#import "SplashScreenModule.h"
 #import "LynxSettingManager.h"
 #import "UIHelper.h"
 #import "ApplicationModule.h"
@@ -460,6 +461,8 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     [builder.config registerModule:DeviceModule.class];
     // lynxpo: register EnvInfoModule so @lynxpo/mods-env-info returns real data
     [builder.config registerModule:EnvInfoModule.class];
+    // lynxpo: register SplashScreenModule so @lynxpo/mods-splash-screen is present
+    [builder.config registerModule:SplashScreenModule.class];
     [builder.config registerModule:ScreenCapture.class];
     [builder.config registerModule:AppIntegrity.class];
     [builder.config registerModule:AppleAuthentication.class];
