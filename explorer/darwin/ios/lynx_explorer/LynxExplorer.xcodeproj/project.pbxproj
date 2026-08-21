@@ -8,13 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		7C3C6A602EA1433EBB1F2610 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E3F070B78CB64996AE9032B7 /* Photos.framework */; };
-		5942489A7FA6450C8A3DD298 /* ScreenOrientationModule.m in Sources */ = {isa = PBXBuildFile; fileRef = AC566ECCC99B4F71B6D31455 /* ScreenOrientationModule.m */; };
-		9CE1351EDBE94454A87D55EA /* StoreReviewModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */; };
 			8E0110485A8462363F17309B /* NetworkAddons.m in Sources */ = {isa = PBXBuildFile; fileRef = 7000E63B5221E5BF70878105 /* NetworkAddons.m */; };
 			188CE2EAF4B8B79C4EE492EA /* StandardWebCrypto.m in Sources */ = {isa = PBXBuildFile; fileRef = DD411771AFBA3649874B9D59 /* StandardWebCrypto.m */; };
-			DD1EA86D46865321866AE2EB /* SqliteModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 834E5B2303C0B67AAD1A1ECA /* SqliteModule.m */; };
-			BE975D3851D81395C56F6DC6 /* WebBrowserModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E50A0403A58B30B50E1AC2D3 /* WebBrowserModule.m */; };
-				F1A2C3D4E5F6407192AB3C40 /* SecureStoreModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E1B2C3D4E5F6407192AB3C41 /* SecureStoreModule.m */; };
 		5206A9B80CBD431CBA942530 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E1594719CAAB4881B452EF4E /* StoreKit.framework */; };
 		2B06C8442D34FF7D008D40DD /* LynxExplorerInput.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B06C8432D34FF7D008D40DD /* LynxExplorerInput.m */; };
 		2B2AA43D2CA14AC200DB0C3E /* TasmDispatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B2AA43C2CA14AC200DB0C3E /* TasmDispatcher.m */; };
@@ -45,7 +40,6 @@
 		2BB78AD32D1D18FA00060E1C /* LynxSettingManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BB78AD22D1D18FA00060E1C /* LynxSettingManager.m */; };
 		2BEA8AEA2E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BEA8AE92E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.m */; };
 		3B03DDD06103F6E706441C7B /* LynxNodeAPIModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 28FD8BB8690C767E28B8B1A7 /* LynxNodeAPIModule.mm */; };
-		F3A1B2C4D5E60718293A4B5C /* SplashScreenModule.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D1 /* SplashScreenModule.m */; };
 		455F65A962D4C367198F43C0 /* Pods_LynxExplorer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B20C439237B8FC5CD49DAA94 /* Pods_LynxExplorer.framework */; };
 		7B50D0B31E2C18D34E941800 /* SPKServiceRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6CEA873C7121D005AC53896 /* SPKServiceRegistrar.swift */; };
 		A8715579043207D37CD2D644 /* LynxNodeAPI.cc in Sources */ = {isa = PBXBuildFile; fileRef = E34A26BD2270292DB2C29E7C /* LynxNodeAPI.cc */; };
@@ -83,36 +77,15 @@
 
 /* Begin PBXFileReference section */
 		E3F070B78CB64996AE9032B7 /* Photos.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Photos.framework; path = System/Library/Frameworks/Photos.framework; sourceTree = SDKROOT; };
-		AC566ECCC99B4F71B6D31455 /* ScreenOrientationModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ScreenOrientationModule.m; sourceTree = "<group>"; };
-		ACC0CDB08D6240889362E0A3 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
-		8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StoreReviewModule.m; sourceTree = "<group>"; };
-		0604C6009257498A9E6FD936 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
-		FFD4827AC1E14F35A0A482C1 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
-		8D1FFF5C0E674E30B5798D81 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
 			B4690F9BF9ECA9A77BA4DB6C /* NetworkAddons.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkAddons.h; sourceTree = "<group>"; };
 			7000E63B5221E5BF70878105 /* NetworkAddons.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NetworkAddons.m; sourceTree = "<group>"; };
 			467A541DD8F0C236B18BEE4C /* StandardWebCrypto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StandardWebCrypto.h; sourceTree = "<group>"; };
 			DD411771AFBA3649874B9D59 /* StandardWebCrypto.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StandardWebCrypto.m; sourceTree = "<group>"; };
-			5995201389F63576D8165326 /* SqliteModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SqliteModule.h; sourceTree = "<group>"; };
-			834E5B2303C0B67AAD1A1ECA /* SqliteModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SqliteModule.m; sourceTree = "<group>"; };
-			B6521990E39E00B624CEF87B /* WebBrowserModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebBrowserModule.h; sourceTree = "<group>"; };
-			E50A0403A58B30B50E1AC2D3 /* WebBrowserModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = WebBrowserModule.m; sourceTree = "<group>"; };
-				F1B2C3D4E5F6407192AB3C42 /* SecureStoreModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SecureStoreModule.h; sourceTree = "<group>"; };
-				E1B2C3D4E5F6407192AB3C41 /* SecureStoreModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SecureStoreModule.m; sourceTree = "<group>"; };
-		A13EF472D2784A36BAC0C8D0 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
-		9FD1E84D2F154E0EB65F4E4A /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
-		D6DCC8D4966745ED83FBDD89 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
-		5395CC9B37F942A3AED11869 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
-		9AB2EF7A50804C458020FA8E /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
-		A2784F2D289143008F95DDBC /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
-		017852EE383A4309AE7F99B6 /* ScreenOrientationModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScreenOrientationModule.h; sourceTree = "<group>"; };
-		0406A1B25AC54CF0B035A7D3 /* StoreReviewModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StoreReviewModule.h; sourceTree = "<group>"; };
 		E1594719CAAB4881B452EF4E /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		04983DD422E04617E339C08C /* Pods_LynxExplorerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LynxExplorerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		06689C9657D7C23737564C9D /* Pods-LynxExplorer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.debug.xcconfig"; sourceTree = "<group>"; };
 		2868314E5A1E86DB78660DF8 /* LynxNodeAPILifecycleListener.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; name = LynxNodeAPILifecycleListener.mm; path = LynxExplorer/modules/LynxNodeAPILifecycleListener.mm; sourceTree = "<group>"; };
 		28FD8BB8690C767E28B8B1A7 /* LynxNodeAPIModule.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; name = LynxNodeAPIModule.mm; path = LynxExplorer/modules/LynxNodeAPIModule.mm; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5D1 /* SplashScreenModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SplashScreenModule.m; sourceTree = "<group>"; };
 		2B06C8422D34FF7D008D40DD /* LynxExplorerInput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LynxExplorerInput.h; sourceTree = "<group>"; };
 		2B06C8432D34FF7D008D40DD /* LynxExplorerInput.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LynxExplorerInput.m; sourceTree = "<group>"; };
 		2B2AA43B2CA14AC200DB0C3E /* TasmDispatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TasmDispatcher.h; sourceTree = "<group>"; };
@@ -159,7 +132,6 @@
 		2BEA8AE82E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LynxRecorderDefaultActionCallback.h; sourceTree = "<group>"; };
 		2BEA8AE92E0002C9001BCB2C /* LynxRecorderDefaultActionCallback.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LynxRecorderDefaultActionCallback.m; sourceTree = "<group>"; };
 		3D5136B1061E6DA78988D03D /* Pods-LynxExplorer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorer.release.xcconfig"; path = "Target Support Files/Pods-LynxExplorer/Pods-LynxExplorer.release.xcconfig"; sourceTree = "<group>"; };
-		B2C3D4E5F60718293A4B5D2A /* SplashScreenModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SplashScreenModule.h; sourceTree = "<group>"; };
 		57ED863821DCD17A208774F0 /* Pods-LynxExplorerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LynxExplorerTests.debug.xcconfig"; path = "Target Support Files/Pods-LynxExplorerTests/Pods-LynxExplorerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		6A2EED25F509F8799752D130 /* LynxNodeAPIModule.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = LynxNodeAPIModule.h; path = LynxExplorer/modules/LynxNodeAPIModule.h; sourceTree = "<group>"; };
 		788EA02E6300A547EB752932 /* RouterServiceImpl.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RouterServiceImpl.swift; sourceTree = "<group>"; };
@@ -259,32 +231,10 @@
 				2BB78AD22D1D18FA00060E1C /* LynxSettingManager.m */,
 				2B382D7C2D17BD1500C67770 /* ExplorerModule.h */,
 				2B382D7D2D17BD1500C67770 /* ExplorerModule.m */,
-				B2C3D4E5F60718293A4B5D2A /* SplashScreenModule.h */,
-				A1B2C3D4E5F60718293A4B5D1 /* SplashScreenModule.m */,
-				ACC0CDB08D6240889362E0A3 /* ScreenOrientationModule.h */,
-				AC566ECCC99B4F71B6D31455 /* ScreenOrientationModule.m */,
-				0604C6009257498A9E6FD936 /* StoreReviewModule.h */,
-				8132B4A0AC6C48F999755B31 /* StoreReviewModule.m */,
 				B4690F9BF9ECA9A77BA4DB6C /* NetworkAddons.h */,
 				7000E63B5221E5BF70878105 /* NetworkAddons.m */,
 				467A541DD8F0C236B18BEE4C /* StandardWebCrypto.h */,
 				DD411771AFBA3649874B9D59 /* StandardWebCrypto.m */,
-				5995201389F63576D8165326 /* SqliteModule.h */,
-				834E5B2303C0B67AAD1A1ECA /* SqliteModule.m */,
-				B6521990E39E00B624CEF87B /* WebBrowserModule.h */,
-				E50A0403A58B30B50E1AC2D3 /* WebBrowserModule.m */,
-								F1B2C3D4E5F6407192AB3C42 /* SecureStoreModule.h */,
-								E1B2C3D4E5F6407192AB3C41 /* SecureStoreModule.m */,
-				FFD4827AC1E14F35A0A482C1 /* ScreenOrientationModule.h */,
-				8D1FFF5C0E674E30B5798D81 /* StoreReviewModule.h */,
-				A13EF472D2784A36BAC0C8D0 /* ScreenOrientationModule.h */,
-				9FD1E84D2F154E0EB65F4E4A /* StoreReviewModule.h */,
-				D6DCC8D4966745ED83FBDD89 /* ScreenOrientationModule.h */,
-				5395CC9B37F942A3AED11869 /* StoreReviewModule.h */,
-				9AB2EF7A50804C458020FA8E /* ScreenOrientationModule.h */,
-				A2784F2D289143008F95DDBC /* StoreReviewModule.h */,
-				017852EE383A4309AE7F99B6 /* ScreenOrientationModule.h */,
-				0406A1B25AC54CF0B035A7D3 /* StoreReviewModule.h */,
 			);
 			path = modules;
 			sourceTree = "<group>";

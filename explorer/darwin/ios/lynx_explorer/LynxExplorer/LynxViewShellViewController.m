@@ -18,14 +18,8 @@
 #import "LynxNodeAPILifecycleListener.h"
 #import "LynxNodeAPIModule.h"
 // NOTE: DeviceModule.h no longer imported here — it is auto-linked via Autolink.
-#import "SplashScreenModule.h"
 #import "LynxSettingManager.h"
 #import "UIHelper.h"
-#import "ScreenOrientationModule.h"
-#import "SecureStoreModule.h"
-#import "StoreReviewModule.h"
-#import "WebBrowserModule.h"
-#import "SqliteModule.h"
 #import "NetworkAddons.h"
 #import "StandardWebCrypto.h"
 
@@ -399,16 +393,10 @@ static NSString *LegacyGlobalPropKey(NSString *key) {
     // for homepage only
     [builder.config registerUI:LynxExplorerInput.class withName:@"explorer-input"];
     [builder.config registerModule:LynxNodeAPIModule.class param:self];
-    [builder.config registerModule:StoreReviewModule.class];
-    [builder.config registerModule:ScreenOrientationModule.class];
-    [builder.config registerModule:SecureStoreModule.class];
-    [builder.config registerModule:WebBrowserModule.class];
-    [builder.config registerModule:SqliteModule.class];
     // NOTE: DeviceModule is now auto-linked via Autolink (lynx.lib.json in
     // @lynxpo/mods-device) — no manual registration required.
     // lynxpo: register EnvInfoModule so @lynxpo/mods-env-info returns real data
     // lynxpo: register SplashScreenModule so @lynxpo/mods-splash-screen is present
-    [builder.config registerModule:SplashScreenModule.class];
     [builder.config registerModule:NetworkAddons.class];
     [builder.config registerModule:StandardWebCrypto.class];
     // lynxpo: register the rest of the Expo-port native modules so their

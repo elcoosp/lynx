@@ -90,11 +90,7 @@ public class LynxModuleAdapter {
     LynxEnv.inst().registerModule("ExplorerModule", ExplorerModule.class);
     LynxEnv.inst().registerModule("LynxNodeAPI", LynxNodeAPIModule.class);
     // NOTE: DeviceModule is now auto-linked via Autolink (lynx.lib.json in
-    // @lynxpo/mods-device) — no manual registration required.    LynxEnv.inst().registerModule("SplashScreenModule", SplashScreenModule.class);
-    LynxEnv.inst().registerModule("ApplicationModule", ApplicationModule.class);    LynxEnv.inst().registerModule("CellularModule", CellularModule.class);    LynxEnv.inst().registerModule("StoreReviewModule", StoreReviewModule.class);
-    LynxEnv.inst().registerModule("MailComposerModule", MailComposerModule.class);    LynxEnv.inst().registerModule("ScreenOrientationModule", ScreenOrientationModule.class);    LynxEnv.inst().registerModule("ImagePickerModule", ImagePickerModule.class);    LynxEnv.inst().registerModule("LocalAuthenticationModule", LocalAuthenticationModule.class);    LynxEnv.inst().registerModule("SecureStoreModule", SecureStoreModule.class);
-    LynxEnv.inst().registerModule("FileSystemModule", FileSystemModule.class);    LynxEnv.inst().registerModule("ContactsModule", ContactsModule.class);    LynxEnv.inst().registerModule("WebBrowserModule", WebBrowserModule.class);
-    LynxEnv.inst().registerModule("SqliteModule", SqliteModule.class);    LynxEnv.inst().registerModule("Image", Image.class);
+    // @lynxpo/mods-device) — no manual registration required.    LynxEnv.inst().registerModule("ApplicationModule", ApplicationModule.class);    LynxEnv.inst().registerModule("CellularModule", CellularModule.class);    LynxEnv.inst().registerModule("MailComposerModule", MailComposerModule.class);    LynxEnv.inst().registerModule("ScreenOrientationModule", ScreenOrientationModule.class);    LynxEnv.inst().registerModule("ImagePickerModule", ImagePickerModule.class);    LynxEnv.inst().registerModule("LocalAuthenticationModule", LocalAuthenticationModule.class);    LynxEnv.inst().registerModule("FileSystemModule", FileSystemModule.class);    LynxEnv.inst().registerModule("ContactsModule", ContactsModule.class);    LynxEnv.inst().registerModule("SqliteModule", SqliteModule.class);    LynxEnv.inst().registerModule("Image", Image.class);
     LynxEnv.inst().registerModule("Video", Video.class);
     LynxEnv.inst().registerModule("Audio", Audio.class);
     LynxEnv.inst().registerModule("Calendar", Calendar.class);
