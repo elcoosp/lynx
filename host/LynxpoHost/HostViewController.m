@@ -31,9 +31,18 @@
     builder.screenSize = self.view.bounds.size;
     builder.fontScale = 1.0;
     builder.enableGenericResourceFetcher = YES;
+    // Match the Explorer: render everything on the UI thread so the prop bridge
+    // and UI component setters run on main (the engine default runs them on a
+    // background thread, which aborts in NSInvocation/_getFrameDescriptor).
+    [builder setThreadStrategyForRender:LynxThreadStrategyForRenderAllOnUI];
   }];
   lynxView.frame = self.view.bounds;
   lynxView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+  lynxView.preferredLayoutWidth = self.view.bounds.size.width;
+  lynxView.preferredLayoutHeight = self.view.bounds.size.height;
+  lynxView.layoutWidthMode = LynxViewSizeModeExact;
+  lynxView.layoutHeightMode = LynxViewSizeModeExact;
+  lynxView.enableAutoLayout = YES;
   [self.view addSubview:lynxView];
   self.lynxView = lynxView;
   [lynxView addLifecycleClient:self];
