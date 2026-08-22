@@ -65,27 +65,12 @@ NSString *const RTL_MARK = @"\u200F";
             (CFStringRef)text, CFRangeMake(0, MIN([text length], LANGUAGE_DETECT_MAX_LENGTH))));
       }
 
-      if (language.length > 0) {
-        // Only pass well-formed, simple BCP-47 primary subtags to ICU.
-        // Compound/script tags (e.g. "zh-Hant", "zh-Hans") crash older ICU
-        // builds inside uloc_getTableStringWithFallback with a Data Abort,
-        // taking the whole app down. Fall back to the primary subtag and
-        // skip alignment entirely when it isn't a plain 2-3 letter code.
-        NSString *primary = language;
-        NSRange hyphen = [language rangeOfString:@"-"];
-        if (hyphen.location != NSNotFound) {
-          primary = [language substringToIndex:hyphen.location];
-        }
-        NSCharacterSet *letters = [NSCharacterSet letterCharacterSet];
-        if (primary.length >= 2 && primary.length <= 3 &&
-            [primary rangeOfCharacterFromSet:letters].location != NSNotFound) {
-          // Get the direction of the guessed locale
-          NSLocaleLanguageDirection direction =
-              [NSLocale characterDirectionForLanguage:primary];
-          physicalAlignment = (direction == NSLocaleLanguageDirectionRightToLeft)
-                                  ? NSTextAlignmentRight
-                                  : NSTextAlignmentLeft;
-        }
+      if (language) {
+        // Get the direction of the guessed locale
+        NSLocaleLanguageDirection direction = [NSLocale characterDirectionForLanguage:language];
+        physicalAlignment = (direction == NSLocaleLanguageDirectionRightToLeft)
+                                ? NSTextAlignmentRight
+                                : NSTextAlignmentLeft;
       }
     }
   }
