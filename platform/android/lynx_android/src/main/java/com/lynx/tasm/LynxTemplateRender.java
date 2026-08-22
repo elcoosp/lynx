@@ -219,7 +219,6 @@ public class LynxTemplateRender
 
   private Context mContext;
   @Keep private LynxDevtool mDevTool;
-  private LynxReducedMotionHelper mReducedMotionHelper;
 
   private long mInitStart;
   private long mInitEnd;
@@ -415,7 +414,7 @@ public class LynxTemplateRender
     mRuntime = builder.lynxBackgroundRuntime;
     mTemplateProvider = builder.templateProvider;
     mEnableSyncFlush = mLynxViewConfigProvider.isEnableSyncFlush();
-    mEnableJSRuntime = mLogicExecutor == null && mLynxViewConfigProvider.isEnableJSRuntime();
+    mEnableJSRuntime = mLynxViewConfigProvider.isEnableJSRuntime();
     mEnableGenericResourceFetcher =
         checkEnableGenericResourceFetcher(mLynxViewConfigProvider.isEnableGenericResourceFetcher());
     mEnableAirStrictMode = mLynxViewConfigProvider.isEnableAirStrictMode();
@@ -1019,8 +1018,7 @@ public class LynxTemplateRender
     mLoader = new LynxResourceLoader(null, mLynxViewBuilder.fetcher, this,
         mLynxContext.getTemplateResourceFetcher(), mLynxContext.getGenericResourceFetcher());
     mLynxContext.setEnableAutoExpose(mLynxViewConfigProvider.isEnableAutoExpose());
-    mNativeFacade = new NativeFacade(mEnableJSRuntime);
-    mNativeFacade.setCallback(new TASMCallback());
+    mNativeFacade = new NativeFacade(mLynxViewBuilder.isEnableJSRuntime(), new TASMCallback());
     DisplayMetrics screenMetrics = mLynxContext.getScreenMetrics();
     long runtimeWrapperPtr = (mRuntime == null) ? 0 : mRuntime.getNativePtr();
     long whiteBoardPtr = (mGroup == null) ? 0 : mGroup.getWhiteBoardPtr();
@@ -1037,7 +1035,7 @@ public class LynxTemplateRender
         mPerformanceController.isEmbeddedMode() ? null : mPerformanceController, mLoader,
         mThreadStrategyForRendering.id(), mLynxViewConfigProvider.isEnableLayoutSafepoint(),
         mLynxViewBuilder.enableLayoutOnly, screenMetrics.widthPixels, screenMetrics.heightPixels,
-        screenMetrics.density, LynxEnv.inst().getLocale(), mEnableJSRuntime,
+        screenMetrics.density, LynxEnv.inst().getLocale(), mLynxViewBuilder.isEnableJSRuntime(),
         mLynxViewConfigProvider.isEnableMultiAsyncThread(),
         mLynxViewConfigProvider.isEnablePreUpdateData(), enableVSyncAligned,
         mLynxViewConfigProvider.isEnableAsyncHydration(),
@@ -1096,8 +1094,11 @@ public class LynxTemplateRender
 
     if (null != mLynxContext && mLogicExecutor == null) {
       // lepus module need this module factory to init. when remove lepus module, this
-      // module setup will be removed.
-      setUpBackgroundThreadModuleFactory();
+      // module setup will be removed. The factory is required by the JS runtime, so it
+      // can only be skipped when both JS runtime and lepus module are disabled.
+      if (enableJSRuntime() || mLynxViewBuilder.isEnableLepusModule()) {
+        setUpBackgroundThreadModuleFactory();
+      }
       // only init LynxRuntime if enableJSRuntime is true.
       if (enableJSRuntime()) {
         mResourceLoader = new LynxResourceLoader(mLynxRuntimeOptions, mLynxViewBuilder.fetcher,
@@ -1151,7 +1152,6 @@ public class LynxTemplateRender
     if (colorScheme != LynxColorScheme.LIGHT) {
       nativeUpdateColorScheme(mNativePtr, mNativeLifecycle, colorScheme.id(), true);
     }
-    startReducedMotionObserver();
     nativeOnLynxEngineCreated(mNativePtr, lynxUIRenderer().getUIDelegatePtr());
 
     TraceEvent.endSection(TraceEventDef.TEMPLATE_RENDER_CREATE_TASM);
@@ -1172,7 +1172,7 @@ public class LynxTemplateRender
   }
 
   private void notifyExtensionModulesTemplateLoad(String url) {
-    if (!mEnableJSRuntime) {
+    if (!mLynxViewBuilder.isEnableJSRuntime()) {
       LLog.e(TAG, "notifyExtensionModulesTemplateLoad failed, isEnableJSRuntime is false");
       return;
     }
@@ -1483,6 +1483,10 @@ public class LynxTemplateRender
     }
     mLogContext = new LynxLogContext(
         nativeGenerateViewId(), LynxLogContext.UNAVAILABLE_ID, LynxLogContext.UNAVAILABLE_ID);
+  }
+
+  LynxLogContext getLogContextSnapshot() {
+    return mLogContext;
   }
 
   /**
@@ -2568,40 +2572,6 @@ public class LynxTemplateRender
     nativeUpdateColorScheme(mNativePtr, mNativeLifecycle, scheme.id(), false);
   }
 
-  private void startReducedMotionObserver() {
-    Context applicationContext = LynxEnv.inst().getAppContext();
-    if (applicationContext == null && mContext != null) {
-      applicationContext = mContext.getApplicationContext();
-    }
-    if (applicationContext == null) {
-      return;
-    }
-    if (mReducedMotionHelper == null) {
-      mReducedMotionHelper =
-          LynxReducedMotionHelper.getInstance(applicationContext.getContentResolver());
-    }
-    mReducedMotionHelper.start(this);
-    updateReducedMotion(mReducedMotionHelper.isReducedMotionEnabled(), true);
-  }
-
-  private void stopReducedMotionObserver() {
-    if (mReducedMotionHelper != null) {
-      mReducedMotionHelper.stop(this);
-      mReducedMotionHelper = null;
-    }
-  }
-
-  void updateReducedMotion(boolean reducedMotion) {
-    updateReducedMotion(reducedMotion, false);
-  }
-
-  private void updateReducedMotion(boolean reducedMotion, boolean useActLite) {
-    if (!checkIfEnvPrepared() || mNativePtr == 0) {
-      return;
-    }
-    nativeUpdateReducedMotion(mNativePtr, mNativeLifecycle, reducedMotion, useActLite);
-  }
-
   public void destroy() {
     String eventName = "LynxTemplateRender.destroy";
     onTraceEventBegin(eventName);
@@ -3293,9 +3263,6 @@ public class LynxTemplateRender
       eventEmitter.registerEventFallback(this);
       mLynxContext.setEventEmitter(eventEmitter);
 
-      if (mReducedMotionHelper != null) {
-        updateReducedMotion(mReducedMotionHelper.isReducedMotionEnabled(), true);
-      }
       nativeOnLynxEngineCreated(mNativePtr, lynxUIRenderer().getUIDelegatePtr());
     } else {
       createLynxEngine(lastInstanceId);
@@ -3399,6 +3366,11 @@ public class LynxTemplateRender
     private static final String DEFAULT_ENTRY = "__Card__";
 
     public TASMCallback() {}
+
+    @Override
+    public void onLogContextUpdated(long viewId, long engineId, long runtimeId) {
+      mLogContext = new LynxLogContext(viewId, engineId, runtimeId);
+    }
 
     void setEmbeddedTiming(String key, long usTimestamp, String pipelineID) {
       mPerformanceController.setEmbeddedTiming(key, usTimestamp, pipelineID);
@@ -4163,6 +4135,7 @@ public class LynxTemplateRender
     if (mLynxContext == null) {
       LLog.e(TAG, "mLynxContext is null, can not set LayoutProxy");
     } else {
+      mLynxContext.setEngineProxy(mEngineProxy);
       mLayoutProxy = new LynxLayoutProxy(mNativePtr);
       mLynxContext.setLayoutProxy(mLayoutProxy);
     }
@@ -4276,7 +4249,6 @@ public class LynxTemplateRender
     if (!mIsDestroyed.compareAndSet(false, true)) {
       return;
     }
-    stopReducedMotionObserver();
     boolean shouldCacheLynxEngine = shouldCacheLynxEngine();
     unregisterMemoryUsageFetcherIfNeeded();
 
@@ -4745,9 +4717,6 @@ public class LynxTemplateRender
 
   private static native void nativeUpdateColorScheme(
       long ptr, long lifecycle, int scheme, boolean useActLite);
-
-  private static native void nativeUpdateReducedMotion(
-      long ptr, long lifecycle, boolean reducedMotion, boolean useActLite);
 
   // layout
   private static native void nativeUpdateViewport(long ptr, long lifecycle, int width,

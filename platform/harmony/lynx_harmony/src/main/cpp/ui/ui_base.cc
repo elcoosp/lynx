@@ -843,9 +843,18 @@ void UIBase::OnPropUpdate(const std::string& name, const lepus::Value& value) {
 void UIBase::OnNodeReady() {
   if (((dirty_flags_ & (kFlagFrameChanged | kFlagBackgroundChanged)) != 0) &&
       background_drawable_) {
+    // UpdateBounds may synchronously redirect a background image URL. That
+    // ArkTS call can process a microtask which destroys this UI instance.
+    auto weak_self = weak_from_this();
     background_drawable_->UpdateBounds(
         0, 0, width_, height_, padding_left_, padding_top_, padding_right_,
         padding_bottom_, context_->ScaledDensity());
+    if (weak_self.expired()) {
+      LOGE(
+          "UIBase was destroyed during the synchronous ArkTS call to "
+          "ShouldRedirectUrl");
+      return;
+    }
     background_drawable_->AdjustBorder();
     if (draw_node_ && ShouldDrawOverlayShadowWithDrawNode()) {
       FrameDidChanged();
@@ -1015,9 +1024,13 @@ void UIBase::SetOpacity(const lepus::Value& value) {
 }
 
 void UIBase::SetOverlap(const lepus::Value& value) {
-  bool v = value.Bool();
-  if (value.IsNil()) {
-    v = true;
+  bool v = true;
+  if (value.IsBool()) {
+    v = value.Bool();
+  } else if (value.IsString()) {
+    v = value.StdString() != "false";
+  } else if (!value.IsNil()) {
+    v = value.Bool();
   }
   overlap_ = v;
   dirty_flags_ |= kFlagRenderGroup;
@@ -1090,7 +1103,7 @@ void UIBase::ApplyTransform() {
     return;
   }
 
-  transforms::Matrix44 matrix;
+  gfx::Matrix44 matrix;
   if (has_transform) {
     if (transform_origin_.has_value()) {
       transform_->SetTransformOrigin(transform_origin_.value());
@@ -1107,7 +1120,7 @@ void UIBase::ApplyTransform() {
 
   if (has_perspective) {
     float value = GetPerspectiveValue();
-    transforms::Matrix44 per_matrix{};
+    gfx::Matrix44 per_matrix{};
     per_matrix.setRC(3, 2, value);
     matrix.preConcat(per_matrix);
   }
@@ -2350,7 +2363,7 @@ void UIBase::GetTargetPoint(float target_point[2], float point[2],
   target_point[0] = point[0] - target_origin_rect[0] + scroll[0];
   target_point[1] = point[1] - target_origin_rect[1] + scroll[1];
   if (target_transform) {
-    transforms::Matrix44 invert_matrix;
+    gfx::Matrix44 invert_matrix;
     if (target_transform
             ->GetTransformMatrix(target_origin_rect[2], target_origin_rect[3],
                                  1.f, true)
@@ -3153,7 +3166,7 @@ void UIBase::UpdateOffsetPathCacheIfNeeded() {
   }
 }
 
-std::optional<transforms::Matrix44> UIBase::GetOffsetMatrix() const {
+std::optional<gfx::Matrix44> UIBase::GetOffsetMatrix() const {
   // No basic shape or no calculator instance means no offset-path effect.
   if (!offset_basic_shape_ || !lynx_offset_calculator_) {
     return std::nullopt;
@@ -3184,10 +3197,10 @@ std::optional<transforms::Matrix44> UIBase::GetOffsetMatrix() const {
   // Make sure the translation vector is not affected by rotation.
   // We want: v' = T * R * v (rotate around origin, then translate to path
   // point).
-  transforms::Matrix44 matrix;
+  gfx::Matrix44 matrix;
   matrix.setIdentity();
   matrix.preTranslate(state.x, state.y, 0);
-  transforms::Matrix44 rotate_matrix;
+  gfx::Matrix44 rotate_matrix;
   rotate_matrix.setRotateAboutZAxis(rotate);
   matrix.preConcat(rotate_matrix);
   return matrix;

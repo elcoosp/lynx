@@ -33,7 +33,6 @@
 #import <Lynx/LynxTraceEvent.h>
 #import <Lynx/LynxUIRenderer.h>
 #import <Lynx/LynxView.h>
-#import <UIKit/UIAccessibility.h>
 #import "LynxAccessibilityModule.h"
 #import "LynxBaseConfigurator+Internal.h"
 #import "LynxCallStackUtil.h"
@@ -71,6 +70,7 @@
 #include <utility>
 
 #include "base/include/debug/backtrace.h"
+#include "base/include/log/logging.h"
 #include "core/base/darwin/lynx_env_darwin.h"
 #include "core/public/lynx_extension_delegate.h"
 #include "core/public/pipeline_option.h"
@@ -208,11 +208,6 @@ LYNX_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder*)aDecoder)
 
     /// UIRender + LynxShell + Event
     [self setUpWithBuilder:builder screenSize:screenSize];
-    [[NSNotificationCenter defaultCenter]
-        addObserver:self
-           selector:@selector(reducedMotionStatusDidChange:)
-               name:UIAccessibilityReduceMotionStatusDidChangeNotification
-             object:nil];
 
     // Update info
     [self updateNativeTheme];
@@ -276,6 +271,7 @@ LYNX_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder*)aDecoder)
   // enable js default yes
   _enableJSRuntime = _enableAirStrictMode ? NO : builder.enableJSRuntime;
   _enableMTSModule = builder.enableMTSModule;
+  _enableLepusModule = builder.enableLepusModule;
   _needPendingUIOperation = builder.enableUIOperationQueue;
   _lynxEngineProxy = [[LynxEngineProxy alloc] init];
   _enablePendingJSTaskOnLayout = builder.enablePendingJSTaskOnLayout;
@@ -465,8 +461,19 @@ LYNX_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder*)aDecoder)
 }
 
 - (void)detachLynxEngine {
+  if (shell_) {
+    shell_->PrepareEngineHandoff();
+  }
   [self unregisterMemoryUsageFetcherIfNeeded];
   _lynxEngine = nil;
+}
+
+- (void)onLogContextUpdatedWithViewId:(int64_t)viewId
+                             engineId:(int64_t)engineId
+                            runtimeId:(int64_t)runtimeId {
+  self.logContext = [[LynxLogContext alloc] initWithViewId:viewId
+                                                  engineId:engineId
+                                                 runtimeId:runtimeId];
 }
 
 - (void)destroyLynxEngine {
@@ -493,10 +500,6 @@ LYNX_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder*)aDecoder)
 }
 
 - (void)dealloc {
-  [[NSNotificationCenter defaultCenter]
-      removeObserver:self
-                name:UIAccessibilityReduceMotionStatusDidChangeNotification
-              object:nil];
   [self destroyStaticPageHost];
   [self unregisterMemoryUsageFetcherIfNeeded];
   if (_lynxEngine == nil) {
@@ -1624,13 +1627,6 @@ LYNX_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder*)aDecoder)
     return;
   }
   shell_->UpdateColorScheme(static_cast<int>(scheme));
-}
-
-- (void)reducedMotionStatusDidChange:(NSNotification*)notification {
-  if (shell_->IsDestroyed()) {
-    return;
-  }
-  shell_->UpdateReducedMotion(UIAccessibilityIsReduceMotionEnabled());
 }
 
 - (void)pauseRootLayoutAnimation {
@@ -2810,6 +2806,7 @@ LYNX_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder*)aDecoder)
     builder.colorScheme = self->_colorScheme;
     builder.enablePreUpdateData = YES;
     builder.enableMultiAsyncThread = self->_builder.enableMultiAsyncThread;
+    builder.enableLepusModule = self->_enableLepusModule;
     builder.fetcher = self->_fetcher;
     builder.enableGenericResourceFetcher =
         self->_enableGenericResourceFetcher ? LynxBooleanOptionTrue : LynxBooleanOptionFalse;

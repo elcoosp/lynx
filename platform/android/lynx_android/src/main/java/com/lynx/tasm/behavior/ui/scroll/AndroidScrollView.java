@@ -30,7 +30,8 @@ import com.lynx.tasm.behavior.render.Renderer;
 import com.lynx.tasm.behavior.ui.IDrawChildHook;
 import com.lynx.tasm.behavior.ui.IDrawChildHook.IDrawChildHookBinding;
 import com.lynx.tasm.behavior.ui.LynxBaseUI;
-import com.lynx.tasm.behavior.ui.list.ScrollContainerDrawHelper;
+import com.lynx.tasm.behavior.ui.scroll.utils.ScrollContainerDrawHelper;
+import com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper;
 import com.lynx.tasm.behavior.ui.utils.BackgroundDrawable;
 import com.lynx.tasm.behavior.ui.utils.BorderRadius;
 import com.lynx.tasm.event.LynxScrollEvent;
@@ -79,6 +80,7 @@ public class AndroidScrollView
   private boolean mBlockDescendantFocusability = false;
   private int mAutoScrollRate = 0;
   private int mScrollRange = 0;
+  private Boolean mUseNewAutoScroller = null;
   protected boolean mDirectionChanged = false;
   private boolean mForbidFocusChangeAfterFling = false;
   private boolean mHandleTouchMove = false;
@@ -149,6 +151,14 @@ public class AndroidScrollView
   void autoScroll(ReadableMap params) {
     double ratePerSecond = params.getDouble("rate", 0.0);
     boolean start = params.getBoolean("start", true);
+    // Select the auto-scroller implementation on the first start and keep it for this view.
+    if (start && mUseNewAutoScroller == null) {
+      mUseNewAutoScroller = params.getBoolean("useNewAutoScroller", false);
+    }
+    if (Boolean.TRUE.equals(mUseNewAutoScroller)) {
+      autoScrollWithNewScroller(ratePerSecond, start);
+      return;
+    }
     if (start) {
       int ratePerFrame = (int) PixelUtils.dipToPx(ratePerSecond / 60);
       if (ratePerSecond == 0) {
@@ -164,6 +174,31 @@ public class AndroidScrollView
     } else {
       mNeedAutoScroll = false;
       mAutoScrollRate = 0;
+    }
+  }
+
+  private void autoScrollWithNewScroller(double ratePerSecond, boolean start) {
+    // TODO: use UIListAutoScroller to refactor this logic.
+    if (start) {
+      int ratePerFrame = (int) PixelUtils.dipToPx(ratePerSecond / 60);
+      if (ratePerSecond == 0) {
+        LLog.e(UIScrollView.TAG, "the rate of speed  is not right, current value is 0");
+        return;
+      }
+      mAutoScrollRate = ratePerFrame;
+      if (!mNeedAutoScroll) {
+        mNeedAutoScroll = true;
+        mSmoothScrollRunnable = new SmoothScrollRunnable(this);
+        post(mSmoothScrollRunnable);
+      }
+    } else {
+      mNeedAutoScroll = false;
+      mAutoScrollRate = 0;
+      if (mSmoothScrollRunnable != null) {
+        Runnable runnable = mSmoothScrollRunnable;
+        mSmoothScrollRunnable = null;
+        removeCallbacks(runnable);
+      }
     }
   }
 

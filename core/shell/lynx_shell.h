@@ -8,6 +8,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -205,11 +206,15 @@ class LynxShell {
 
   void UpdateColorScheme(int scheme, bool use_act_lite = false);
 
-  void UpdateReducedMotion(bool reduced_motion, bool use_act_lite = false);
-
   void SetFontScale(float scale);
 
   void SetPlatformConfig(std::string platform_config_json_string);
+
+  base::LogContext GetLogContextSnapshot() const { return log_context_; }
+
+  void ReattachLynxEngineWrapper(LynxEngineWrapper* engine_wrapper);
+
+  void PrepareEngineHandoff();
 
   void SetBindWithEngineWrapper(bool bind) { bind_with_engine_wrapper_ = bind; }
 
@@ -463,6 +468,7 @@ class LynxShell {
   std::shared_ptr<runtime::js::InspectorRuntimeObserverNG> runtime_observer_;
 
   const int32_t instance_id_;
+  base::LogContext log_context_;
 
   bool enable_runtime_ = true;
 
@@ -503,10 +509,16 @@ class LynxShell {
 
   std::shared_ptr<LayoutResultManager> layout_result_manager_;
 
+  std::optional<base::LogContext> runtime_creation_context_;
+
  private:
   friend class LynxEngineWrapper;
   void ResetNativeUpdateDataOrderForLoad(
       const std::shared_ptr<tasm::PipelineOptions>& pipeline_options);
+
+  void PublishLogContextToNonEngineHolders(const base::LogContext& context);
+
+  void PublishLogContextIfReady();
 
   void BuildLynxEngine(
       std::unique_ptr<TasmPlatformInvoker> tasm_platform_invoker,
@@ -514,10 +526,12 @@ class LynxShell {
           platform_layout_context,
       std::unique_ptr<lynx::tasm::PaintingCtxPlatformImpl> painting_context);
 
-  void BuildLayoutActor(std::unique_ptr<lynx::tasm::LayoutCtxPlatformImpl>
+  void BuildLayoutActor(const base::LogContext& engine_context,
+                        std::unique_ptr<lynx::tasm::LayoutCtxPlatformImpl>
                             platform_layout_context);
 
   void BuildEngineActor(
+      const base::LogContext& engine_context,
       std::unique_ptr<TasmPlatformInvoker> tasm_platform_invoker,
       std::unique_ptr<lynx::tasm::LayoutCtxPlatformImpl>
           platform_layout_context,

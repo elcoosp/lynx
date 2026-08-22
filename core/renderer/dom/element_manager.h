@@ -24,6 +24,7 @@
 
 #include "base/include/boost/unordered.h"
 #include "base/include/closure.h"
+#include "base/include/log/log_context.h"
 #include "base/include/vector.h"
 #include "core/base/threading/task_runner_manufactor.h"
 #include "core/base/utils/any.h"
@@ -284,6 +285,9 @@ class ElementManager : public LayoutScheduler::LayoutSchedulerImpl {
   inline Catalyzer *catalyzer() { return catalyzer_.get(); }
   inline NodeManager *node_manager() { return node_manager_.get(); }
 
+  void SetLogContext(const base::LogContext &log_context);
+  const base::LogContext &GetLogContext() const { return log_context_; }
+
   void RecordCurrentLynxUITree();
 
   inline void SetRoot(Element *node) { root_ = node; }
@@ -301,7 +305,6 @@ class ElementManager : public LayoutScheduler::LayoutSchedulerImpl {
   void UpdateScreenMetrics(float width, float height);
   void UpdateFontScale(float font_scale);
   void UpdateColorScheme(int scheme);
-  void UpdateReducedMotion(bool reduced_motion);
   void UpdateViewport(float width, SLMeasureMode width_mode_, float height,
                       SLMeasureMode height_mode, bool need_layout);
 
@@ -1416,6 +1419,7 @@ class ElementManager : public LayoutScheduler::LayoutSchedulerImpl {
       const base::String &bundle_url, const base::String &template_key);
 
   const int instance_id_;
+  base::LogContext log_context_;
   int32_t element_id_{kInitialImplId};
   uint32_t next_global_insertion_order_{kInitialGlobalInsertionOrder};
 

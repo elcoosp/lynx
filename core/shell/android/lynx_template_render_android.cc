@@ -394,6 +394,11 @@ jlong Create(JNIEnv* env, jclass jcaller, jlong view_id,
               (runtime_wrapper != nullptr)
                   ? runtime_wrapper->BTSRuntimeStandalone().GetRuntimeActor()
                   : nullptr)
+          .SetRuntimeCreationContext(
+              runtime_wrapper != nullptr
+                  ? &runtime_wrapper->BTSRuntimeStandalone()
+                         .GetCreationLogContext()
+                  : nullptr)
           .SetPerfControllerActor((runtime_wrapper != nullptr)
                                       ? runtime_wrapper->BTSRuntimeStandalone()
                                             .GetPerfControllerActor()
@@ -1030,19 +1035,6 @@ void UpdateColorScheme(JNIEnv* env, jclass jcaller, jlong ptr, jlong lifecycle,
   }
   reinterpret_cast<LynxShell*>(ptr)->UpdateColorScheme(
       scheme, static_cast<bool>(use_act_lite));
-  AtomicLifecycle::TryFree(lifecycle_ptr);
-}
-
-void UpdateReducedMotion(JNIEnv* env, jclass jcaller, jlong ptr,
-                         jlong lifecycle, jboolean reduced_motion,
-                         jboolean use_act_lite) {
-  AtomicLifecycle* lifecycle_ptr =
-      reinterpret_cast<AtomicLifecycle*>(lifecycle);
-  if (!AtomicLifecycle::TryLock(lifecycle_ptr)) {
-    return;
-  }
-  reinterpret_cast<LynxShell*>(ptr)->UpdateReducedMotion(
-      static_cast<bool>(reduced_motion), static_cast<bool>(use_act_lite));
   AtomicLifecycle::TryFree(lifecycle_ptr);
 }
 
@@ -1689,7 +1681,7 @@ void ReattachLynxEngineWrapper(JNIEnv* env, jobject jcaller, jlong ptr,
   auto* shell = reinterpret_cast<LynxShell*>(ptr);
   auto* engine_wrapper =
       reinterpret_cast<lynx::shell::LynxEngineWrapper*>(engine_ptr);
-  engine_wrapper->BindShell(shell);
+  shell->ReattachLynxEngineWrapper(engine_wrapper);
   if (proxy_ptr != 0) {
     lynx::shell::LynxEngineProxyAndroid* engine_proxy =
         reinterpret_cast<lynx::shell::LynxEngineProxyAndroid*>(proxy_ptr);
@@ -1705,7 +1697,8 @@ void DetachLynxEngineWrapper(JNIEnv* env, jobject jcaller, jlong ptr,
   if (!AtomicLifecycle::TryLock(lifecycle_ptr)) {
     return;
   }
-  // TODO(huangweiwu): Support active unbinding from LynxEngine
+  auto* shell = reinterpret_cast<LynxShell*>(ptr);
+  shell->PrepareEngineHandoff();
   AtomicLifecycle::TryFree(lifecycle_ptr);
 }
 

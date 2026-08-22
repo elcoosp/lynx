@@ -626,6 +626,7 @@ public class LynxBaseConfigurator : NSObject {
   public BOOL LynxBaseConfigurator::enableVSyncAlignedMessageLoop enableVSyncAlignedMessageLoop;
   public BOOL LynxBaseConfigurator::enableAsyncHydration enableAsyncHydration;
   public BOOL LynxBaseConfigurator::enableMTSModule enableMTSModule;
+  public BOOL LynxBaseConfigurator::enableLepusModule enableLepusModule;
   public CGFloat LynxBaseConfigurator::fontScale fontScale;
   public LynxColorScheme LynxBaseConfigurator::colorScheme colorScheme;
   public LynxBooleanOption LynxBaseConfigurator::enableGenericResourceFetcher enableGenericResourceFetcher;
@@ -3350,6 +3351,10 @@ public class LynxRenderer : NSObject {
   public void LynxRenderer()::detachHostDecorationLayers();
   public void LynxRenderer()::reattachHostDecorationLayers();
   public void LynxRenderer()::syncHostDecorationLayers();
+  public CGPoint LynxRenderer()::rendererLayoutOrigin();
+  public void LynxRenderer()::updateRendererLayoutFrame:(CGRect frame);
+  public void LynxRenderer()::updateRendererLayoutSize:(CGSize size);
+  public void LynxRenderer()::updateRendererLayoutCenter:(CGPoint center);
   public void LynxRenderer()::updateLayoutOffsetIfNeeded:(CGPoint offset);
   public void LynxRenderer()::applySubtreeProperties:count:(const lynx::tasm::SubtreeProperty *properties, [count] size_t count);
   public void LynxRenderer()::applyTransform:(const float *transform);
@@ -5834,6 +5839,7 @@ public protocol TemplateRenderCallbackProtocol-p : <LynxErrorReceiverProtocol> {
   public void TemplateRenderCallbackProtocol-p::onReceiveMessageEvent:(NSDictionary *event);
   public long TemplateRenderCallbackProtocol-p::initStartTiming();
   public long TemplateRenderCallbackProtocol-p::initEndTiming();
+  public void TemplateRenderCallbackProtocol-p::onLogContextUpdatedWithViewId:engineId:runtimeId:(int64_t viewId,[engineId] int64_t engineId,[runtimeId] int64_t runtimeId);
   public BOOL TemplateRenderCallbackProtocol-p::enableAirStrictMode();
   public void TemplateRenderCallbackProtocol-p::invokeUIMethod:params:callback:toNode:(NSString *_Nonnull method_string,[params] NSDictionary *_Nonnull params,[callback] int callback,[toNode] int node);
   public void TemplateRenderCallbackProtocol-p::onSSRHydrateFinished:(NSString *url);

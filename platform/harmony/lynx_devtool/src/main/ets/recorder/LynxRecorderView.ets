@@ -20,16 +20,19 @@ import {
   TemplateProviderResult,
   LLog,
   LynxExtraTiming,
+  MeasureMode,
   LynxUIRendererCreator,
   LynxUpdateMeta,
   LynxUpdateMode
 } from '@lynx/lynx';
+import { LynxRecorderReplayOptions } from './LynxRecorderReplayOptions';
 import LynxRecorderReplayDataModule, { ReplaySharedData, ReplaySharedDataValue } from './ReplayDataModule';
 import {
   LoadComponentWithCallbackParams,
   LoadTemplateParams,
   SendGlobalEventParams,
   SetGlobalPropsParams,
+  SetThreadStrategyParams,
   UpdateDataByPreParsedDataParams,
   UpdateMetaDataParams,
   UpdateViewPortParams
@@ -165,6 +168,7 @@ export default struct LynxRecorderView {
   private data: string = '';
   private pageUrl: string = LynxRecorderEnv.RECORDER_URL_PREFIX;
   private buffer: ArrayBuffer | undefined;
+  private preloadedSource: ArrayBuffer | undefined;
   private bufferReady: boolean = false;
   private loadFromUrl: boolean = false;
   private templateData: TemplateData | undefined;
@@ -178,7 +182,11 @@ export default struct LynxRecorderView {
   @State ready: boolean = false;
   @State statusText: string = 'Loading...';
   private localLynxContext: LynxContext | undefined;
+  private viewportWidth: number = 0;
+  private viewportHeight: number = 0;
+  private loadPending: boolean = false;
   private extraTiming: LynxExtraTiming = new LynxExtraTiming();
+  private replayOptions: LynxRecorderReplayOptions = new LynxRecorderReplayOptions();
 
   private isReplaySharedData(value: Object | string | number | boolean | null | undefined): boolean {
     return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
@@ -224,11 +232,74 @@ export default struct LynxRecorderView {
     });
   }
 
+  private sourceOverrideUrl(): string {
+    try {
+      let urlObject = Url.URL.parseURL(this.url);
+      return this.sanitizeRecordedUrl(urlObject.params.get('source'));
+    } catch (error) {
+      LLog.e(TAG, `parse source override failed: ${error}`);
+      return '';
+    }
+  }
+
+  private downloadSourceOverride() {
+    let sourceUrl = this.sourceOverrideUrl();
+    if (sourceUrl.length === 0) {
+      this.download();
+      return;
+    }
+
+    let httpRequest = http.createHttp();
+    httpRequest.request(
+      sourceUrl, {
+      maxLimit: 20 * 1024 * 1024,
+      expectDataType: http.HttpDataType.ARRAY_BUFFER,
+    }, (err: BusinessError, data: http.HttpResponse) => {
+      let source = data?.result as ArrayBuffer | undefined;
+      if (err || data?.responseCode !== 200 || source === undefined || source.byteLength === 0) {
+        this.statusText = 'Replay failed: source template download failed.';
+        LLog.e(TAG, 'source override download failed. url=' + sourceUrl +
+          ', code=' + data?.responseCode + ', error=' + JSON.stringify(err));
+      } else {
+        this.preloadedSource = source.slice(0, source.byteLength);
+        this.download();
+      }
+      httpRequest.destroy();
+    });
+  }
+
   private changeReadyState() {
     this.ready = (this.bufferReady || this.loadFromUrl) && this.templateDataReady && this.jsbModuleReady;
     if (this.ready) {
       this.statusText = '';
     }
+    this.tryLoadTemplate();
+  }
+
+  private tryLoadTemplate(): void {
+    if (!this.loadPending || !this.ready || !this.localLynxContext ||
+      !Number.isFinite(this.viewportWidth) || !Number.isFinite(this.viewportHeight) ||
+      this.viewportWidth <= 0 || this.viewportHeight <= 0) {
+      return;
+    }
+
+    this.loadPending = false;
+    const context = this.localLynxContext;
+    context.loadTemplate(this.pageUrl, undefined, this.buffer,
+      new MetaData(this.templateData, this.globalProps));
+    context.setExtraTiming(this.extraTiming);
+  }
+
+  private onLynxViewAreaChange(newValue: Area): void {
+    const width = newValue.width as number;
+    const height = newValue.height as number;
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return;
+    }
+
+    this.viewportWidth = width;
+    this.viewportHeight = height;
+    this.tryLoadTemplate();
   }
 
   aboutToDisappear(): void {
@@ -243,6 +314,7 @@ export default struct LynxRecorderView {
       this.jsbModule.clear()
     }
     this.recordedGenericResources.clear();
+    this.preloadedSource = undefined;
     this.genericFetcher = this.upstreamGenericFetcher;
     this.mediaFetcher = undefined;
     this.templateFetcher = this.upstreamTemplateFetcher;
@@ -321,6 +393,9 @@ export default struct LynxRecorderView {
   private handleActionList() {
     let recordData: Map<string, object> = JSON.parse(this.data);
     let actions: Map<string, object>[] = recordData['Action List'];
+    let threadStrategyAction = actions.find((action) => action['Function Name'] === 'setThreadStrategy');
+    let threadStrategyParams = threadStrategyAction?.['Params'] as SetThreadStrategyParams | undefined;
+    this.replayOptions.applyRecordedEnableJSRuntime(threadStrategyParams?.enableJSRuntime);
     this.registerRecordedGenericResources(actions);
     let startTime: number | undefined;
     for (const action of actions) {
@@ -480,15 +555,27 @@ export default struct LynxRecorderView {
     this.loadFromUrl = false;
     this.templateData = undefined;
     this.templateDataReady = false;
+    this.localLynxContext = undefined;
+    this.viewportWidth = 0;
+    this.viewportHeight = 0;
+    this.loadPending = false;
     this.statusText = 'Loading...';
   }
 
   private loadTemplate(params: LoadTemplateParams) {
+    this.loadPending = false;
     this.loadFromUrl = false;
     let sanitizedUrl = this.sanitizeRecordedUrl(params.url);
     this.pageUrl = sanitizedUrl.length > 0 ? sanitizedUrl : LynxRecorderEnv.RECORDER_URL_PREFIX;
     let base64Engine = new util.Base64Helper();
     let rawSource = this.sanitizeBase64Source(params.source);
+    if (this.preloadedSource !== undefined) {
+      this.buffer = this.preloadedSource.slice(0, this.preloadedSource.byteLength);
+      this.bufferReady = true;
+      this.templateData = new TemplateData(params.templateData);
+      this.templateDataReady = true;
+      return;
+    }
     if (rawSource.length === 0) {
       this.buffer = undefined;
       this.bufferReady = false;
@@ -512,13 +599,21 @@ export default struct LynxRecorderView {
     }
     this.templateData = new TemplateData(params.templateData);
     this.templateDataReady = true;
+    this.loadPending = true;
   }
 
   private loadTemplateBundle(params: LoadTemplateParams) {
+    this.loadPending = false;
     let sanitizedUrl = this.sanitizeRecordedUrl(params.url);
     this.pageUrl = sanitizedUrl.length > 0 ? sanitizedUrl : LynxRecorderEnv.RECORDER_URL_PREFIX;
     this.templateData = new TemplateData(params.templateData);
     this.templateDataReady = true;
+    if (this.preloadedSource !== undefined) {
+      this.loadFromUrl = false;
+      this.buffer = this.preloadedSource.slice(0, this.preloadedSource.byteLength);
+      this.bufferReady = true;
+      return;
+    }
 
     let rawSource = this.sanitizeBase64Source(params.source);
     if (rawSource.length === 0) {
@@ -539,6 +634,7 @@ export default struct LynxRecorderView {
         return;
       }
       this.loadFromUrl = true;
+      this.loadPending = true;
       return;
     }
 
@@ -556,6 +652,7 @@ export default struct LynxRecorderView {
       LLog.e(TAG, `loadTemplateBundle decodeSync failed: ${error}`);
       return;
     }
+    this.loadPending = true;
   }
 
   async aboutToAppear() {
@@ -563,11 +660,12 @@ export default struct LynxRecorderView {
     this.resetReplayLoadState();
     this.upstreamGenericFetcher = this.genericFetcher;
     this.upstreamTemplateFetcher = this.templateFetcher;
+    this.replayOptions = new LynxRecorderReplayOptions(this.url);
     this.extraTiming.openTime = new Date().getTime();
     this.extraTiming.containerInitStart = new Date().getTime();
     this.extraTiming.containerInitEnd = new Date().getTime();
     this.extraTiming.prepareTemplateStart = new Date().getTime();
-    this.download();
+    this.downloadSourceOverride();
     this.extraTiming.prepareTemplateEnd = new Date().getTime();
   }
 
@@ -606,19 +704,27 @@ export default struct LynxRecorderView {
 
       if (this.ready) {
         LynxView({
-          url: this.pageUrl,
-          buffer: this.buffer,
+          url: '',
+          embeddedMode: this.replayOptions.embeddedMode,
+          enableAirStrictMode: this.replayOptions.enableAirStrictMode,
           uiRendererCreator: this.uiRendererCreator,
           genericResourceFetcher: this.genericFetcher,
           mediaResourceFetcher: this.mediaFetcher,
           templateResourceFetcher: this.templateFetcher,
           modules: this.jsbModule,
           metaData: new MetaData(this.templateData, this.globalProps),
+          beforeLoadTemplate: (context: LynxContext) => {
+            context.updateViewport(this.viewportWidth, MeasureMode.DEFINITE,
+              this.viewportHeight, MeasureMode.DEFINITE);
+          },
           onCreate: (context) => {
             this.localLynxContext = context;
-            this.localLynxContext.setExtraTiming(this.extraTiming);
+            this.tryLoadTemplate();
           }
         })
+          .onAreaChange((_oldValue: Area, newValue: Area) => {
+            this.onLynxViewAreaChange(newValue);
+          })
       } else {
           Text(this.statusText).fontSize(24).textAlign(TextAlign.Center).padding(24)
       }

@@ -231,6 +231,10 @@ void LynxTemplateRenderer::SetUpLynxShell(
               (runtime_wrapper != nullptr)
                   ? runtime_wrapper->RuntimeStandalone().GetRuntimeActor()
                   : nullptr)
+          .SetRuntimeCreationContext((runtime_wrapper != nullptr)
+                                         ? &runtime_wrapper->RuntimeStandalone()
+                                                .GetCreationLogContext()
+                                         : nullptr)
           .SetPerfControllerActor((runtime_wrapper != nullptr)
                                       ? runtime_wrapper->RuntimeStandalone()
                                             .GetPerfControllerActor()
@@ -529,10 +533,6 @@ void LynxTemplateRenderer::UpdateColorScheme(int scheme) {
   shell_->UpdateColorScheme(scheme);
 }
 
-void LynxTemplateRenderer::UpdateReducedMotion(bool enabled) {
-  shell_->UpdateReducedMotion(enabled);
-}
-
 void LynxTemplateRenderer::SetEnableBytecode(bool enable,
                                              std::string source_url) {
   shell_->SetEnableBytecode(enable, std::move(source_url));
@@ -696,6 +696,21 @@ void LynxTemplateRenderer::OnEventFire(long target_id, bool is_stop,
   }
 }
 
+void LynxTemplateRenderer::OnLogContextUpdated(
+    const base::LogContext& context) {
+  base::NapiHandleScope scope(env_);
+  napi_value params[3];
+  napi_create_int64(env_, context.view_id, &params[0]);
+  napi_create_int64(env_, context.engine_id, &params[1]);
+  napi_create_int64(env_, context.runtime_id, &params[2]);
+  const auto status = base::NapiUtil::InvokeJsMethod(
+      env_, template_renderer_ref_, "onLogContextUpdated", 3, params);
+  if (status != napi_ok) {
+    LOGE("Failed to update Harmony LogContext "
+         << context << ": " << base::NapiUtil::StatusToString(status));
+  }
+}
+
 #define DECLARE_NAPI_METHOD(name, func) \
   { name, 0, func, 0, 0, 0, napi_default, 0 }
 
@@ -735,7 +750,6 @@ napi_value LynxTemplateRenderer::Init(napi_env env, napi_value exports) {
       DECLARE_NAPI_METHOD("getInstanceId", GetInstanceId),
       DECLARE_NAPI_METHOD("updateFontScale", UpdateFontScale),
       DECLARE_NAPI_METHOD("updateColorScheme", UpdateColorScheme),
-      DECLARE_NAPI_METHOD("updateReducedMotion", UpdateReducedMotion),
       DECLARE_NAPI_METHOD("nativeSetEnableBytecode", NativeSetEnableBytecode),
       DECLARE_NAPI_METHOD("getPageDataByKey", GetPageDataByKey),
       DECLARE_NAPI_METHOD("getPageDataByKeyAsync", GetPageDataByKeyAsync),
@@ -1893,26 +1907,6 @@ napi_value LynxTemplateRenderer::UpdateColorScheme(napi_env env,
     return nullptr;
   }
   obj->UpdateColorScheme(scheme);
-  return nullptr;
-}
-
-napi_value LynxTemplateRenderer::UpdateReducedMotion(napi_env env,
-                                                     napi_callback_info info) {
-  napi_value js_this;
-  size_t argc = 1;
-  napi_value args[1] = {nullptr};
-  napi_get_cb_info(env, info, &argc, args, &js_this, nullptr);
-
-  bool enabled = false;
-  napi_get_value_bool(env, args[0], &enabled);
-
-  LynxTemplateRenderer* obj = nullptr;
-  napi_status status =
-      napi_unwrap(env, js_this, reinterpret_cast<void**>(&obj));
-  if (!CheckNapiUnwrapObject(status, obj, "NativeUpdateReducedMotion failed")) {
-    return nullptr;
-  }
-  obj->UpdateReducedMotion(enabled);
   return nullptr;
 }
 

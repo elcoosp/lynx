@@ -661,6 +661,12 @@ public interface com::lynx::tasm::behavior::AutoGenStyleConstants {
   public final int com.lynx.tasm.behavior.AutoGenStyleConstants.POINTEREVENTS_NONE POINTEREVENTS_NONE;
 }
 
+public class abstract com::lynx::tasm::behavior::ui::scroll::utils::AutoScroller :  {
+  public void com.lynx.tasm.behavior.ui.scroll.utils.AutoScroller.setAutoScrollParams(boolean start, boolean autoStopOnBounds);
+  public void com.lynx.tasm.behavior.ui.scroll.utils.AutoScroller.execute(String ratePerSecond, Context context);
+  public void com.lynx.tasm.behavior.ui.scroll.utils.AutoScroller.removeFrameCallback();
+}
+
 public class com::lynx::tasm::image::AutoSizeImage : com.lynx.tasm.behavior.shadow.ShadowNode, com.lynx.tasm.behavior.shadow.MeasureFunc {
   public com.lynx.tasm.image.AutoSizeImage.AutoSizeImage();
   public void com.lynx.tasm.image.AutoSizeImage.setSrc(String source);
@@ -1228,6 +1234,7 @@ public interface com::lynx::tasm::element::LynxElement::Callback {
 }
 
 public interface com::lynx::tasm::NativeFacade::Callback {
+  public default void com.lynx.tasm.NativeFacade.Callback.onLogContextUpdated(long viewId, long engineId, long runtimeId);
   public void com.lynx.tasm.NativeFacade.Callback.onLoaded(int templateSize);
   public void com.lynx.tasm.NativeFacade.Callback.onSSRHydrateFinished();
   public void com.lynx.tasm.NativeFacade.Callback.onRuntimeReady();
@@ -2823,6 +2830,7 @@ public interface com::lynx::tasm::group::ILynxViewConfigProvider {
   public IUIRendererCreator com.lynx.tasm.group.ILynxViewConfigProvider.getUIRendererCreator();
   public int com.lynx.tasm.group.ILynxViewConfigProvider.getEmbeddedMode();
   public boolean com.lynx.tasm.group.ILynxViewConfigProvider.isEnableMTSModule();
+  public boolean com.lynx.tasm.group.ILynxViewConfigProvider.isEnableLepusModule();
   public LynxBooleanOption com.lynx.tasm.group.ILynxViewConfigProvider.isEnableGenericResourceFetcher();
   public LynxGenericResourceFetcher com.lynx.tasm.group.ILynxViewConfigProvider.getLynxGenericResourceFetcher();
   public LynxMediaResourceFetcher com.lynx.tasm.group.ILynxViewConfigProvider.getLynxMediaResourceFetcher();
@@ -4919,6 +4927,7 @@ public class abstract com::lynx::tasm::behavior::LynxContext : com.lynx.tasm.beh
   public Long com.lynx.tasm.behavior.LynxContext.getRuntimeId();
   public void com.lynx.tasm.behavior.LynxContext.setJSProxy(JSProxy proxy);
   public void com.lynx.tasm.behavior.LynxContext.setLayoutProxy(LynxLayoutProxy proxy);
+  public void com.lynx.tasm.behavior.LynxContext.setEngineProxy(LynxEngineProxy proxy);
   public JSModule com.lynx.tasm.behavior.LynxContext.getJSModule(String module);
   public void com.lynx.tasm.behavior.LynxContext.sendKeyEvent(int keyCode, String name);
   public void com.lynx.tasm.behavior.LynxContext.sendGlobalEvent(String name, JavaOnlyArray params);
@@ -5248,6 +5257,7 @@ public class com::lynx::tasm::core::LynxEngineProxy :  {
   public com.lynx.tasm.core.LynxEngineProxy.LynxEngineProxy(long nativeCreator);
   public void com.lynx.tasm.core.LynxEngineProxy.destroy();
   public void com.lynx.tasm.core.LynxEngineProxy.dispatchTaskToLynxEngine(Runnable runnable);
+  public void com.lynx.tasm.core.LynxEngineProxy.reportExternalMemory(long totalSize, long garbageSize);
   public void com.lynx.tasm.core.LynxEngineProxy.sendTouchEvent(LynxTouchEvent event);
   public void com.lynx.tasm.core.LynxEngineProxy.sendMultiTouchEvent(LynxTouchEvent event);
   public void com.lynx.tasm.core.LynxEngineProxy.sendCustomEvent(LynxCustomEvent event);
@@ -7478,7 +7488,6 @@ public class com::lynx::tasm::behavior::LynxUIOwner :  {
   public int com.lynx.tasm.behavior.LynxUIOwner.getTagInfo(String tagName);
   public int com.lynx.tasm.behavior.LynxUIOwner.getRootSign();
   public void com.lynx.tasm.behavior.LynxUIOwner.setRootSign(int sign);
-  public void com.lynx.tasm.behavior.LynxUIOwner.reportCreateAsyncSuccessEvent(int sign, String tagName, boolean isSuccess, int status);
   public void com.lynx.tasm.behavior.LynxUIOwner.reportCreateViewConfig(int sign, String tagName, boolean createAsync);
   public void com.lynx.tasm.behavior.LynxUIOwner.setAttachLynxPageUICallback(UIBodyView.attachLynxPageUICallback callback);
   public void com.lynx.tasm.behavior.LynxUIOwner.dispatchLayoutBefore(int sign, ReadableCompactArrayBuffer valueArray);
@@ -7830,6 +7839,7 @@ public class com::lynx::tasm::LynxViewBuilder : LynxBaseConfigurator< LynxViewBu
   public IUIRendererCreator com.lynx.tasm.LynxViewBuilder.getUIRendererCreator();
   public int com.lynx.tasm.LynxViewBuilder.getEmbeddedMode();
   public boolean com.lynx.tasm.LynxViewBuilder.isEnableMTSModule();
+  public boolean com.lynx.tasm.LynxViewBuilder.isEnableLepusModule();
   public LynxBooleanOption com.lynx.tasm.LynxViewBuilder.isEnableGenericResourceFetcher();
   public LynxGenericResourceFetcher com.lynx.tasm.LynxViewBuilder.getLynxGenericResourceFetcher();
   public LynxMediaResourceFetcher com.lynx.tasm.LynxViewBuilder.getLynxMediaResourceFetcher();
@@ -9842,20 +9852,20 @@ public class com::lynx::devtoolwrapper::ScreenshotMode :  {
   public final String com.lynx.devtoolwrapper.ScreenshotMode.SCREEN_SHOT_MODE_FULL_SCREEN SCREEN_SHOT_MODE_FULL_SCREEN;
 }
 
-public class com::lynx::tasm::behavior::ui::list::ScrollContainerDrawHelper :  {
-  public void com.lynx.tasm.behavior.ui.list.ScrollContainerDrawHelper.setUiBound(Rect bound);
-  public Path com.lynx.tasm.behavior.ui.list.ScrollContainerDrawHelper.getClipPath(@NonNull final View scroller);
+public class com::lynx::tasm::behavior::ui::scroll::utils::ScrollContainerDrawHelper :  {
+  public void com.lynx.tasm.behavior.ui.scroll.utils.ScrollContainerDrawHelper.setUiBound(Rect bound);
+  public Path com.lynx.tasm.behavior.ui.scroll.utils.ScrollContainerDrawHelper.getClipPath(@NonNull final View scroller);
 }
 
-public interface com::lynx::tasm::behavior::ui::scroll::ScrollSnapHelper::ScrollContainerHooks {
-  public int com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollContainerHooks.getCurrentOffset();
-  public int com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollContainerHooks.getMinOffset();
-  public int com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollContainerHooks.getMaxOffset();
-  public int com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollContainerHooks.getViewportSize();
-  public List< SnapItem > com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollContainerHooks.getSnapItems();
-  public SnapItem com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollContainerHooks.getAdjacentSnapItem(int index, boolean forward);
-  public void com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollContainerHooks.willSnapTo(int index, int currentOffset, int targetOffset);
-  public void com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollContainerHooks.handleError(String message);
+public interface com::lynx::tasm::behavior::ui::scroll::utils::ScrollSnapHelper::ScrollContainerHooks {
+  public int com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollContainerHooks.getCurrentOffset();
+  public int com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollContainerHooks.getMinOffset();
+  public int com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollContainerHooks.getMaxOffset();
+  public int com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollContainerHooks.getViewportSize();
+  public List< SnapItem > com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollContainerHooks.getSnapItems();
+  public SnapItem com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollContainerHooks.getAdjacentSnapItem(int index, boolean forward);
+  public void com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollContainerHooks.willSnapTo(int index, int currentOffset, int targetOffset);
+  public void com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollContainerHooks.handleError(String message);
 }
 
 public interface com::lynx::tasm::behavior::ui::scroll::ScrollContentScreenshotController {
@@ -9881,10 +9891,10 @@ public class com::lynx::tasm::LynxViewClient::ScrollInfo :  {
   public String com.lynx.tasm.LynxViewClient.ScrollInfo.toString();
 }
 
-public class com::lynx::tasm::behavior::ui::scroll::ScrollSnapHelper :  {
-  public com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollSnapHelper(ReadableMap params, ScrollContainerHooks hooks);
-  public com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.ScrollSnapHelper(double alignmentFactor, int alignmentOffset, int maxSnapCount, ScrollContainerHooks hooks);
-  public SnapTarget com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.findSnapTarget(int velocity);
+public class com::lynx::tasm::behavior::ui::scroll::utils::ScrollSnapHelper :  {
+  public com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollSnapHelper(ReadableMap params, ScrollContainerHooks hooks);
+  public com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.ScrollSnapHelper(double alignmentFactor, int alignmentOffset, int maxSnapCount, ScrollContainerHooks hooks);
+  public SnapTarget com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.findSnapTarget(int velocity);
 }
 
 public interface com::lynx::tasm::behavior::ui::ScrollStateChangeListener {
@@ -10072,14 +10082,14 @@ public class com::lynx::tasm::utils::SizeValue :  {
   public static SizeValue com.lynx.tasm.utils.SizeValue.fromCSSString(String valueStr);
 }
 
-public class com::lynx::tasm::behavior::ui::scroll::ScrollSnapHelper::SnapItem :  {
-  public com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.SnapItem.SnapItem(int index, int start, int size);
+public class com::lynx::tasm::behavior::ui::scroll::utils::ScrollSnapHelper::SnapItem :  {
+  public com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.SnapItem.SnapItem(int index, int start, int size);
 }
 
-public class com::lynx::tasm::behavior::ui::scroll::ScrollSnapHelper::SnapTarget :  {
-  public final int com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.SnapTarget.index index;
-  public final int com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.SnapTarget.targetOffset targetOffset;
-  public boolean com.lynx.tasm.behavior.ui.scroll.ScrollSnapHelper.SnapTarget.hasTarget();
+public class com::lynx::tasm::behavior::ui::scroll::utils::ScrollSnapHelper::SnapTarget :  {
+  public final int com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.SnapTarget.index index;
+  public final int com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.SnapTarget.targetOffset targetOffset;
+  public boolean com.lynx.tasm.behavior.ui.scroll.utils.ScrollSnapHelper.SnapTarget.hasTarget();
 }
 
 public class com::lynx::tasm::behavior::ui::utils::Spacing :  {
@@ -10359,6 +10369,7 @@ public class com::lynx::tasm::gesture::handler::TapGestureHandler : com.lynx.tas
 
 public class com::lynx::tasm::LynxTemplateRender::TASMCallback : com.lynx.tasm.NativeFacade.Callback {
   public com.lynx.tasm.LynxTemplateRender.TASMCallback.TASMCallback();
+  public void com.lynx.tasm.LynxTemplateRender.TASMCallback.onLogContextUpdated(long viewId, long engineId, long runtimeId);
   public void com.lynx.tasm.LynxTemplateRender.TASMCallback.onLoaded(int templateSize);
   public void com.lynx.tasm.LynxTemplateRender.TASMCallback.onSSRHydrateFinished();
   public void com.lynx.tasm.LynxTemplateRender.TASMCallback.onRuntimeReady();
@@ -11493,12 +11504,6 @@ public class com::lynx::tasm::behavior::ui::list::UIListAdapter : RecyclerView::
   public long com.lynx.tasm.behavior.ui.list.UIListAdapter.getItemId(int position);
 }
 
-public class abstract com::lynx::tasm::behavior::ui::list::container::UIListAutoScroller :  {
-  public void com.lynx.tasm.behavior.ui.list.container.UIListAutoScroller.setAutoScrollParams(boolean start, boolean autoStopOnBounds);
-  public void com.lynx.tasm.behavior.ui.list.container.UIListAutoScroller.execute(String ratePerSecond, Context context);
-  public void com.lynx.tasm.behavior.ui.list.container.UIListAutoScroller.removeFrameCallback();
-}
-
 public class com::lynx::tasm::behavior::ui::list::container::UIListContainer : com::lynx::tasm::behavior::ui::view::UISimpleView< ListContainerView >, com.lynx.tasm.behavior.ui.list.container.NestedScrollContainerView.OnScrollStateChangeListener, com.lynx.tasm.behavior.ui.view.UIComponent.NodeReadyListener {
   public final int com.lynx.tasm.behavior.ui.list.container.UIListContainer.INVALID_SCROLL_ESTIMATED_OFFSET INVALID_SCROLL_ESTIMATED_OFFSET;
   public Map<String, Object> com.lynx.tasm.behavior.ui.list.container.UIListContainer.nativeListStateCache nativeListStateCache;
@@ -11698,6 +11703,7 @@ public class com::lynx::tasm::behavior::ui::UIShadowProxy : com.lynx.tasm.behavi
   public boolean com.lynx.tasm.behavior.ui.UIShadowProxy.isInsertViewCalled();
   public boolean com.lynx.tasm.behavior.ui.UIShadowProxy.isFlatten();
   public List< LynxBaseUI > com.lynx.tasm.behavior.ui.UIShadowProxy.getChildren();
+  public long com.lynx.tasm.behavior.ui.UIShadowProxy.getMemoryUsageBytes();
   public LynxBaseUI com.lynx.tasm.behavior.ui.UIShadowProxy.getChildAt(int index);
   public int com.lynx.tasm.behavior.ui.UIShadowProxy.getChildCount();
   public LynxBaseUI com.lynx.tasm.behavior.ui.UIShadowProxy.getChild();
