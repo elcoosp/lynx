@@ -70,6 +70,8 @@ class MTSRuntime : private MTSContextHolder,
 
     virtual void OnScriptingStart() = 0;
     virtual void OnScriptingEnd() = 0;
+    virtual void OnNapiEnvironmentAttached(void* env) {}
+    virtual void OnNapiEnvironmentDetached(void* env) {}
   };
 
   class ScriptingScope {
@@ -101,6 +103,7 @@ class MTSRuntime : private MTSContextHolder,
       const tasm::PageOptions& page_options = tasm::PageOptions());
 
   Delegate* GetDelegate();
+  void SetDelegate(Delegate* delegate) { delegate_ = delegate; }
 
   // virtual interface
   void Initialize();
@@ -157,6 +160,21 @@ class MTSRuntime : private MTSContextHolder,
 
     ScriptingScope scope(this);
     return mts_context_->CallArgs(name, p_args, n_args, false);
+  }
+
+  template <class... Args,
+            class = std::enable_if_t<
+                (std::is_same_v<
+                     Value, std::remove_cv_t<std::remove_reference_t<Args>>> &&
+                 ...)>>
+  Value TryCall(const base::String& name, const Args&... args) {
+    // TODO(songshourui.null): Support querying top-level functions in RTS and
+    // RTS Native contexts.
+    Value function;
+    if (!GetTopLevelVariableByName(name, &function) || !function.IsCallable()) {
+      return Value();
+    }
+    return Call(name, args...);
   }
 
   template <class... Args,

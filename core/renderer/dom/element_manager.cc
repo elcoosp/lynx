@@ -29,6 +29,7 @@
 #include "core/renderer/dom/fiber/frame_element.h"
 #include "core/renderer/dom/fiber/image_element.h"
 #include "core/renderer/dom/fiber/list_element.h"
+#include "core/renderer/dom/fiber/modifier_element.h"
 #include "core/renderer/dom/fiber/none_element.h"
 #include "core/renderer/dom/fiber/page_element.h"
 #include "core/renderer/dom/fiber/raw_text_element.h"
@@ -43,6 +44,7 @@
 #include "core/renderer/lynx_env_config.h"
 #include "core/renderer/trace/renderer_trace_event_def.h"
 #include "core/renderer/ui_wrapper/painting/catalyzer.h"
+#include "core/renderer/ui_wrapper/painting/native_painting_context.h"
 #include "core/renderer/ui_wrapper/painting/painting_context.h"
 #include "core/renderer/utils/base/tasm_constants.h"
 #include "core/renderer/utils/lynx_env.h"
@@ -220,6 +222,8 @@ ElementManager::ElementManager(
       LynxEnv::Key::FIX_LIST_CALLBACK_LEAK_BUG, false);
   enable_fiber_element_memory_reporter_ =
       LynxEnv::GetInstance().EnableFiberElementMemoryReport();
+  painting_context()->SetEnableExternalMemoryReport(
+      enable_fiber_element_memory_reporter_);
   fix_radon_inline_convert_bug_ =
       LynxEnv::GetInstance().FixRadonInlineConvertBug();
   fix_dynamic_update_transition_consume_bug_ =
@@ -375,7 +379,7 @@ void ElementManager::OnDocumentUpdated() {
 
 void ElementManager::OnElementManagerWillDestroy() {
   EXEC_EXPR_FOR_INSPECTOR({
-    if (inspector_element_observer_ && IsDomTreeEnabled()) {
+    if (inspector_element_observer_) {
       inspector_element_observer_->OnElementManagerWillDestroy();
     }
   });
@@ -582,15 +586,8 @@ void ElementManager::RequestLayout(
 
   PipelineLayoutData layout_data;
   if (has_viewport_ready_ && root()->is_page()) {
-    if (options->need_timestamps) {
-      tasm::TimingCollector::Instance()->Mark(tasm::timing::kLayoutStart);
-    }
-
     static_cast<PageElement *>(root())->Layout(options);
 
-    if (options->need_timestamps) {
-      tasm::TimingCollector::Instance()->Mark(tasm::timing::kLayoutEnd);
-    }
     layout_data = {.layout_triggered = true,
                    .pipeline_version = options->version,
                    .is_first_layout =
@@ -613,8 +610,7 @@ void ElementManager::RequestLayout(
 
   if (root()->EnableFragmentLayerRender()) {
     if (layout_data.layout_triggered) {
-      TRACE_EVENT(LYNX_TRACE_CATEGORY, ELEMENT_MANAGER_REPAINT);
-      root()->element_container()->CastToFragment()->Draw();
+      Repaint();
       root()->element_container()->FinishLayoutOperation(options);
     }
     root()->element_container()->Flush();
@@ -1190,6 +1186,8 @@ void ElementManager::SetConfig(const std::shared_ptr<PageConfig> &config) {
     }
     enable_property_based_simple_style_ =
         config_->GetEnablePropertyBasedSimpleStyle();
+    enable_simple_style_no_patch_optimization_ =
+        config_->GetEnableSimpleStyleNoPatchOptimization();
     enable_animation_forward_update_preservation_ =
         config_->GetEnableAnimationForwardUpdatePreservation();
     enable_new_styling_pipeline_ = config_->GetEnableNewStylingPipeline();
@@ -1456,6 +1454,10 @@ fml::RefPtr<ComponentElement> ElementManager::CreateFiberComponent(
 fml::RefPtr<ViewElement> ElementManager::CreateFiberView() {
   auto res = fml::AdoptRef<ViewElement>(new ViewElement(this));
   return res;
+}
+
+fml::RefPtr<ModifierElement> ElementManager::CreateFiberModifierElement() {
+  return fml::AdoptRef<ModifierElement>(new ModifierElement(this));
 }
 
 fml::RefPtr<ImageElement> ElementManager::CreateFiberImage(
@@ -1815,8 +1817,7 @@ void ElementManager::OnPatchFinishForFiber(
     // Even if no layout is needed, we should still repaint if fragments are
     // dirty. Repaint should not be bound to relayout.
     if (root() && root()->EnableFragmentLayerRender()) {
-      TRACE_EVENT(LYNX_TRACE_CATEGORY, ELEMENT_MANAGER_REPAINT);
-      root()->element_container()->CastToFragment()->Draw();
+      Repaint();
     }
     if (root() && root()->EnableFragmentLayerRender()) {
       root()->element_container()->FinishLayoutOperation(options);
@@ -1850,6 +1851,16 @@ void ElementManager::OnPatchFinishForFiber(
   if (element != nullptr && element->is_list_item()) {
     painting_context()->FlushImmediately();
   }
+}
+
+void ElementManager::Repaint() {
+  TRACE_EVENT(LYNX_TRACE_CATEGORY, ELEMENT_MANAGER_REPAINT);
+  auto *native_context = painting_context()->impl()->CastToNativeCtx();
+  DCHECK(native_context != nullptr);
+  auto *root_fragment = root()->element_container()->CastToFragment();
+  NativePaintingContext::ScopedDisplayListBatch display_list_batch(
+      native_context, root_fragment->PlatformLayerCount());
+  root_fragment->Draw();
 }
 
 void ElementManager::EnqueueLevelOrderTask(

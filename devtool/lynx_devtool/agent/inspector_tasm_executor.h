@@ -4,6 +4,7 @@
 
 #ifndef DEVTOOL_LYNX_DEVTOOL_AGENT_INSPECTOR_TASM_EXECUTOR_H_
 #define DEVTOOL_LYNX_DEVTOOL_AGENT_INSPECTOR_TASM_EXECUTOR_H_
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <set>
@@ -85,6 +86,10 @@ class InspectorTasmExecutor
   // reloading.
   bool IsWhiteBoardEnabled();
   void SetWhiteBoardEnabled(bool enable);
+  bool IsGlobalPropsEnabled() const;
+  void SetGlobalPropsEnabled(bool enable);
+  uint64_t GetLastGlobalPropsTimestamp() const;
+  void SetLastGlobalPropsTimestamp(uint64_t timestamp);
 
  public:
   // dom related
@@ -121,12 +126,14 @@ class InspectorTasmExecutor
   DECLARE_DEVTOOL_METHOD(GetSearchResults)
   DECLARE_DEVTOOL_METHOD(DiscardSearchResults)
   DECLARE_DEVTOOL_METHOD(GetOriginalNodeIndex)
+  DECLARE_DEVTOOL_METHOD(GetOriginalNodeSourceInfo)
   DECLARE_DEVTOOL_METHOD(DOM_Focus)
 
   // css domain
   DECLARE_DEVTOOL_METHOD(CSS_Enable)
   DECLARE_DEVTOOL_METHOD(CSS_Disable)
   DECLARE_DEVTOOL_METHOD(GetMatchedStylesForNode)
+  DECLARE_DEVTOOL_METHOD(GetLayersForNode)
   DECLARE_DEVTOOL_METHOD(GetComputedStyleForNode)
   DECLARE_DEVTOOL_METHOD(GetInlineStylesForNode)
   DECLARE_DEVTOOL_METHOD(SetStyleTexts)
@@ -162,6 +169,13 @@ class InspectorTasmExecutor
 
   // DOM ScrollIntoViewIfNeeded
   DECLARE_DEVTOOL_METHOD(ScrollIntoViewIfNeeded)
+
+  // GlobalProps domain
+  DECLARE_DEVTOOL_METHOD(GlobalPropsEnable)
+  DECLARE_DEVTOOL_METHOD(GlobalPropsDisable)
+  DECLARE_DEVTOOL_METHOD(GlobalPropsGet)
+  DECLARE_DEVTOOL_METHOD(GlobalPropsReplace)
+  void GlobalPropsChanged();
 
   // WhiteBoard domain
   DECLARE_DEVTOOL_METHOD(WhiteBoardEnable)
@@ -209,6 +223,8 @@ class InspectorTasmExecutor
 
   bool rule_usage_tracking_;
   bool layer_tree_enabled_ = false;
+  bool global_props_enabled_ = false;
+  uint64_t last_global_props_timestamp_ms_ = 0;
   lynx::tasm::Element* element_root_;
 
   // In DevTool, tasm is a raw pointer reference. It can only be accessed on the

@@ -5,6 +5,7 @@
 #ifndef CORE_RENDERER_UI_WRAPPER_PAINTING_NATIVE_PAINTING_CONTEXT_PLATFORM_REF_H_
 #define CORE_RENDERER_UI_WRAPPER_PAINTING_NATIVE_PAINTING_CONTEXT_PLATFORM_REF_H_
 
+#include <array>
 #include <atomic>
 #include <memory>
 #include <string>
@@ -16,6 +17,7 @@
 #include "base/include/vector.h"
 #include "core/public/painting_ctx_platform_impl.h"
 #include "core/public/prop_bundle.h"
+#include "core/renderer/dom/fragment/display_list.h"
 #include "core/renderer/dom/fragment/event/platform_event_bundle.h"
 #include "core/renderer/dom/fragment/event/platform_event_emitter.h"
 #include "core/renderer/dom/fragment/event/platform_event_handler.h"
@@ -34,7 +36,6 @@ class Event;
 
 namespace tasm {
 
-class DisplayList;
 class PlatformEventTargetExposure;
 
 class NativePaintingCtxPlatformRef
@@ -58,6 +59,7 @@ class NativePaintingCtxPlatformRef
       const PlatformRendererInitConfig &init_config =
           PlatformRendererInitConfig());
   void UpdateDisplayList(int id, DisplayList &&display_list);
+  void UpdateDisplayLists(DisplayListUpdateBatch &&batch);
   void UpdateLayoutMetrics(int id, float left, float top, float width,
                            float height, const float *paddings,
                            const float *margins, const float *borders);
@@ -88,9 +90,13 @@ class NativePaintingCtxPlatformRef
   // target lets the event pass through.
   bool IsPlatformEventTargetEventThrough(int32_t event_target_root_id,
                                          float point_x, float point_y);
-  // The current state of PlatformEventHandler is obtained to determine the
-  // gesture handling at the platform layer.
-  int GetPlatformEventHandlerState();
+  // Hit-tests inside the given platform event root and returns whether the hit
+  // target ignores focus changes.
+  bool IsPlatformEventTargetIgnoreFocus(int32_t event_target_root_id,
+                                        float point_x, float point_y);
+  // Returns [hit target sign, renderer host sign, ignore focus,
+  // can respond focus] for the first pointer tracked by PlatformEventHandler.
+  std::array<int32_t, 4> GetPlatformFocusInfo();
   // Send event to the target element.
   void SendEvent(int32_t target_id, fml::RefPtr<event::Event> event);
   // Update the pseudo status of the target element.

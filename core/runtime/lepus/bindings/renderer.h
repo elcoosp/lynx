@@ -134,6 +134,7 @@ constexpr static const char* kCFuncSetContextData = "_SetContextData";
 // Create Element
 constexpr static const char* kCFunctionCreateElement = "__CreateElement";
 constexpr static const char* kCFunctionCreateView = "__CreateView";
+constexpr static const char* kCFunctionCreateCompose = "__CreateCompose";
 constexpr static const char* kCFunctionCreateText = "__CreateText";
 constexpr static const char* kCFunctionCreateImage = "__CreateImage";
 constexpr static const char* kCFunctionCreateRawText = "__CreateRawText";
@@ -156,6 +157,9 @@ constexpr static const char* kCFunctionAppendElement = "__AppendElement";
 constexpr static const char* kCFunctionRemoveElement = "__RemoveElement";
 constexpr static const char* kCFunctionInsertElementBefore =
     "__InsertElementBefore";
+constexpr static const char* kCFunctionInsertElementAt = "__InsertElementAt";
+constexpr static const char* kCFunctionRemoveElementsAt = "__RemoveElementsAt";
+constexpr static const char* kCFunctionMoveElements = "__MoveElements";
 constexpr static const char* kCFunctionFirstElement = "__FirstElement";
 constexpr static const char* kCFunctionLastElement = "__LastElement";
 constexpr static const char* kCFunctionNextElement = "__NextElement";
@@ -241,6 +245,8 @@ constexpr static const char* kCFunctionAddEvent = "__AddEvent";
 constexpr static const char* kCFunctionSetEvents = "__SetEvents";
 constexpr static const char* kCFunctionGetEvent = "__GetEvent";
 constexpr static const char* kCFunctionGetEvents = "__GetEvents";
+constexpr static const char* kCFunctionSetComposeModifier =
+    "__SetComposeModifier";
 constexpr static const char* kCFunctionSetID = "__SetID";
 constexpr static const char* kCFunctionGetID = "__GetID";
 constexpr static const char* kCFunctionAddDataset = "__AddDataset";

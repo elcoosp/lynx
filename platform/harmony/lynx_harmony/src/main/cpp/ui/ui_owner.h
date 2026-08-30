@@ -13,9 +13,11 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "base/include/fml/memory/ref_counted.h"
 #include "core/base/threading/vsync_monitor.h"
+#include "core/public/external_memory_snapshot.h"
 #include "core/public/pipeline_option.h"
 #include "core/renderer/ui_wrapper/common/harmony/prop_bundle_harmony.h"
 #include "platform/harmony/lynx_harmony/src/main/cpp/event/event_dispatcher.h"
@@ -143,6 +145,7 @@ class UIOwner {
   void SetEnableMultiTouch(bool enable_multi_touch);
   void SetTapSlop(const std::string& tap_slop);
   void SetHasTouchPseudo(bool has_touch_pseudo);
+  void SetEnableFiberTargetOnlyDestroy(bool enable);
   void SetLongPressDuration(int32_t long_press_duration);
   void SendEvent(const LynxEvent& event) const;
   bool StartEventGenerate(const TouchEvent& touch_event) const;
@@ -191,6 +194,10 @@ class UIOwner {
   void RunTaskOnUIThread(base::closure task) const;
   void RunTaskOnTASMThread(base::closure task) const;
   const fml::RefPtr<fml::TaskRunner>& GetUITaskRunner() const;
+  void UpdateNodeReadyPatching(const std::vector<int32_t>& ready_ids,
+                               const std::vector<int32_t>& remove_ids);
+  ExternalMemorySnapshot GetExternalMemorySnapshot();
+  void RequestExternalMemoryReport(int64_t delay_ms);
   const std::shared_ptr<base::VSyncMonitor>& VSyncMonitor();
 
   // for lynx fluency metrics
@@ -247,7 +254,9 @@ class UIOwner {
   static napi_value SetLynxImageConfig(napi_env env, napi_callback_info info);
 
   void DestroySubTree(UIBase* root);
+  void DestroyTarget(UIBase* target);
   void OnNodeRemovedRecursively(UIBase* root);
+  int64_t GetExternalMemoryUsageRecursively(UIBase* root) const;
   void MarkHasUIOperations(UIBase* ui);
   void MarkHasUIOperationsBottomUp(UIBase* ui);
   void RequestLayout();
@@ -285,6 +294,8 @@ class UIOwner {
   napi_ref js_create_frame_host_{nullptr};
 
   std::shared_ptr<LynxContext> context_{nullptr};
+  bool external_memory_report_pending_ = false;
+  std::unordered_set<int32_t> external_memory_report_candidate_ids_;
   std::unique_ptr<EventDispatcher> event_dispatcher_ =
       std::make_unique<EventDispatcher>(this);
   std::shared_ptr<EventEmitter> event_emitter_ =
@@ -301,6 +312,7 @@ class UIOwner {
   std::string id_;
 
   bool destroyed_ = false;
+  bool enable_fiber_target_only_destroy_ = false;
   float last_intrinsic_content_width_{0.f};
   float last_intrinsic_content_height_{0.f};
 

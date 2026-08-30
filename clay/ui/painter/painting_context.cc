@@ -190,7 +190,7 @@ void PaintingContext::RepaintCompositedChild(
                                              const FloatPoint& offset) {
       ctx.PushTransform(child->HasTransformOperations()
                             ? child->GetTransformOperations()
-                            : TransformOperations(),
+                            : lynx::gfx::TransformOperations(),
                         child->GetTransformOrigin(), child->GetPerspective(),
                         FloatPoint(), old_painter);
     };
@@ -382,14 +382,12 @@ void PaintingContext::PushBackdropFilter(
   PushLayer(effect_layer, painter, offset);
 }
 
-void PaintingContext::PushTransform(const TransformOperations& operations,
-                                    const FloatPoint& origin,
-                                    const float perspective,
-                                    const FloatPoint& offset,
-                                    const PaintingContextCallback& painter) {
-  TransformOperations tmp = operations;
-  tmp.SetPerspective(perspective);
-  PendingTransformLayer* layer = new PendingTransformLayer(tmp, origin);
+void PaintingContext::PushTransform(
+    const lynx::gfx::TransformOperations& operations, const FloatPoint& origin,
+    const float perspective, const FloatPoint& offset,
+    const PaintingContextCallback& painter) {
+  PendingTransformLayer* layer =
+      new PendingTransformLayer(operations, origin, perspective);
   AppendLayer(layer);
   PaintingContext child_context(layer, render_object(),
                                 graphics_context_.GetUnrefQueue());
@@ -428,6 +426,16 @@ void PaintingContext::PushShaderMask(std::shared_ptr<ColorSource> color_source,
                                      const PaintingContextCallback& painter) {
   PendingEffectLayer* effect_layer = new PendingEffectLayer();
   effect_layer->SetShaderMask(std::move(color_source), mask_rect, blend_mode);
+  PushLayer(effect_layer, painter, offset);
+}
+
+void PaintingContext::PushPictureMask(std::shared_ptr<Picture> picture,
+                                      const FloatRect& mask_rect,
+                                      BlendMode blend_mode,
+                                      const FloatPoint& offset,
+                                      const PaintingContextCallback& painter) {
+  PendingEffectLayer* effect_layer = new PendingEffectLayer();
+  effect_layer->SetPictureMask(std::move(picture), mask_rect, blend_mode);
   PushLayer(effect_layer, painter, offset);
 }
 

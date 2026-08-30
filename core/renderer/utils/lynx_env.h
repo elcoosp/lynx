@@ -122,11 +122,13 @@ class LYNX_EXPORT_FOR_DEVTOOL LynxEnv {
     FIX_NEW_FIXED_REMOVAL_BUG,
     FIX_OLD_FIXED_INSERT_SELF_USE_RENDER_PARENT,
     FIX_FIBER_REINSERT_DETACH_FROM_OLD_RENDER_PARENT,
+    FIX_HARMONY_FIBER_DESTROY_TARGET_ONLY,
     FIX_FILTER_DYNAMIC_UPDATE_BUG,
     ENABLE_CSS_INLINE_VARIABLES,
     ENABLE_OPTIMIZE_HAS_OPACITY,
     DISABLE_JS_MODE_STRIP,
     ENABLE_PLATFORM_DATA_FIX,
+    ENABLE_PLATFORM_DATA_ASYNC_CONSUME_ACTIONS,
     ENABLE_QUICKJS_THREAD_CHECKER,
     ENABLE_LEVEL_ORDER_TRAVERSING,
     LYNX_DEBUG_ENABLED,
@@ -156,6 +158,7 @@ class LYNX_EXPORT_FOR_DEVTOOL LynxEnv {
     JS_CALL_NATIVE_FREQUENCY_THRESHOLD_COMMON,
     JS_CALL_NATIVE_FREQUENCY_COOLDOWN_MS,
     ENABLE_NEW_STYLING_PIPELINE,
+    ENABLE_SIMPLE_STYLE_NO_PATCH_OPTIMIZATION,
     ENABLE_FRAME_NATIVE_DATA,
     ENABLE_READABLE_STREAM_MEM_FIX,
     ENABLE_ELEMENT_API_NEW_REGISTRATION,
@@ -304,6 +307,9 @@ class LYNX_EXPORT_FOR_DEVTOOL LynxEnv {
             {Key::ENABLE_OPTIMIZE_HAS_OPACITY, "enable_optimize_has_opacity"},
             {Key::DISABLE_JS_MODE_STRIP, "disable_js_mode_strip"},
             {Key::ENABLE_PLATFORM_DATA_FIX, "enable_platform_data_fix"},
+            // NOLINT(harmony-trail-key): iOS-only configuration.
+            {Key::ENABLE_PLATFORM_DATA_ASYNC_CONSUME_ACTIONS,
+             "enable_platform_data_async_consume_actions"},
             {Key::ENABLE_QUICKJS_THREAD_CHECKER,
              "enable_quickjs_thread_checker"},
             {Key::ENABLE_LEVEL_ORDER_TRAVERSING,
@@ -331,12 +337,17 @@ class LYNX_EXPORT_FOR_DEVTOOL LynxEnv {
              "fix_old_fixed_insert_self_use_render_parent"},
             {Key::FIX_FIBER_REINSERT_DETACH_FROM_OLD_RENDER_PARENT,
              "fix_fiber_reinsert_detach_from_old_render_parent"},
+            // NOLINT(harmony-trail-key): Settings-only configuration.
+            {Key::FIX_HARMONY_FIBER_DESTROY_TARGET_ONLY,
+             "fix_harmony_fiber_destroy_target_only"},
             {Key::FIX_FILTER_DYNAMIC_UPDATE_BUG,
              "fix_filter_dynamic_update_bug"},
             {Key::FIX_LIST_WITH_SYNC_FLUSH, "fix_list_with_sync_flush"},
             {Key::ENABLE_ANIMATION_FORWARD_UPDATE_PRESERVATION,
              "enable_animation_forward_update_preservation"},
             {Key::ENABLE_NEW_STYLING_PIPELINE, "enable_new_styling_pipeline"},
+            {Key::ENABLE_SIMPLE_STYLE_NO_PATCH_OPTIMIZATION,
+             "enable_simple_style_no_patch_optimization"},
             {Key::ENABLE_FRAME_NATIVE_DATA, "enable_frame_native_data"},
             {Key::ENABLE_READABLE_STREAM_MEM_FIX,
              "enable_readable_stream_mem_fix"},
@@ -511,6 +522,7 @@ class LYNX_EXPORT_FOR_DEVTOOL LynxEnv {
   bool EnableOptimizeHasOpacity();
   bool DisableJSModeStrip();
   bool EnablePlatformDataFix();
+  bool EnablePlatformDataAsyncConsumeActions();
   bool EnableListNewArchitecture();
   bool EnableQuickJsThreadChecker();
   bool EnableLevelOrderTraversing();
@@ -527,8 +539,10 @@ class LYNX_EXPORT_FOR_DEVTOOL LynxEnv {
   bool FixListWithSyncFlush();
   bool FixOldFixedInsertSelfUseRenderParent();
   bool FixFiberReinsertDetachFromOldRenderParent();
+  bool FixHarmonyFiberDestroyTargetOnly();
   bool EnableAnimationForwardUpdatePreservation();
   bool EnableNewStylingPipeline();
+  bool EnableSimpleStyleNoPatchOptimization();
   bool EnableFrameNativeData();
   bool EnableReadableStreamMemFix();
   bool EnablePromiseMemoryFix();

@@ -5,6 +5,7 @@
 #ifndef CLAY_UI_COMPONENT_BASE_VIEW_H_
 #define CLAY_UI_COMPONENT_BASE_VIEW_H_
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -24,7 +25,6 @@
 #include "clay/gfx/geometry/path.h"
 #include "clay/gfx/geometry/sticky_info.h"
 #include "clay/gfx/geometry/transform.h"
-#include "clay/gfx/geometry/transform_operations.h"
 #include "clay/gfx/geometry/transform_origin.h"
 #include "clay/gfx/geometry/transform_raw.h"
 #include "clay/gfx/style/borders_data.h"
@@ -48,6 +48,7 @@
 #include "clay/ui/gesture_handler/gesture_handler_delegate.h"
 #include "clay/ui/gesture_handler/handler/base_gesture_handler.h"
 #include "clay/ui/lynx_module/lynx_ui_method_registrar.h"
+#include "gfx/geometry/transform_operations.h"
 #ifdef ENABLE_ACCESSIBILITY
 #include "clay/ui/semantics/semantics_node.h"
 #endif
@@ -279,7 +280,7 @@ class BaseView : public TypeIdentifiable<BaseView>,
   void TransitionTo(ClayAnimationPropertyType type, float value);
   void TransitionTo(ClayAnimationPropertyType type, const Color& value);
   void TransitionTo(ClayAnimationPropertyType type,
-                    const TransformOperations& ops);
+                    const lynx::gfx::TransformOperations& value);
 
   const clay::Value& GetDataSet() { return data_set_; }
 
@@ -292,7 +293,8 @@ class BaseView : public TypeIdentifiable<BaseView>,
   void AppendTransition(const TransitionData& data);
   void SetTransition(const std::vector<TransitionData>& data);
   void SetTransition(const clay::Value::Array& array);
-  void SetTransform(const TransformOperations& ops, const FloatPoint& origin);
+  void SetTransform(const lynx::gfx::TransformOperations& ops,
+                    const FloatPoint& origin);
   void SetTransform(const std::vector<TransformRaw>& transform_row);
   void SetTransformOrigin(std::optional<TransformOrigin> origin);
   void SetTransformOrigin(const std::vector<Length>& array);
@@ -302,8 +304,10 @@ class BaseView : public TypeIdentifiable<BaseView>,
   void SetConsumeSlideEventDirection(const clay::Value::Array& array);
   void SetEnableNewAnimator(bool enable) { enable_new_animator_ = enable; }
   bool IsInteractable() const { return is_interactable_; }
-  const TransformOperations& GetTransformOps() const { return transform_ops_; }
-  TransformOperations GetPresentationTransformOps() const;
+  const lynx::gfx::TransformOperations& GetTransformOps() const {
+    return transform_ops_;
+  }
+  lynx::gfx::TransformOperations GetPresentationTransformOps() const;
   FloatPoint GetTransformOrigin() const;
   Transform GetTransform() const;
   Transform GetPresentationTransform() const;
@@ -528,6 +532,7 @@ class BaseView : public TypeIdentifiable<BaseView>,
   }
   PageView* page_view() const { return page_view_; }
   bool attach_to_tree() const { return attach_to_tree_; }
+  int64_t GetMemoryUsageBytes() { return sizeof(BaseView); }
 
   // physical_width & physical_height can be zero.
   // It happens when the app just starts, the activity is not created but the
@@ -609,21 +614,22 @@ class BaseView : public TypeIdentifiable<BaseView>,
   // AnimatorTarget related interfaces
   void GetProperty(ClayAnimationPropertyType type, float& value);
   void GetProperty(ClayAnimationPropertyType type, Color& value);
-  void GetProperty(ClayAnimationPropertyType type, TransformOperations& value);
+  void GetProperty(ClayAnimationPropertyType type,
+                   lynx::gfx::TransformOperations& value);
   void GetProperty(ClayAnimationPropertyType type, FilterOperations& value);
   bool GetPresentationProperty(ClayAnimationPropertyType type,
                                float& value) const;
   bool GetPresentationProperty(ClayAnimationPropertyType type,
                                Color& value) const;
   bool GetPresentationProperty(ClayAnimationPropertyType type,
-                               TransformOperations& value) const;
+                               lynx::gfx::TransformOperations& value) const;
   // SetProperty will modify value without triggering transition animation.
   virtual void SetProperty(ClayAnimationPropertyType type, float value,
                            bool skip_update_for_raster_animation);
   void SetProperty(ClayAnimationPropertyType type, const Color& value,
                    bool skip_update_for_raster_animation);
   void SetProperty(ClayAnimationPropertyType type,
-                   const TransformOperations& value,
+                   const lynx::gfx::TransformOperations& value,
                    bool skip_update_for_raster_animation);
   void SetProperty(ClayAnimationPropertyType type,
                    const FilterOperations& value);
@@ -691,7 +697,7 @@ class BaseView : public TypeIdentifiable<BaseView>,
 
   void UpdateCacheStrategy();
   void UpdateChildrenBounds();
-  void SetTransformOperations(const TransformOperations& operations,
+  void SetTransformOperations(const lynx::gfx::TransformOperations& value,
                               bool is_from_animation);
 
   void UpdateRenderObjectTransformOrigin();
@@ -749,6 +755,7 @@ class BaseView : public TypeIdentifiable<BaseView>,
   // FIXME(baiqiang): remove focus&text list then move to component
   std::string item_key_;
   bool attach_to_tree_ = false;
+  bool direct_page_child_first_add_exposure_attempted_ = false;
   std::optional<bool> ignore_focus_;
   BaseView* parent_ = nullptr;
   PageView* page_view_ = nullptr;
@@ -764,7 +771,7 @@ class BaseView : public TypeIdentifiable<BaseView>,
   bool needs_layout_updated_ = false;
   int ignore_layout_request_count_ = 0;
   fml::WeakPtrFactory<BaseView> weak_factory_;
-  TransformOperations transform_ops_;
+  lynx::gfx::TransformOperations transform_ops_;
   FilterOperations color_matrix_ops_;
   BoxShadowOperations box_shadow_ops_;
   std::optional<TransformOrigin> transform_origin_;

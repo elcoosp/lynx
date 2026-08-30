@@ -8,13 +8,13 @@
 #ifndef CLAY_UI_RESOURCE_FONT_COLLECTION_H_
 #define CLAY_UI_RESOURCE_FONT_COLLECTION_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "clay/gfx/rendering_backend.h"
 #include "clay/ui/resource/asset_font_manager_clay.h"
 #include "clay/ui/resource/font_resource_manager.h"
 #include "clay/ui/ui_rendering_backend.h"
@@ -22,6 +22,7 @@
 namespace clay {
 
 using FontDownloadCallback = std::function<void()>;
+using FontDownloadCallbackId = uint64_t;
 
 class ResourceLoaderIntercept;
 class ServiceManager;
@@ -44,16 +45,16 @@ class FontCollection : public std::enable_shared_from_this<FontCollection> {
 
   void SetupDefaultFontManager(uint32_t font_initialization_data);
 
-  void SetDefaultFontManager(GrFontMgrPtr font_manager);
-
   void PreLoadFontOnMem(fml::RefPtr<fml::TaskRunner> load_task_runner,
                         std::shared_ptr<ResourceLoaderIntercept> intercept,
                         std::shared_ptr<ServiceManager> service_manager,
                         const std::string& font_family,
                         std::vector<std::string> urls);
 
-  void RegisterCallback(const std::string& font_family,
-                        const FontDownloadCallback& callback);
+  FontDownloadCallbackId RegisterCallback(const std::string& font_family,
+                                          const FontDownloadCallback& callback);
+
+  void UnregisterCallback(FontDownloadCallbackId callback_id);
 
   bool HasFontResource(const std::string& font_family);
 
@@ -90,12 +91,21 @@ class FontCollection : public std::enable_shared_from_this<FontCollection> {
 
   FontCollection();
 
-  std::unordered_multimap<std::string, FontDownloadCallback>
+  struct PendingFontDownloadCallback {
+    FontDownloadCallbackId id;
+    FontDownloadCallback callback;
+  };
+
+  FontDownloadCallbackId next_font_download_callback_id_ = 0;
+  std::unordered_multimap<std::string, PendingFontDownloadCallback>
       font_download_callback_;
 
   FRIEND_TEST(FontResourceManagerTest, GetLocalResourceTest);
   FRIEND_TEST(FontResourceManagerTest, DISABLED_GetNetWorkResourceTest);
   FRIEND_TEST(FontResourceManagerTest, FontCollectionTest);
+  FRIEND_TEST(FontResourceManagerTest, FontCallbackCanBeCancelled);
+  FRIEND_TEST(FontResourceManagerTest, FailedFontLoadClearsCallbacks);
+  FRIEND_TEST(TextTest, FontCallbacksAreDeduplicatedAndCancelled);
 
   BASE_DISALLOW_COPY_AND_ASSIGN(FontCollection);
 };

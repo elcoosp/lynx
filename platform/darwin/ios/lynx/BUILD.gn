@@ -110,8 +110,13 @@ subspec_target("Framework") {
   ]
   flatten_deps = framework_podspec_deps
   frameworks = [
-    "UIKit",
+    "Accelerate",
+    "CoreGraphics",
+    "CoreImage",
+    "CoreText",
     "NaturalLanguage",
+    "QuartzCore",
+    "UIKit",
   ]
   if (!use_flatten_deps) {
     dependency = Framework_deps
@@ -160,6 +165,7 @@ subspec_target("lynx") {
     "LynxViewBuilder+Internal.h",
     "LynxViewBuilder.mm",
     "LynxViewGroup.mm",
+    "LynxViewportMetrics.m",
     "LynxWasmFuncRegistry.mm",
     "PaintingContextProxy.h",
     "PaintingContextProxy.mm",
@@ -356,6 +362,10 @@ subspec_target("lynx") {
     "ui/list/LynxListScrollEventEmitter.m",
     "ui/list/LynxUIListLoader.mm",
     "ui/list/container/ListNodeInfoFetcher.mm",
+    "ui/list/container/LynxListItemHelper.h",
+    "ui/list/container/LynxListItemHelper.m",
+    "ui/list/container/LynxListStickyManager.h",
+    "ui/list/container/LynxListStickyManager.m",
     "ui/list/container/LynxUIListContainer.mm",
     "ui/list/list_light/layout/LynxListHorizontalLayoutManager.mm",
     "ui/list/list_light/layout/LynxListLayoutManager.mm",
@@ -483,6 +493,7 @@ subspec_target("UnitTests") {
     "LynxElementUnitTest.m",
     "LynxLogContextUnitTest.mm",
     "LynxModuleManagerDarwinUnitTest.mm",
+    "LynxRuntimeMetricsUnitTest.m",
     "LynxTemplateRenderMemoryUsageUnitTest.mm",
     "LynxUnitTestUtils.h",
     "LynxUnitTestUtils.mm",
@@ -532,6 +543,8 @@ subspec_target("UnitTests") {
     "ui/UIScrollView+LynxUnitTest.m",
     "ui/frame/LynxUIFrameUnitTest.mm",
     "ui/image/LynxUIImageUnitTest.m",
+    "ui/list/container/LynxListItemHelperUnitTest.m",
+    "ui/list/container/LynxListStickyManagerUnitTest.m",
     "ui/list/container/LynxUIListContainerUnitTest.m",
     "ui/list/list_light/layout/LynxListLayoutManagerUnitTest.mm",
     "ui/list/list_light/view/LynxListViewLightUnitTest.mm",
@@ -904,6 +917,7 @@ subspec_target("template_bundle") {
   deps = [
     "../../../../core/template_bundle:template_bundle",
     "../../../../core/template_bundle/lynxml:lynxml_parser",
+    "../../../../core/template_bundle/lynxml:lynxml_style_parser",
     "../../../../core/template_bundle/template_codec:magic_number",
     "../../../../core/template_bundle/template_codec:template_decoder",
     "../../../../core/template_bundle/template_codec/binary_decoder:binary_decoder",

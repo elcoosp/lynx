@@ -12,6 +12,7 @@
 #include <memory>
 #include <mutex>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 #include "base/include/auto_reset.h"
@@ -32,12 +33,15 @@
 #include "core/renderer/css/parser/css_string_parser.h"
 #include "core/renderer/dom/element.h"
 #include "core/renderer/dom/element_manager.h"
+#include "core/renderer/dom/element_point_converter.h"
 #include "core/renderer/dom/fiber/component_element.h"
+#include "core/renderer/dom/fiber/compose_element_handle.h"
 #include "core/renderer/dom/fiber/for_element.h"
 #include "core/renderer/dom/fiber/if_element.h"
 #include "core/renderer/dom/fiber/image_element.h"
 #include "core/renderer/dom/fiber/list_element.h"
 #include "core/renderer/dom/fiber/list_item_scheduler_adapter.h"
+#include "core/renderer/dom/fiber/modifier_element.h"
 #include "core/renderer/dom/fiber/none_element.h"
 #include "core/renderer/dom/fiber/page_element.h"
 #include "core/renderer/dom/fiber/platform_layout_function_wrapper.h"
@@ -130,6 +134,20 @@ style::DynamicStyleObjectRef MakeDynamicStyleObjectRef(StyleMap style_map) {
       new style::DynamicStyleObject(std::move(style_map)));
 }
 
+std::unique_ptr<style::StyleObject*, style::StyleObjectArrayDeleter>
+MakeSimpleStyleObjectList(CSSPropertyID id, const CSSValue& value) {
+  StyleMap style_map;
+  style_map.insert_or_assign(id, value);
+
+  auto* style_object = new style::StyleObject(std::move(style_map));
+  style_object->AddRef();
+
+  auto list = style::CreateStyleObjectArray(2);
+  list.get()[0] = style_object;
+  list.get()[1] = nullptr;
+  return list;
+}
+
 fml::TimePoint TimePointFromMs(int64_t ms) {
   return fml::TimePoint::FromTicks(ms * 1000 * 1000);
 }
@@ -211,6 +229,14 @@ class RecordingInspectorElementObserver final
                                 const lepus::Value& properties) override {}
   void OnSetNativeProps(Element* ptr, const std::string& name,
                         const std::string& value, bool is_style) override {}
+  void OnAddInlineStyle(int32_t backend_node_id, CSSPropertyID property_id,
+                        const lepus::Value& value) override {
+    ++add_inline_style_count;
+    recorded_backend_node_id = backend_node_id;
+    recorded_property_id = property_id;
+    recorded_value = value.StdString();
+  }
+  void OnFiberFlushElementTree() override { ++flush_count; }
   void OnCSSMediaQueryResultChanged() override {
     ++media_query_result_changed_count;
   }
@@ -231,6 +257,11 @@ class RecordingInspectorElementObserver final
   }
 
   int media_query_result_changed_count = 0;
+  int add_inline_style_count = 0;
+  int flush_count = 0;
+  int32_t recorded_backend_node_id = 0;
+  CSSPropertyID recorded_property_id = CSSPropertyID::kPropertyStart;
+  std::string recorded_value;
 };
 
 bool LayoutBundleHasResetStyle(
@@ -287,6 +318,37 @@ const lepus::Value* DatasetValue(const Element* element,
   }
   return &it->second;
 }
+
+void ExpectElementAPIError() {
+  const auto& stored_error = base::ErrorStorage::GetInstance().GetError();
+  ASSERT_NE(stored_error, nullptr);
+  EXPECT_EQ(stored_error->error_code_, error::E_ELEMENT_API_ERROR);
+}
+
+std::shared_ptr<runtime::MTSRuntime> CreateRendererRuntime(
+    TemplateAssembler* template_assembler) {
+  auto renderer_runtime = runtime::MTSRuntime::CreateContext(
+      runtime::ContextType::LepusNGContextType);
+  if (renderer_runtime == nullptr) {
+    return nullptr;
+  }
+  renderer_runtime->Initialize();
+  renderer_runtime->SetGlobalData(
+      BASE_STATIC_STRING(tasm::kTemplateAssembler),
+      lepus::Value(
+          static_cast<runtime::MTSRuntime::Delegate*>(template_assembler)));
+  return renderer_runtime;
+}
+
+void SetDefaultEntryRuntime(
+    TemplateAssembler* template_assembler,
+    const std::shared_ptr<runtime::MTSRuntime>& runtime) {
+  auto entry = std::make_shared<TemplateEntry>();
+  entry->SetVm(runtime);
+  entry->SetName(DEFAULT_ENTRY_NAME);
+  template_assembler->template_entries_[DEFAULT_ENTRY_NAME] = std::move(entry);
+}
+
 }  // namespace
 
 static std::unordered_map<std::string, uint32_t> kTestColorMap = {
@@ -829,6 +891,110 @@ TEST_P(FiberElementTest, TestSetOverflow) {
   EXPECT_FALSE(page->computed_css_style()->IsOverflowHidden());
   EXPECT_FALSE(page->computed_css_style()->IsOverflowX());
   EXPECT_TRUE(page->computed_css_style()->IsOverflowY());
+}
+
+TEST_P(FiberElementTest, ReapplyingEquivalentSimpleStylesDoesNotForceUpdate) {
+  manager->SetEnableSimpleStyle(true);
+  manager->config_->SetEnablePropertyBasedSimpleStyle(true);
+  manager->config_->SetEnableSimpleStyleNoPatchOptimization(true);
+  manager->SetConfig(manager->config_);
+  tasm->page_config_ = manager->config_;
+
+  auto page = manager->CreateFiberPage("0", 0);
+  manager->SetFiberPageElement(page);
+  auto view = manager->CreateFiberView();
+  page->InsertNode(view);
+
+  auto flush = [&]() {
+    page->FlushActionsAsRoot();
+    platform_impl_->Flush();
+  };
+  auto captured_bundle_count = [&]() {
+    return std::count(tasm_mediator.captured_ids_.begin(),
+                      tasm_mediator.captured_ids_.end(), view->impl_id());
+  };
+
+  view->SetStyleObjects(
+      MakeSimpleStyleObjectList(CSSPropertyID::kPropertyIDOpacity,
+                                CSSValue(0.5, CSSValuePattern::NUMBER)));
+  flush();
+  manager->need_layout_ = false;
+  const auto bundle_count = captured_bundle_count();
+
+  view->SetStyleObjects(
+      MakeSimpleStyleObjectList(CSSPropertyID::kPropertyIDOpacity,
+                                CSSValue(0.5, CSSValuePattern::NUMBER)));
+  flush();
+
+  EXPECT_FALSE(manager->need_layout_);
+  EXPECT_EQ(captured_bundle_count(), bundle_count);
+
+  view->SetStyleObjects(
+      MakeSimpleStyleObjectList(CSSPropertyID::kPropertyIDOpacity,
+                                CSSValue(0.7, CSSValuePattern::NUMBER)));
+  flush();
+
+  EXPECT_TRUE(manager->need_layout_);
+  EXPECT_GT(captured_bundle_count(), bundle_count);
+  const auto& props = platform_impl_->node_map_.at(view->impl_id())->props_;
+  const auto opacity_key =
+      CSSProperty::GetPropertyNameCStr(CSSPropertyID::kPropertyIDOpacity);
+  ASSERT_TRUE(props.find(opacity_key) != props.end());
+  EXPECT_NEAR(props.at(opacity_key).Number(), 0.7, 1e-6);
+}
+
+TEST_P(FiberElementTest, EquivalentSimpleStylesKeepLegacyForceUpdateByDefault) {
+  manager->SetEnableSimpleStyle(true);
+  manager->config_->SetEnablePropertyBasedSimpleStyle(true);
+  manager->SetConfig(manager->config_);
+
+  auto page = manager->CreateFiberPage("0", 0);
+  manager->SetFiberPageElement(page);
+  auto view = manager->CreateFiberView();
+  page->InsertNode(view);
+
+  view->SetStyleObjects(
+      MakeSimpleStyleObjectList(CSSPropertyID::kPropertyIDOpacity,
+                                CSSValue(0.5, CSSValuePattern::NUMBER)));
+  page->FlushActionsAsRoot();
+  platform_impl_->Flush();
+  manager->need_layout_ = false;
+
+  view->SetStyleObjects(
+      MakeSimpleStyleObjectList(CSSPropertyID::kPropertyIDOpacity,
+                                CSSValue(0.5, CSSValuePattern::NUMBER)));
+  page->FlushActionsAsRoot();
+  platform_impl_->Flush();
+
+  EXPECT_TRUE(manager->need_layout_);
+}
+
+TEST_P(FiberElementTest,
+       SimpleStyleFontSizeChangeStillUpdatesInLayoutInElement) {
+  manager->SetEnableSimpleStyle(true);
+  manager->config_->SetEnablePropertyBasedSimpleStyle(true);
+  manager->config_->SetEnableSimpleStyleNoPatchOptimization(true);
+  manager->SetConfig(manager->config_);
+  manager->page_options_.embedded_mode_ = EmbeddedMode::LAYOUT_IN_ELEMENT;
+
+  auto page = manager->CreateFiberPage("0", 0);
+  manager->SetFiberPageElement(page);
+  auto view = manager->CreateFiberView();
+  page->InsertNode(view);
+
+  view->SetStyleObjects(MakeSimpleStyleObjectList(
+      CSSPropertyID::kPropertyIDFontSize, CSSValue(20, CSSValuePattern::PX)));
+  page->FlushActionsAsRoot();
+  platform_impl_->Flush();
+  manager->need_layout_ = false;
+
+  view->SetStyleObjects(MakeSimpleStyleObjectList(
+      CSSPropertyID::kPropertyIDFontSize, CSSValue(24, CSSValuePattern::PX)));
+  page->FlushActionsAsRoot();
+  platform_impl_->Flush();
+
+  EXPECT_TRUE(manager->need_layout_);
+  EXPECT_NEAR(view->GetFontSize(), 24, 1e-6);
 }
 
 TEST_P(FiberElementTest, DynamicSimpleStyleLayer_KVOrderingAndNilRestoresBase) {
@@ -3191,6 +3357,303 @@ TEST_P(FiberElementTest,
   EXPECT_FALSE(child->attached_to_layout_parent_);
 }
 
+TEST_P(FiberElementTest, ConvertPointUsesLayoutTreeAndSkipsVirtualNodes) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+
+  auto page = manager->CreateFiberPage("page", 11);
+  auto parent = manager->CreateFiberView();
+  auto wrapper = manager->CreateFiberNode("inline-text");
+  auto source = manager->CreateFiberView();
+  auto target = manager->CreateFiberView();
+  page->InsertNode(parent);
+  parent->InsertNode(wrapper);
+  wrapper->InsertNode(source);
+  parent->InsertNode(target);
+  page->FlushActionsAsRoot();
+
+  ASSERT_TRUE(wrapper->is_virtual());
+  ASSERT_EQ(source->slnode()->ParentLayoutObject(), parent->slnode());
+  page->UpdateLayout(0.f, 0.f, 1080.f, 1920.f, {0.f}, {0.f}, {0.f}, nullptr,
+                     0.f);
+  parent->UpdateLayout(100.f, 200.f, 300.f, 400.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  source->UpdateLayout(10.f, 20.f, 100.f, 50.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  target->UpdateLayout(50.f, 80.f, 100.f, 50.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+
+  auto in_parent =
+      ConvertPointBetweenElements({5.f, 7.f}, source.get(), parent.get());
+  ASSERT_TRUE(in_parent.has_value());
+  EXPECT_FLOAT_EQ(in_parent->X(), 15.f);
+  EXPECT_FLOAT_EQ(in_parent->Y(), 27.f);
+
+  auto in_page =
+      ConvertPointBetweenElements({5.f, 7.f}, source.get(), page.get());
+  ASSERT_TRUE(in_page.has_value());
+  EXPECT_FLOAT_EQ(in_page->X(), 115.f);
+  EXPECT_FLOAT_EQ(in_page->Y(), 227.f);
+
+  auto in_target =
+      ConvertPointBetweenElements({5.f, 7.f}, source.get(), target.get());
+  ASSERT_TRUE(in_target.has_value());
+  EXPECT_FLOAT_EQ(in_target->X(), -35.f);
+  EXPECT_FLOAT_EQ(in_target->Y(), -53.f);
+
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::FRAGMENT_LAYER_RENDER);
+  EXPECT_FALSE(
+      ConvertPointBetweenElements({5.f, 7.f}, source.get(), target.get())
+          .has_value());
+}
+
+TEST_P(FiberElementTest, ConvertRectUsesFourCornersAndClipsLayoutAncestors) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+
+  auto page = manager->CreateFiberPage("page", 11);
+  auto parent = manager->CreateFiberView();
+  auto source = manager->CreateFiberView();
+  page->InsertNode(parent);
+  parent->InsertNode(source);
+  page->FlushActionsAsRoot();
+
+  CSSParserConfigs configs;
+  auto hidden = UnitHandler::Process(kPropertyIDOverflow,
+                                     lepus::Value("hidden"), configs);
+  auto visible = UnitHandler::Process(kPropertyIDOverflow,
+                                      lepus::Value("visible"), configs);
+  parent->computed_css_style()->SetValue(kPropertyIDOverflow,
+                                         hidden.at(kPropertyIDOverflow));
+  source->computed_css_style()->SetValue(kPropertyIDOverflow,
+                                         visible.at(kPropertyIDOverflow));
+
+  page->UpdateLayout(0.f, 0.f, 1080.f, 1920.f, {0.f}, {0.f}, {0.f}, nullptr,
+                     0.f);
+  parent->UpdateLayout(100.f, 200.f, 100.f, 100.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  source->UpdateLayout(10.f, 20.f, 50.f, 40.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+
+  auto converted = ConvertRectBetweenElements({{5.f, 7.f}, {20.f, 10.f}},
+                                              source.get(), page.get(), false);
+  ASSERT_TRUE(converted.has_value());
+  EXPECT_FLOAT_EQ(converted->X(), 115.f);
+  EXPECT_FLOAT_EQ(converted->Y(), 227.f);
+  EXPECT_FLOAT_EQ(converted->MaxX(), 135.f);
+  EXPECT_FLOAT_EQ(converted->MaxY(), 237.f);
+
+  auto clipped = ConvertRectBetweenElements({{-50.f, -50.f}, {500.f, 500.f}},
+                                            source.get(), page.get(), true);
+  ASSERT_TRUE(clipped.has_value());
+  EXPECT_FLOAT_EQ(clipped->X(), 100.f);
+  EXPECT_FLOAT_EQ(clipped->Y(), 200.f);
+  EXPECT_FLOAT_EQ(clipped->MaxX(), 200.f);
+  EXPECT_FLOAT_EQ(clipped->MaxY(), 300.f);
+}
+
+TEST_P(FiberElementTest, ConvertPointAppliesLatestNestedScrollOffsets) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+
+  auto page = manager->CreateFiberPage("page", 11);
+  auto outer = manager->CreateFiberScrollView("scroll-view");
+  auto inner = manager->CreateFiberScrollView("scroll-view");
+  auto source = manager->CreateFiberView();
+  outer->SetAttribute("scroll-y", lepus::Value(true));
+  inner->SetAttribute("scroll-y", lepus::Value(true));
+  page->InsertNode(outer);
+  outer->InsertNode(inner);
+  inner->InsertNode(source);
+  page->FlushActionsAsRoot();
+
+  ASSERT_TRUE(outer->slnode()->attr_map().getScroll().value_or(false));
+  ASSERT_TRUE(inner->slnode()->attr_map().getScroll().value_or(false));
+  page->UpdateLayout(0.f, 0.f, 1080.f, 1920.f, {0.f}, {0.f}, {0.f}, nullptr,
+                     0.f);
+  outer->UpdateLayout(100.f, 200.f, 300.f, 400.f, {0.f}, {0.f}, {0.f}, nullptr,
+                      0.f);
+  inner->UpdateLayout(10.f, 20.f, 200.f, 300.f, {0.f}, {0.f}, {0.f}, nullptr,
+                      0.f);
+  source->UpdateLayout(2.f, 4.f, 100.f, 50.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+
+  auto initial =
+      ConvertPointBetweenElements({1.f, 1.f}, source.get(), page.get());
+  ASSERT_TRUE(initial.has_value());
+  EXPECT_FLOAT_EQ(initial->X(), 113.f);
+  EXPECT_FLOAT_EQ(initial->Y(), 225.f);
+
+  outer->UpdateScrollOffset(3.f, 5.f);
+  inner->UpdateScrollOffset(7.f, 11.f);
+  auto scrolled =
+      ConvertPointBetweenElements({1.f, 1.f}, source.get(), page.get());
+  ASSERT_TRUE(scrolled.has_value());
+  EXPECT_FLOAT_EQ(scrolled->X(), 103.f);
+  EXPECT_FLOAT_EQ(scrolled->Y(), 209.f);
+}
+
+TEST_P(FiberElementTest, ConvertPointAppliesLatestListScrollOffset) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+
+  auto page = manager->CreateFiberPage("page", 11);
+  auto list = manager->CreateFiberList(tasm.get(), "list", lepus::Value(),
+                                       lepus::Value(), lepus::Value());
+  auto source = manager->CreateFiberView();
+  page->InsertNode(list);
+  list->InsertNode(source);
+  page->FlushActionsAsRoot();
+
+  page->UpdateLayout(0.f, 0.f, 1080.f, 1920.f, {0.f}, {0.f}, {0.f}, nullptr,
+                     0.f);
+  list->UpdateLayout(100.f, 200.f, 300.f, 400.f, {0.f}, {0.f}, {0.f}, nullptr,
+                     0.f);
+  source->UpdateLayout(10.f, 20.f, 100.f, 50.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  list->UpdateScrollOffset(3.f, 5.f);
+
+  auto converted =
+      ConvertPointBetweenElements({1.f, 1.f}, source.get(), page.get());
+  ASSERT_TRUE(converted.has_value());
+  EXPECT_FLOAT_EQ(converted->X(), 108.f);
+  EXPECT_FLOAT_EQ(converted->Y(), 216.f);
+}
+
+TEST_P(FiberElementTest, ConvertPointAppliesPlatformStickyTranslation) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+
+  auto page = manager->CreateFiberPage("page", 11);
+  auto scroll = manager->CreateFiberScrollView("scroll-view");
+  auto sticky = manager->CreateFiberView();
+  auto source = manager->CreateFiberView();
+  scroll->SetAttribute("scroll-y", lepus::Value(true));
+  sticky->SetStyle(kPropertyIDPosition, lepus::Value("sticky"));
+  sticky->SetStyle(kPropertyIDTop, lepus::Value("0px"));
+  page->InsertNode(scroll);
+  scroll->InsertNode(sticky);
+  sticky->InsertNode(source);
+  page->FlushActionsAsRoot();
+
+  ASSERT_TRUE(sticky->is_sticky());
+  page->UpdateLayout(0.f, 0.f, 1080.f, 1920.f, {0.f}, {0.f}, {0.f}, nullptr,
+                     0.f);
+  scroll->UpdateLayout(100.f, 200.f, 300.f, 400.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  sticky->UpdateLayout(10.f, 20.f, 200.f, 100.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  source->UpdateLayout(2.f, 4.f, 100.f, 50.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+
+  auto inside_sticky =
+      ConvertPointBetweenElements({1.f, 1.f}, source.get(), sticky.get());
+  ASSERT_TRUE(inside_sticky.has_value());
+  EXPECT_FLOAT_EQ(inside_sticky->X(), 3.f);
+  EXPECT_FLOAT_EQ(inside_sticky->Y(), 5.f);
+
+  scroll->UpdateScrollOffset(0.f, 50.f);
+  sticky->UpdateStickyTranslation(7.f, 50.f);
+  auto in_page =
+      ConvertPointBetweenElements({1.f, 1.f}, source.get(), page.get());
+  ASSERT_TRUE(in_page.has_value());
+  EXPECT_FLOAT_EQ(in_page->X(), 120.f);
+  EXPECT_FLOAT_EQ(in_page->Y(), 225.f);
+
+  auto in_source =
+      ConvertPointBetweenElements({120.f, 225.f}, page.get(), source.get());
+  ASSERT_TRUE(in_source.has_value());
+  EXPECT_FLOAT_EQ(in_source->X(), 1.f);
+  EXPECT_FLOAT_EQ(in_source->Y(), 1.f);
+
+  sticky->UpdateStickyTranslation(0.f, 0.f);
+  auto reset =
+      ConvertPointBetweenElements({1.f, 1.f}, source.get(), page.get());
+  ASSERT_TRUE(reset.has_value());
+  EXPECT_FLOAT_EQ(reset->X(), 113.f);
+  EXPECT_FLOAT_EQ(reset->Y(), 175.f);
+}
+
+TEST_P(FiberElementTest, ConvertPointUsesLayoutRootForNewFixed) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+  manager->config_->layout_configs_.enable_fixed_new_ = true;
+  manager->layout_configs_.enable_fixed_new_ = true;
+
+  auto page = manager->CreateFiberPage("page", 11);
+  auto parent = manager->CreateFiberView();
+  auto fixed = manager->CreateFiberView();
+  fixed->SetStyle(kPropertyIDPosition, lepus::Value("fixed"));
+  page->InsertNode(parent);
+  parent->InsertNode(fixed);
+  page->FlushActionsAsRoot();
+
+  ASSERT_TRUE(fixed->slnode()->IsNewFixed());
+  page->UpdateLayout(0.f, 0.f, 1080.f, 1920.f, {0.f}, {0.f}, {0.f}, nullptr,
+                     0.f);
+  parent->UpdateLayout(100.f, 200.f, 300.f, 400.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  fixed->UpdateLayout(30.f, 40.f, 100.f, 50.f, {0.f}, {0.f}, {0.f}, nullptr,
+                      0.f);
+
+  auto in_page =
+      ConvertPointBetweenElements({5.f, 7.f}, fixed.get(), page.get());
+  ASSERT_TRUE(in_page.has_value());
+  EXPECT_FLOAT_EQ(in_page->X(), 35.f);
+  EXPECT_FLOAT_EQ(in_page->Y(), 47.f);
+
+  auto in_fixed =
+      ConvertPointBetweenElements({35.f, 47.f}, page.get(), fixed.get());
+  ASSERT_TRUE(in_fixed.has_value());
+  EXPECT_FLOAT_EQ(in_fixed->X(), 5.f);
+  EXPECT_FLOAT_EQ(in_fixed->Y(), 7.f);
+}
+
+TEST_P(FiberElementTest, ConvertPointAppliesTransformsAndRejectsSingularOnes) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+
+  auto page = manager->CreateFiberPage("page", 11);
+  auto parent = manager->CreateFiberView();
+  auto source = manager->CreateFiberView();
+  auto target = manager->CreateFiberView();
+  auto singular_target = manager->CreateFiberView();
+  parent->SetStyle(kPropertyIDTransform, lepus::Value("scale(0)"));
+  parent->SetStyle(kPropertyIDTransformOrigin, lepus::Value("0px 0px"));
+  source->SetStyle(kPropertyIDTransform, lepus::Value("scale(2)"));
+  source->SetStyle(kPropertyIDTransformOrigin, lepus::Value("0px 0px"));
+  target->SetStyle(kPropertyIDTransform, lepus::Value("scale(2)"));
+  target->SetStyle(kPropertyIDTransformOrigin, lepus::Value("0px 0px"));
+  singular_target->SetStyle(kPropertyIDTransform, lepus::Value("scale(0)"));
+  singular_target->SetStyle(kPropertyIDTransformOrigin,
+                            lepus::Value("0px 0px"));
+  page->InsertNode(parent);
+  parent->InsertNode(source);
+  parent->InsertNode(target);
+  parent->InsertNode(singular_target);
+  page->FlushActionsAsRoot();
+
+  page->UpdateLayout(0.f, 0.f, 1080.f, 1920.f, {0.f}, {0.f}, {0.f}, nullptr,
+                     0.f);
+  parent->UpdateLayout(0.f, 0.f, 300.f, 400.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  source->UpdateLayout(10.f, 20.f, 100.f, 50.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  target->UpdateLayout(50.f, 80.f, 100.f, 50.f, {0.f}, {0.f}, {0.f}, nullptr,
+                       0.f);
+  singular_target->UpdateLayout(50.f, 80.f, 100.f, 50.f, {0.f}, {0.f}, {0.f},
+                                nullptr, 0.f);
+
+  auto in_parent =
+      ConvertPointBetweenElements({5.f, 7.f}, source.get(), parent.get());
+  ASSERT_TRUE(in_parent.has_value());
+  EXPECT_FLOAT_EQ(in_parent->X(), 20.f);
+  EXPECT_FLOAT_EQ(in_parent->Y(), 34.f);
+
+  auto in_target =
+      ConvertPointBetweenElements({5.f, 7.f}, source.get(), target.get());
+  ASSERT_TRUE(in_target.has_value());
+  EXPECT_FLOAT_EQ(in_target->X(), -15.f);
+  EXPECT_FLOAT_EQ(in_target->Y(), -23.f);
+
+  EXPECT_FALSE(ConvertPointBetweenElements({5.f, 7.f}, source.get(),
+                                           singular_target.get())
+                   .has_value());
+}
+
 TEST_P(FiberElementTest,
        LayoutInElement_RemoveCustomChildUsesPreviousPlatformIndex) {
   manager->page_options_.embedded_mode_ = static_cast<EmbeddedMode>(
@@ -3331,6 +3794,188 @@ TEST_P(FiberElementTest, InsertNodeBefore) {
 
   EXPECT_EQ(parent->GetChildAt(0), second_element.get());
   EXPECT_EQ(parent->GetChildAt(1), element.get());
+}
+
+TEST_P(FiberElementTest, MoveNodeToIndexReparentBetweenViewParents) {
+  auto page = manager->CreateFiberPage("page", 11);
+  manager->SetFiberPageElement(page);
+  auto source = manager->CreateFiberView();
+  auto target = manager->CreateFiberView();
+  auto child = manager->CreateFiberView();
+  auto anchor = manager->CreateFiberView();
+  for (const auto& element : {source, target, child, anchor}) {
+    element->MarkCanBeLayoutOnly(false);
+  }
+
+  page->InsertNode(source);
+  page->InsertNode(target);
+  source->InsertNode(child);
+  target->InsertNode(anchor);
+  page->FlushActionsAsRoot();
+  platform_impl_->Flush();
+
+  const int32_t child_id = child->impl_id();
+  const int32_t source_id = source->impl_id();
+  auto source_weak = source->WeakFromThis();
+  platform_impl_->ResetCapturedRemoveSigns();
+
+  target->MoveNodeToIndex(child, 0);
+  EXPECT_EQ(source->GetChildCount(), 0u);
+  EXPECT_EQ(source->logical_children().size(), 0u);
+  ASSERT_EQ(target->GetChildCount(), 2u);
+  ASSERT_EQ(target->logical_children().size(), 2u);
+  EXPECT_EQ(target->GetChildAt(0), child.get());
+  EXPECT_EQ(target->GetChildAt(1), anchor.get());
+  EXPECT_EQ(target->logical_children()[0].get(), child.get());
+  EXPECT_EQ(target->logical_children()[1].get(), anchor.get());
+  EXPECT_EQ(child->parent(), target.get());
+  EXPECT_EQ(child->render_parent(), source.get());
+
+  const auto source_remove = std::find_if(
+      source->action_param_list_.begin(), source->action_param_list_.end(),
+      [&child](const Element::ActionParam& param) {
+        return param.type_ == Element::Action::kRemoveChildAct &&
+               param.child_.get() == child.get();
+      });
+  EXPECT_EQ(source_remove, source->action_param_list_.end());
+  EXPECT_EQ(std::count_if(target->action_param_list_.begin(),
+                          target->action_param_list_.end(),
+                          [&child](const Element::ActionParam& param) {
+                            return param.type_ == Element::Action::kMoveAct &&
+                                   param.child_.get() == child.get();
+                          }),
+            1);
+
+  const auto target_move = std::find_if(
+      target->action_param_list_.begin(), target->action_param_list_.end(),
+      [&child](const Element::ActionParam& param) {
+        return param.type_ == Element::Action::kMoveAct &&
+               param.child_.get() == child.get();
+      });
+  ASSERT_NE(target_move, target->action_param_list_.end());
+  EXPECT_EQ(target_move->parent_, target.get());
+  EXPECT_EQ(target_move->index_, 0);
+  EXPECT_EQ(target_move->ref_node_, anchor.get());
+  EXPECT_EQ(target_move->source_parent_.get(), source.get());
+
+  page->RemoveNode(source, false);
+  source = nullptr;
+  EXPECT_TRUE(source_weak);
+
+  page->FlushActionsAsRoot();
+  EXPECT_EQ(child->render_parent(), target.get());
+  EXPECT_FALSE(source_weak);
+  platform_impl_->Flush();
+
+  EXPECT_EQ(child->impl_id(), child_id);
+  EXPECT_EQ(platform_impl_->node_map_.count(source_id), 0u);
+  ASSERT_EQ(platform_impl_->node_map_.count(child_id), 1u);
+  ASSERT_NE(platform_impl_->node_map_.at(child_id)->parent_, nullptr);
+  EXPECT_EQ(platform_impl_->node_map_.at(child_id)->parent_->id_,
+            target->impl_id());
+  EXPECT_FALSE(platform_impl_->HasCapturedRemoveSign(child_id));
+}
+
+TEST_P(FiberElementTest, MoveNodeToIndexCoalescesBeforeFlush) {
+  auto page = manager->CreateFiberPage("page", 11);
+  manager->SetFiberPageElement(page);
+  auto source = manager->CreateFiberView();
+  auto intermediate = manager->CreateFiberView();
+  auto target = manager->CreateFiberView();
+  auto child = manager->CreateFiberView();
+  auto intermediate_anchor = manager->CreateFiberView();
+  auto target_anchor = manager->CreateFiberView();
+  for (const auto& element : {source, intermediate, target, child,
+                              intermediate_anchor, target_anchor}) {
+    element->MarkCanBeLayoutOnly(false);
+  }
+
+  page->InsertNode(source);
+  page->InsertNode(intermediate);
+  page->InsertNode(target);
+  source->InsertNode(child);
+  intermediate->InsertNode(intermediate_anchor);
+  target->InsertNode(target_anchor);
+  page->FlushActionsAsRoot();
+  platform_impl_->Flush();
+
+  const int32_t child_id = child->impl_id();
+  platform_impl_->ResetCapturedRemoveSigns();
+
+  intermediate->MoveNodeToIndex(child, 1);
+  auto intermediate_move =
+      std::find_if(intermediate->action_param_list_.begin(),
+                   intermediate->action_param_list_.end(),
+                   [&child](const Element::ActionParam& param) {
+                     return param.type_ == Element::Action::kMoveAct &&
+                            param.child_.get() == child.get();
+                   });
+  ASSERT_NE(intermediate_move, intermediate->action_param_list_.end());
+  EXPECT_EQ(intermediate_move->source_parent_.get(), source.get());
+  EXPECT_EQ(child->parent(), intermediate.get());
+  EXPECT_EQ(child->render_parent(), source.get());
+
+  target->MoveNodeToIndex(child, 0);
+  intermediate_move =
+      std::find_if(intermediate->action_param_list_.begin(),
+                   intermediate->action_param_list_.end(),
+                   [&child](const Element::ActionParam& param) {
+                     return param.type_ == Element::Action::kMoveAct &&
+                            param.child_.get() == child.get();
+                   });
+  EXPECT_EQ(intermediate_move, intermediate->action_param_list_.end());
+  EXPECT_EQ(std::count_if(intermediate->action_param_list_.begin(),
+                          intermediate->action_param_list_.end(),
+                          [&child](const Element::ActionParam& param) {
+                            return param.type_ == Element::Action::kMoveAct &&
+                                   param.child_.get() == child.get();
+                          }),
+            0);
+  EXPECT_EQ(source->GetChildCount(), 0u);
+  EXPECT_EQ(source->logical_children().size(), 0u);
+  ASSERT_EQ(intermediate->GetChildCount(), 1u);
+  ASSERT_EQ(intermediate->logical_children().size(), 1u);
+  EXPECT_EQ(intermediate->GetChildAt(0), intermediate_anchor.get());
+  EXPECT_EQ(intermediate->logical_children()[0].get(),
+            intermediate_anchor.get());
+  ASSERT_EQ(target->GetChildCount(), 2u);
+  ASSERT_EQ(target->logical_children().size(), 2u);
+  EXPECT_EQ(target->GetChildAt(0), child.get());
+  EXPECT_EQ(target->GetChildAt(1), target_anchor.get());
+  EXPECT_EQ(target->logical_children()[0].get(), child.get());
+  EXPECT_EQ(target->logical_children()[1].get(), target_anchor.get());
+  EXPECT_EQ(child->parent(), target.get());
+  EXPECT_EQ(child->render_parent(), source.get());
+  EXPECT_EQ(std::count_if(target->action_param_list_.begin(),
+                          target->action_param_list_.end(),
+                          [&child](const Element::ActionParam& param) {
+                            return param.type_ == Element::Action::kMoveAct &&
+                                   param.child_.get() == child.get();
+                          }),
+            1);
+
+  const auto target_move = std::find_if(
+      target->action_param_list_.begin(), target->action_param_list_.end(),
+      [&child](const Element::ActionParam& param) {
+        return param.type_ == Element::Action::kMoveAct &&
+               param.child_.get() == child.get();
+      });
+  ASSERT_NE(target_move, target->action_param_list_.end());
+  EXPECT_EQ(target_move->parent_, target.get());
+  EXPECT_EQ(target_move->index_, 0);
+  EXPECT_EQ(target_move->ref_node_, target_anchor.get());
+  EXPECT_EQ(target_move->source_parent_.get(), source.get());
+
+  page->FlushActionsAsRoot();
+  EXPECT_EQ(child->render_parent(), target.get());
+  platform_impl_->Flush();
+
+  EXPECT_EQ(child->impl_id(), child_id);
+  ASSERT_EQ(platform_impl_->node_map_.count(child_id), 1u);
+  ASSERT_NE(platform_impl_->node_map_.at(child_id)->parent_, nullptr);
+  EXPECT_EQ(platform_impl_->node_map_.at(child_id)->parent_->id_,
+            target->impl_id());
+  EXPECT_FALSE(platform_impl_->HasCapturedRemoveSign(child_id));
 }
 
 TEST_P(FiberElementTest, SetStyle) {
@@ -7014,6 +7659,25 @@ TEST_P(FiberElementTest, FragmentLayerRenderFlattenIgnoresEventListenerFlag) {
   auto fragment_layer_view = manager->CreateFiberView();
   fragment_layer_view->has_event_listener_ = true;
   EXPECT_TRUE(fragment_layer_view->TendToFlatten());
+}
+
+TEST_P(FiberElementTest,
+       FragmentLayerRenderStyleOnlyTransformCreatesPlatformLayer) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::FRAGMENT_LAYER_RENDER);
+  auto page = manager->CreateFiberPage("page", 11);
+  auto view = manager->CreateFiberView();
+  page->InsertNode(view);
+  page->FlushActionsAsRoot();
+
+  ASSERT_FALSE(view->HasUIPrimitive());
+  ASSERT_FALSE(view->prop_bundle_);
+
+  view->SetStyle(CSSPropertyID::kPropertyIDTransform,
+                 lepus::Value("translateX(10px)"));
+  page->FlushActionsAsRoot();
+
+  EXPECT_FALSE(view->prop_bundle_);
+  EXPECT_TRUE(view->HasUIPrimitive());
 }
 
 TEST_P(FiberElementTest,
@@ -11629,6 +12293,100 @@ TEST_P(FiberElementTest, ListItemTest1) {
 
   EXPECT_TRUE(view_0->is_list_item());
   EXPECT_FALSE(view_1->is_list_item());
+}
+
+TEST_P(FiberElementTest,
+       ImageNodeInfoRemainsCommonBeforeThreadedAttributeResolution) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+  auto image = manager->CreateFiberImage("image");
+
+  image->PrepareSelfForThreadedElementResolution();
+
+  EXPECT_EQ(image->layout_node_type_, LayoutNodeType::COMMON);
+}
+
+TEST_P(FiberElementTest,
+       ImageAutoSizeUpdatesProvisionalNodeInfoAfterAttributeResolution) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+  manager->SetEnableLevelOrderTraversing(true);
+  auto image = manager->CreateFiberImage("image");
+  image->SetAttribute("auto-size", lepus::Value(true));
+
+  image->PrepareSelfForThreadedElementResolution();
+  EXPECT_EQ(image->layout_node_type_, LayoutNodeType::COMMON);
+
+  EXPECT_TRUE(image->ConsumeAllAttributes());
+  EXPECT_EQ(image->layout_node_type_, LayoutNodeType::CUSTOM);
+  EXPECT_TRUE(image->NeedCreateNodeAsync());
+}
+
+TEST_P(FiberElementTest,
+       ImageAutoSizeUpdatesProvisionalNodeInfoWithoutLevelOrder) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+  manager->SetEnableLevelOrderTraversing(false);
+  auto image = manager->CreateFiberImage("image");
+  image->SetAttribute("auto-size", lepus::Value(true));
+
+  image->PrepareSelfForThreadedElementResolution();
+  ASSERT_EQ(image->layout_node_type_, LayoutNodeType::COMMON);
+
+  EXPECT_TRUE(image->ConsumeAllAttributes());
+  EXPECT_EQ(image->layout_node_type_, LayoutNodeType::CUSTOM);
+  EXPECT_TRUE(image->NeedCreateNodeAsync());
+}
+
+TEST_P(FiberElementTest,
+       ImageAutoSizePreservesLazyNodeInfoBeforeTagResolution) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+  manager->SetEnableLevelOrderTraversing(false);
+  auto image = manager->CreateFiberImage("image");
+  image->SetAttribute("auto-size", lepus::Value(true));
+
+  EXPECT_TRUE(image->ConsumeAllAttributes());
+  EXPECT_EQ(image->layout_node_type_, Element::kLayoutNodeTypeNotInit);
+
+  image->EnsureTagInfo();
+  EXPECT_EQ(image->layout_node_type_, LayoutNodeType::CUSTOM);
+  EXPECT_TRUE(image->NeedCreateNodeAsync());
+}
+
+TEST_P(FiberElementTest, EnsureImageTagInfoAfterPaintingNodeCreation) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+  auto image = manager->CreateFiberImage("image");
+  image->has_painting_node_ = true;
+
+  ASSERT_EQ(image->layout_node_type_, Element::kLayoutNodeTypeNotInit);
+  image->EnsureTagInfo();
+
+  EXPECT_EQ(image->layout_node_type_, LayoutNodeType::COMMON);
+}
+
+TEST_P(FiberElementTest, ResetImageAutoSizeUpdatesCustomNodeInfo) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+  auto image = manager->CreateFiberImage("image");
+  image->SetAttribute("auto-size", lepus::Value(true));
+  EXPECT_TRUE(image->ConsumeAllAttributes());
+  image->EnsureTagInfo();
+  ASSERT_EQ(image->layout_node_type_, LayoutNodeType::CUSTOM);
+
+  image->ResetAttribute("auto-size");
+  EXPECT_EQ(image->layout_node_type_, LayoutNodeType::COMMON);
+  EXPECT_TRUE(image->NeedCreateNodeAsync());
+}
+
+TEST_P(FiberElementTest, ResolvedAutoSizeImageCloneRetainsCustomNodeInfo) {
+  manager->page_options_.SetEmbeddedMode(EmbeddedMode::LAYOUT_IN_ELEMENT);
+  auto image = manager->CreateFiberImage("image");
+  image->SetAttribute("auto-size", lepus::Value(true));
+  EXPECT_TRUE(image->ConsumeAllAttributes());
+  image->EnsureTagInfo();
+  ASSERT_EQ(image->layout_node_type_, LayoutNodeType::CUSTOM);
+
+  auto cloned_element = image->CloneElement(true);
+  auto* cloned_image = static_cast<ImageElement*>(cloned_element.get());
+
+  EXPECT_TRUE(cloned_image->has_auto_size_);
+  EXPECT_EQ(cloned_image->GetBuiltInNodeInfo(), kCustomBuiltInNodeInfo);
 }
 
 TEST_P(FiberElementTest, ImageTest0) {
@@ -16695,6 +17453,51 @@ TEST_P(FiberElementTest, UnifiedPipelineFiberFlushMergesResolveTargets) {
   EXPECT_EQ(options->target_node, parent->impl_id());
 }
 
+TEST_P(FiberElementTest,
+       InspectorElementObserverReceivesInlineStyleFlushHooks) {
+  auto observer = std::make_shared<RecordingInspectorElementObserver>();
+  manager->SetInspectorElementObserver(observer);
+
+  auto lepus_ctx = runtime::MTSRuntime::CreateContext(
+      runtime::ContextType::LepusNGContextType);
+  ASSERT_TRUE(lepus_ctx);
+  lepus_ctx->Initialize();
+  lepus_ctx->SetGlobalData(
+      BASE_STATIC_STRING(tasm::kTemplateAssembler),
+      lepus::Value(static_cast<runtime::MTSRuntime::Delegate*>(tasm.get())));
+  auto* mts_ctx = runtime::MTSRuntime::ToQuickContext(lepus_ctx.get());
+  ASSERT_TRUE(mts_ctx);
+
+  auto page = manager->CreateFiberPage("page", 11);
+  manager->SetFiberPageElement(page);
+  auto view = manager->CreateFiberView();
+  page->InsertNode(view);
+
+  constexpr auto property_id = CSSPropertyID::kPropertyIDTransform;
+  lepus::Value style_args[] = {lepus::Value(view),
+                               lepus::Value(static_cast<int32_t>(property_id)),
+                               lepus::Value("translateX(12px)")};
+  RendererFunctions::FiberAddInlineStyle(
+      mts_ctx, style_args, static_cast<int>(std::size(style_args)));
+
+  EXPECT_EQ(observer->add_inline_style_count, 1);
+  EXPECT_EQ(observer->recorded_backend_node_id, view->impl_id());
+  EXPECT_EQ(observer->recorded_property_id, property_id);
+  EXPECT_EQ(observer->recorded_value, "translateX(12px)");
+
+  lepus::Value flush_args[] = {lepus::Value(view)};
+  RendererFunctions::FiberFlushElementTree(
+      mts_ctx, flush_args, static_cast<int>(std::size(flush_args)));
+
+  auto async_options = lepus::Value(lepus::Dictionary::Create());
+  async_options.SetProperty("asyncFlush", lepus::Value(true));
+  lepus::Value async_flush_args[] = {lepus::Value(view), async_options};
+  RendererFunctions::FiberFlushElementTree(
+      mts_ctx, async_flush_args, static_cast<int>(std::size(async_flush_args)));
+
+  EXPECT_EQ(observer->flush_count, 2);
+}
+
 TEST_P(FiberElementTest, TestTransitionInResetMapAndUpdateMap) {
   StyleMap indexAttributes;
   CSSParserConfigs configs;
@@ -20618,6 +21421,287 @@ TEST_P(FiberElementTest, NewStylingMediaQueryReResolveOnColorSchemeChange) {
   EXPECT_TRUE(StyleMapHasValue(child->computed_css_style()->GetResolvedValues(),
                                CSSPropertyID::kPropertyIDWidth,
                                CSSValue(200, CSSValuePattern::PX)));
+}
+
+TEST_P(FiberElementTest,
+       SetComposeModifierBindsSupportedLocalEventsAndReplacesThem) {
+  EXPECT_FALSE(manager->EnableEventHandleRefactor());
+
+  auto renderer_runtime = CreateRendererRuntime(tasm.get());
+  ASSERT_NE(renderer_runtime, nullptr);
+  auto* renderer_context =
+      runtime::MTSRuntime::ToQuickContext(renderer_runtime.get());
+  ASSERT_NE(renderer_context, nullptr);
+  SetDefaultEntryRuntime(tasm.get(), renderer_runtime);
+
+  lepus::Value callback;
+  static constexpr char kCallbackSource[] =
+      "(function() { globalThis.modifierEventCount += 1; })";
+  renderer_runtime->SetGlobalData("modifierEventCount", lepus::Value(0));
+  ASSERT_TRUE(renderer_context->EvalBuf(kCallbackSource,
+                                        sizeof(kCallbackSource) - 1, callback,
+                                        "modifier_event.js"));
+  ASSERT_TRUE(callback.IsCallable());
+
+  auto page = manager->CreateFiberPage("page", 1);
+  manager->SetFiberPageElement(page);
+  auto handle = fml::AdoptRef<ComposeElementHandle>(
+      new ComposeElementHandle(manager, ComposeElementKind::kView));
+  auto element = handle->content_element();
+  page->InsertNode(element);
+  lepus::Value modifier;
+  const std::pair<const char*, const char*> events[] = {
+      {"tap", kEventBindEvent},
+      {"feedback", kEventCatchEvent},
+      {"ready", kEventCaptureBind},
+      {"custom", kEventCaptureCatch},
+  };
+  for (const auto& [name, type] : events) {
+    auto event = lepus::Dictionary::Create();
+    event->SetValue("op", lepus::Value(6));
+    event->SetValue("eventName", lepus::Value(name));
+    event->SetValue("eventType", lepus::Value(type));
+    event->SetValue("callback", callback);
+    if (!modifier.IsEmpty()) {
+      event->SetValue("previous", modifier);
+    }
+    modifier = lepus::Value(std::move(event));
+  }
+
+  base::ErrorStorage::GetInstance().Reset();
+  lepus::Value bind_args[] = {lepus::Value(handle), modifier};
+  RendererFunctions::FiberSetComposeModifier(renderer_context, bind_args, 2);
+  EXPECT_EQ(base::ErrorStorage::GetInstance().GetError(), nullptr);
+
+  for (const auto& [name, type] : events) {
+    auto event = element->event_map().find(name);
+    ASSERT_NE(event, element->event_map().end());
+    EXPECT_TRUE(event->second->type().empty());
+    EXPECT_TRUE(event->second->is_js_event());
+    EXPECT_TRUE(event->second->function().empty());
+    EXPECT_TRUE(event->second->lepus_function().IsEmpty());
+    EXPECT_TRUE(event->second->lepus_object().IsEmpty());
+    EXPECT_EQ(event->second->lepus_context(), nullptr);
+
+    auto* listeners = element->GetEventListenerMap()->Find(name);
+    ASSERT_NE(listeners, nullptr);
+    ASSERT_EQ(listeners->size(), 1u);
+    const bool is_capture =
+        type == kEventCaptureBind || type == kEventCaptureCatch;
+    const bool is_catch =
+        type == kEventCatchEvent || type == kEventCaptureCatch;
+    EXPECT_EQ(listeners->front()->GetOptions().IsCapture(), is_capture);
+    EXPECT_EQ(listeners->front()->GetOptions().IsCatch(), is_catch);
+  }
+
+  auto first_event = fml::MakeRefCounted<event::TouchEvent>("tap");
+  EXPECT_TRUE(
+      event::EventDispatcher::DispatchEvent(*element, first_event).consumed);
+  EXPECT_EQ(renderer_runtime->GetGlobalData("modifierEventCount"),
+            lepus::Value(1));
+
+  lepus::Value replacement_callback;
+  static constexpr char kReplacementCallbackSource[] =
+      "(function() {"
+      "  globalThis.modifierEventCount += 10;"
+      "})";
+  ASSERT_TRUE(renderer_context->EvalBuf(
+      kReplacementCallbackSource, sizeof(kReplacementCallbackSource) - 1,
+      replacement_callback, "replacement_modifier_event.js"));
+  auto replacement = lepus::Dictionary::Create();
+  replacement->SetValue("op", lepus::Value(6));
+  replacement->SetValue("eventName", lepus::Value("tap"));
+  replacement->SetValue("eventType", lepus::Value(kEventCatchEvent));
+  replacement->SetValue("callback", replacement_callback);
+  lepus::Value replacement_args[] = {lepus::Value(handle),
+                                     lepus::Value(replacement)};
+  RendererFunctions::FiberSetComposeModifier(renderer_context, replacement_args,
+                                             2);
+  ASSERT_EQ(base::ErrorStorage::GetInstance().GetError(), nullptr);
+  ASSERT_EQ(element->event_map().size(), 1u);
+  auto replacement_event = element->event_map().find("tap");
+  ASSERT_NE(replacement_event, element->event_map().end());
+  EXPECT_TRUE(replacement_event->second->type().empty());
+  EXPECT_TRUE(replacement_event->second->function().empty());
+  EXPECT_TRUE(replacement_event->second->lepus_function().IsEmpty());
+  auto* replacement_listeners = element->GetEventListenerMap()->Find("tap");
+  ASSERT_NE(replacement_listeners, nullptr);
+  ASSERT_EQ(replacement_listeners->size(), 1u);
+  EXPECT_TRUE(replacement_listeners->front()->GetOptions().IsCatch());
+
+  auto replaced_event = fml::MakeRefCounted<event::TouchEvent>("tap");
+  EXPECT_TRUE(
+      event::EventDispatcher::DispatchEvent(*element, replaced_event).consumed);
+  EXPECT_EQ(renderer_runtime->GetGlobalData("modifierEventCount"),
+            lepus::Value(11));
+
+  // A null modifier clears the complete local event set.
+  lepus::Value clear_args[] = {lepus::Value(handle), lepus::Value()};
+  RendererFunctions::FiberSetComposeModifier(renderer_context, clear_args, 2);
+  EXPECT_EQ(base::ErrorStorage::GetInstance().GetError(), nullptr);
+  EXPECT_TRUE(element->event_map().empty());
+  EXPECT_TRUE(element->lepus_event_map().empty());
+  auto* cleared_listeners = element->GetEventListenerMap()->Find("tap");
+  EXPECT_TRUE(cleared_listeners == nullptr || cleared_listeners->empty());
+  auto cleared_event = fml::MakeRefCounted<event::TouchEvent>("tap");
+  EXPECT_FALSE(
+      event::EventDispatcher::DispatchEvent(*element, cleared_event).consumed);
+  EXPECT_EQ(renderer_runtime->GetGlobalData("modifierEventCount"),
+            lepus::Value(11));
+  base::ErrorStorage::GetInstance().Reset();
+}
+
+TEST_P(FiberElementTest, SetComposeModifierBindsClickThroughEventListener) {
+  EXPECT_FALSE(manager->EnableEventHandleRefactor());
+
+  auto renderer_runtime = CreateRendererRuntime(tasm.get());
+  ASSERT_NE(renderer_runtime, nullptr);
+  auto* renderer_context =
+      runtime::MTSRuntime::ToQuickContext(renderer_runtime.get());
+  ASSERT_NE(renderer_context, nullptr);
+  SetDefaultEntryRuntime(tasm.get(), renderer_runtime);
+
+  renderer_runtime->SetGlobalData("modifierClickCount", lepus::Value(0));
+  renderer_runtime->SetGlobalData("modifierHasChangedTouches",
+                                  lepus::Value(false));
+  renderer_runtime->SetGlobalData("modifierHasElementRef", lepus::Value(false));
+  lepus::Value callback;
+  static constexpr char kCallbackSource[] =
+      "(function(event) {"
+      "  globalThis.modifierClickCount += 1;"
+      "  globalThis.modifierHasChangedTouches ="
+      "      Array.isArray(event.changedTouches) &&"
+      "      event.changedTouches.length === 1;"
+      "  globalThis.modifierHasElementRef ="
+      "      event.currentTarget != null &&"
+      "      event.currentTarget.elementRefptr != null;"
+      "})";
+  ASSERT_TRUE(renderer_context->EvalBuf(kCallbackSource,
+                                        sizeof(kCallbackSource) - 1, callback,
+                                        "modifier_click.js"));
+
+  auto click = lepus::Dictionary::Create();
+  click->SetValue("op", lepus::Value(5));
+  click->SetValue("callbackKind", lepus::Value(1));
+  click->SetValue("callback", callback);
+
+  auto page = manager->CreateFiberPage("page", 1);
+  manager->SetFiberPageElement(page);
+  auto handle = fml::AdoptRef<ComposeElementHandle>(
+      new ComposeElementHandle(manager, ComposeElementKind::kView));
+  auto element = handle->content_element();
+  page->InsertNode(element);
+
+  auto modifier = lepus::Dictionary::Create();
+  modifier->SetValue("op", lepus::Value(6));
+  modifier->SetValue("eventName", lepus::Value("tap"));
+  modifier->SetValue("eventType", lepus::Value(kEventBindEvent));
+  modifier->SetValue("callback", callback);
+  lepus::Value args[] = {lepus::Value(handle), lepus::Value(modifier)};
+  RendererFunctions::FiberSetComposeModifier(renderer_context, args, 2);
+  ASSERT_EQ(base::ErrorStorage::GetInstance().GetError(), nullptr);
+
+  auto tap = element->event_map().find("tap");
+  ASSERT_NE(tap, element->event_map().end());
+  EXPECT_TRUE(tap->second->lepus_function().IsEmpty());
+  auto* listeners = element->GetEventListenerMap()->Find("tap");
+  ASSERT_NE(listeners, nullptr);
+  ASSERT_EQ(listeners->size(), 1u);
+  EXPECT_FALSE(listeners->front()->GetOptions().IsCatch());
+
+  auto event = fml::MakeRefCounted<event::TouchEvent>("tap");
+  EXPECT_TRUE(event::EventDispatcher::DispatchEvent(*element, event).consumed);
+  EXPECT_EQ(renderer_runtime->GetGlobalData("modifierClickCount"),
+            lepus::Value(1));
+  EXPECT_EQ(renderer_runtime->GetGlobalData("modifierHasChangedTouches"),
+            lepus::Value(true));
+  EXPECT_EQ(renderer_runtime->GetGlobalData("modifierHasElementRef"),
+            lepus::Value(true));
+  base::ErrorStorage::GetInstance().Reset();
+}
+
+TEST_P(FiberElementTest,
+       SetComposeModifierInvokesCallbackInRegistrationRuntime) {
+  auto registration_runtime = CreateRendererRuntime(tasm.get());
+  ASSERT_NE(registration_runtime, nullptr);
+  auto* registration_context =
+      runtime::MTSRuntime::ToQuickContext(registration_runtime.get());
+  ASSERT_NE(registration_context, nullptr);
+
+  auto unrelated_entry_runtime = CreateRendererRuntime(tasm.get());
+  ASSERT_NE(unrelated_entry_runtime, nullptr);
+  SetDefaultEntryRuntime(tasm.get(), unrelated_entry_runtime);
+
+  registration_runtime->SetGlobalData("modifierOwnerCount", lepus::Value(0));
+  unrelated_entry_runtime->SetGlobalData("modifierOwnerCount", lepus::Value(0));
+  lepus::Value callback;
+  static constexpr char kCallbackSource[] =
+      "(function() { globalThis.modifierOwnerCount += 1; })";
+  ASSERT_TRUE(registration_context->EvalBuf(
+      kCallbackSource, sizeof(kCallbackSource) - 1, callback,
+      "modifier_registration.js"));
+
+  auto click = lepus::Dictionary::Create();
+  click->SetValue("op", lepus::Value(5));
+  click->SetValue("callbackKind", lepus::Value(1));
+  click->SetValue("callback", callback);
+
+  auto page = manager->CreateFiberPage("page", 1);
+  manager->SetFiberPageElement(page);
+  auto handle = fml::AdoptRef<ComposeElementHandle>(
+      new ComposeElementHandle(manager, ComposeElementKind::kView));
+  auto element = handle->content_element();
+  page->InsertNode(element);
+  lepus::Value args[] = {lepus::Value(handle), lepus::Value(click)};
+  RendererFunctions::FiberSetComposeModifier(registration_context, args, 2);
+  ASSERT_EQ(base::ErrorStorage::GetInstance().GetError(), nullptr);
+
+  auto event = fml::MakeRefCounted<event::TouchEvent>("tap");
+  EXPECT_TRUE(event::EventDispatcher::DispatchEvent(*element, event).consumed);
+  EXPECT_EQ(registration_runtime->GetGlobalData("modifierOwnerCount"),
+            lepus::Value(1));
+  EXPECT_EQ(unrelated_entry_runtime->GetGlobalData("modifierOwnerCount"),
+            lepus::Value(0));
+  base::ErrorStorage::GetInstance().Reset();
+}
+
+TEST_P(FiberElementTest, SetComposeModifierRejectsInvalidEventNodes) {
+  auto renderer_runtime = CreateRendererRuntime(tasm.get());
+  ASSERT_NE(renderer_runtime, nullptr);
+  auto* renderer_context =
+      runtime::MTSRuntime::ToQuickContext(renderer_runtime.get());
+  ASSERT_NE(renderer_context, nullptr);
+
+  lepus::Value callback;
+  static constexpr char kCallbackSource[] = "(function() {})";
+  ASSERT_TRUE(renderer_context->EvalBuf(kCallbackSource,
+                                        sizeof(kCallbackSource) - 1, callback,
+                                        "invalid_modifier_event.js"));
+
+  auto handle = fml::AdoptRef<ComposeElementHandle>(
+      new ComposeElementHandle(manager, ComposeElementKind::kView));
+  auto element = handle->content_element();
+  auto expect_rejected = [&](const char* name, const char* type,
+                             const lepus::Value& event_callback) {
+    auto event = lepus::Dictionary::Create();
+    event->SetValue("op", lepus::Value(6));
+    event->SetValue("eventName", lepus::Value(name));
+    event->SetValue("eventType", lepus::Value(type));
+    event->SetValue("callback", event_callback);
+
+    base::ErrorStorage::GetInstance().Reset();
+    lepus::Value args[] = {lepus::Value(handle), lepus::Value(event)};
+    RendererFunctions::FiberSetComposeModifier(renderer_context, args, 2);
+    ExpectElementAPIError();
+    EXPECT_TRUE(element->event_map().empty());
+    EXPECT_TRUE(element->lepus_event_map().empty());
+  };
+
+  expect_rejected("", kEventBindEvent, callback);
+  expect_rejected("tap", kEventGlobalBind, callback);
+  expect_rejected("tap", "capture-bindEvent", callback);
+  expect_rejected("tap", kEventBindEvent, lepus::Value("not-callable"));
+  base::ErrorStorage::GetInstance().Reset();
 }
 
 INSTANTIATE_TEST_SUITE_P(FiberElementTestModule, FiberElementTest,

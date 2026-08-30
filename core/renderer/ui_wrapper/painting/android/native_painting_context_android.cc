@@ -190,6 +190,30 @@ jboolean IsPlatformEventTargetEventThrough(JNIEnv *env, jobject /*jcaller*/,
              : JNI_FALSE;
 }
 
+jintArray GetPlatformFocusInfo(JNIEnv *env, jobject /*jcaller*/,
+                               jlong nativePtr) {
+  if (nativePtr == 0) {
+    return nullptr;
+  }
+  auto *context =
+      reinterpret_cast<lynx::tasm::NativePaintingCtxAndroid *>(nativePtr);
+  auto platform_ref =
+      std::static_pointer_cast<lynx::tasm::NativePaintingCtxAndroidRef>(
+          context->GetPlatformRef());
+  if (platform_ref == nullptr) {
+    return nullptr;
+  }
+
+  auto focus_info = platform_ref->GetPlatformFocusInfo();
+  auto result = env->NewIntArray(static_cast<jsize>(focus_info.size()));
+  if (result == nullptr) {
+    return nullptr;
+  }
+  env->SetIntArrayRegion(result, 0, static_cast<jsize>(focus_info.size()),
+                         focus_info.data());
+  return result;
+}
+
 jintArray GetMeaningfulPaintingAreaRecords(JNIEnv *env, jobject /*jcaller*/,
                                            jlong nativePtr) {
   if (nativePtr == 0) {
@@ -213,25 +237,6 @@ jintArray GetMeaningfulPaintingAreaRecords(JNIEnv *env, jobject /*jcaller*/,
   env->SetIntArrayRegion(result, 0, static_cast<jsize>(records.size()),
                          records.data());
   return result;
-}
-
-jint GetPlatformEventHandlerState(JNIEnv *env, jobject /*jcaller*/,
-                                  jlong nativePtr) {
-  // Get the NativePaintingCtxAndroid instance from the native pointer
-  if (nativePtr == 0) {
-    return 0;
-  }
-
-  lynx::tasm::NativePaintingCtxAndroid *context =
-      reinterpret_cast<lynx::tasm::NativePaintingCtxAndroid *>(nativePtr);
-
-  auto platform_ref =
-      std::static_pointer_cast<lynx::tasm::NativePaintingCtxAndroidRef>(
-          context->GetPlatformRef());
-  if (platform_ref == nullptr) {
-    return 0;
-  }
-  return platform_ref->GetPlatformEventHandlerState();
 }
 
 void Destroy(JNIEnv *env, jobject /*jcaller*/, jlong nativePtr) {
@@ -408,8 +413,6 @@ void NativePaintingCtxAndroid::Flush() { queue_->Flush(); }
 
 void NativePaintingCtxAndroid::HandleValidate(int tag) {}
 
-void NativePaintingCtxAndroid::OnFirstScreen() { has_first_screen_ = true; }
-
 void NativePaintingCtxAndroid::FinishTasmOperation(
     const std::shared_ptr<PipelineOptions> &options) {
   if (view_manager_) {
@@ -425,10 +428,6 @@ void NativePaintingCtxAndroid::FinishTasmOperation(
 
 void NativePaintingCtxAndroid::FinishLayoutOperation(
     const std::shared_ptr<PipelineOptions> &options) {
-  if (!has_first_screen_) {
-    return;
-  }
-
   if (view_manager_) {
     Enqueue([view_manager = view_manager_, options]() {
       view_manager->FinishLayoutOperation(options->list_comp_id_,
@@ -547,11 +546,19 @@ void NativePaintingCtxAndroid::CreatePlatformRenderer(
   });
 }
 
-void NativePaintingCtxAndroid::UpdateDisplayList(int id,
-                                                 DisplayList display_list) {
+void NativePaintingCtxAndroid::EnqueueDisplayList(int id,
+                                                  DisplayList display_list) {
   Enqueue([ref = platform_ref_, id, dl = std::move(display_list)]() mutable {
     std::static_pointer_cast<NativePaintingCtxAndroidRef>(ref)
         ->UpdateDisplayList(id, std::move(dl));
+  });
+}
+
+void NativePaintingCtxAndroid::EnqueueDisplayLists(
+    DisplayListUpdateBatch batch) {
+  Enqueue([ref = platform_ref_, batch = std::move(batch)]() mutable {
+    std::static_pointer_cast<NativePaintingCtxAndroidRef>(ref)
+        ->UpdateDisplayLists(std::move(batch));
   });
 }
 
@@ -566,7 +573,7 @@ void NativePaintingCtxAndroid::UpdatePlatformEventBundle(
   });
 }
 
-void NativePaintingCtxAndroid::ReconstructEventTargetTreeRecursively() {
+void NativePaintingCtxAndroid::EnqueueReconstructEventTargetTreeRecursively() {
   auto platform_ref =
       std::static_pointer_cast<NativePaintingCtxPlatformRef>(platform_ref_);
   if (platform_ref && platform_ref->HasScheduledEventTargetTreeUpdate()) {

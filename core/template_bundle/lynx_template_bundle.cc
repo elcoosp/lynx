@@ -8,9 +8,11 @@
 
 #include "base/include/timer/time_utils.h"
 #include "core/renderer/simple_styling/style_object.h"
+#include "core/runtime/js/runtime_constant.h"
 #include "core/runtime/lepus/binary_input_stream.h"
 #include "core/runtime/lepusng/quick_context.h"
 #include "core/template_bundle/lynxml/lynxml_source_observer.h"
+#include "core/template_bundle/lynxml/lynxml_style_parser.h"
 #include "core/template_bundle/template_codec/binary_decoder/element_binary_reader.h"
 #include "core/template_bundle/template_codec/binary_decoder/lynx_binary_lazy_reader_delegate.h"
 #include "core/template_bundle/template_codec/binary_decoder/lynx_binary_reader.h"
@@ -62,11 +64,6 @@ std::string LynxTemplateBundle::BuildFromLynxMLSources(
     return "mainThreadScript must not be empty";
   }
 
-  // TODO: Wrap and consume the background-thread source after the JS source
-  // wrapper is available.
-  // TODO: Parse and consume the style source after CSS source parsing support
-  // is available.
-
   is_lepusng_binary_ = true;
   context_type_ = runtime::ContextType::LepusNGContextType;
   target_sdk_version_ =
@@ -84,6 +81,17 @@ std::string LynxTemplateBundle::BuildFromLynxMLSources(
   compile_options_.enable_css_selector_ = true;
   compile_options_.enable_css_invalidation_ = true;
 
+  if (!style.empty()) {
+    auto style_result = ParseLynxMLStyle(style, compile_options_);
+    if (!style_result.success) {
+      return style_result.error;
+    }
+    if (style_result.fragment) {
+      css_style_manager_->AddSharedCSSFragment(
+          std::move(style_result.fragment));
+    }
+  }
+
   page_configs_ = std::make_shared<PageConfig>();
   page_configs_->SetTargetSDKVersion(target_sdk_version_);
   page_configs_->SetEnableStandardCSSSelector(
@@ -99,6 +107,13 @@ std::string LynxTemplateBundle::BuildFromLynxMLSources(
   auto context_bundle = std::make_shared<lepus::QuickContextBundle>();
   context_bundle->SetSource(main_thread_script);
   context_bundle_ = std::move(context_bundle);
+
+  std::string wrapped_background_thread_script = background_thread_script;
+  runtime::js::AddAppServiceWrapForJsContent(wrapped_background_thread_script);
+  js_bundle_.AddJsContent(
+      runtime::kAppServiceJSName,
+      runtime::js::JsContent(std::move(wrapped_background_thread_script),
+                             runtime::js::JsContent::Type::SOURCE));
 
   return "";
 }

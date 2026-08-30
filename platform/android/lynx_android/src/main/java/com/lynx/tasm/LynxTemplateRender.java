@@ -99,6 +99,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -165,6 +166,15 @@ public class LynxTemplateRender
       LynxTemplateRender render = mRenderRef.get();
       if (render != null) {
         render.onErrorOccurred(error);
+      }
+    }
+
+    @Override
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public void runOnLayoutThread(Runnable runnable) {
+      LynxTemplateRender render = mRenderRef.get();
+      if (render != null) {
+        render.runOnLayoutThread(runnable);
       }
     }
   }
@@ -277,7 +287,9 @@ public class LynxTemplateRender
   private LynxGroup mGroup;
   private LynxEngineProxy mEngineProxy;
 
-  private LynxLayoutProxy mLayoutProxy;
+  // Serializes lazy layout proxy creation with native shell destruction.
+  private final Object mNativeShellLifecycleLock = new Object();
+  private volatile LynxLayoutProxy mLayoutProxy;
 
   private Map<Double, PlatformCallBack> platformCallBackMap = new HashMap<>();
 
@@ -311,9 +323,7 @@ public class LynxTemplateRender
   @Nullable private LynxEngine mLynxEngineRef;
 
   private LynxModuleFactory mMainThreadModuleFactory;
-  @NonNull
-  private final LynxMemoryUsageFetcher mMemoryUsageFetcher =
-      new LynxTemplateRenderMemoryUsageFetcher(this);
+  @Nullable private LynxMemoryUsageFetcher mMemoryUsageFetcher;
 
   @Keep
   public LynxTemplateRender(Context context, UIBodyView bodyView, LynxViewBuilder builder) {
@@ -451,11 +461,12 @@ public class LynxTemplateRender
     // compatibility, some caller still using its related interface.
     DisplayMetricsHolder.updateOrInitDisplayMetrics(context, mLynxViewConfigProvider.getDensity());
     DisplayMetrics screenMetrics = DisplayMetricsHolder.getScreenDisplayMetrics();
-    if (mLynxViewConfigProvider.getScreenWidth() != DisplayMetricsHolder.UNDEFINE_SCREEN_SIZE_VALUE
-        && mLynxViewConfigProvider.getScreenHeight()
-            != DisplayMetricsHolder.UNDEFINE_SCREEN_SIZE_VALUE) {
-      screenMetrics.widthPixels = mLynxViewConfigProvider.getScreenWidth();
-      screenMetrics.heightPixels = mLynxViewConfigProvider.getScreenHeight();
+    int screenWidth = mLynxViewConfigProvider.getScreenWidth();
+    int screenHeight = mLynxViewConfigProvider.getScreenHeight();
+    if (screenWidth != DisplayMetricsHolder.UNDEFINE_SCREEN_SIZE_VALUE
+        && screenHeight != DisplayMetricsHolder.UNDEFINE_SCREEN_SIZE_VALUE) {
+      screenMetrics.widthPixels = screenWidth;
+      screenMetrics.heightPixels = screenHeight;
     }
 
     // Prepare for env
@@ -731,8 +742,7 @@ public class LynxTemplateRender
   }
 
   public boolean shouldSendEventToMainThread() {
-    return checkIfEnvPrepared() && mNativePtr != 0
-        && nativeShouldSendEventToMainThread(mNativePtr, mNativeLifecycle);
+    return !mHasDestroy && (mNativeFacade == null || mNativeFacade.shouldSendEventToMainThread());
   }
 
   void showErrorMessage(final LynxError error) {
@@ -1690,6 +1700,38 @@ public class LynxTemplateRender
     onTraceEventEnd(eventName);
   }
 
+  @AnyThread
+  void loadLynxML(final String source, final String url, final TemplateData initialData) {
+    if (mHasDestroy || source == null || url == null) {
+      return;
+    }
+    String eventName = "LynxTemplateRender.loadLynxML";
+    onTraceEventBegin(eventName);
+    if ((!mAsyncRender || reload) && !UIThreadUtils.isOnUiThread()) {
+      UIThreadUtils.runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          loadLynxML(source, url, initialData);
+        }
+      });
+      onTraceEventEnd(eventName);
+      return;
+    }
+
+    TimingOption timingOption = TimingOption.createTimingOption(TimingConstants.LOAD_BUNDLE,
+        TimingConstants.LOAD_BUNDLE_START, mPerformanceController.isEmbeddedMode());
+    if (mPerformanceController.isEmbeddedMode()) {
+      mPerformanceController.markTiming(TimingConstants.LOAD_BUNDLE_START, null);
+    }
+    setUrl(url);
+    renderLynxML(source, url, initialData, timingOption);
+    LLog.i(TAG, formatLynxMessage("renderLynxML"));
+    if (initialData != null) {
+      postRenderOrUpdateData(initialData);
+    }
+    onTraceEventEnd(eventName);
+  }
+
   // init lynxEngine with info in LynxLoadMeta
   private void initLynxEngineWithLoadMeta(LynxLoadMeta loadMeta) {
     if (mNativePtr != 0) {
@@ -1766,6 +1808,24 @@ public class LynxTemplateRender
     }
     onTraceEventEnd(eventName);
     return false;
+  }
+
+  private void renderLynxML(
+      String source, String url, TemplateData initialData, TimingOption timingOption) {
+    if (mLynxContext == null) {
+      LLog.e(TAG, "renderLynxML with null LynxContext");
+      return;
+    }
+
+    if (mLynxContext.isEmbeddedModeOn() && getLynxView() != null && (mBodyView instanceof LynxView)
+        && getLynxView().getCurrentWidthMeasureSpec() >= 0
+        && getLynxView().getCurrentHeightMeasureSpec() >= 0) {
+      updateViewport(getLynxView().getCurrentWidthMeasureSpec(),
+          getLynxView().getCurrentHeightMeasureSpec(), false);
+    }
+
+    prepareLynxEngineIfNeeded();
+    loadLynxMLInternal(source, initialData, url, new TASMCallback(), timingOption);
   }
 
   private void renderWithLoadMeta(final LynxLoadMeta metaData, TimingOption timingOption) {
@@ -3909,6 +3969,44 @@ public class LynxTemplateRender
         timingOption, callback);
   }
 
+  private void loadLynxMLInternal(String source, TemplateData initData, String url,
+      NativeFacade.Callback callback, TimingOption timingOption) {
+    NativeFacade facade = mNativeFacade;
+    long nativePtr = mNativePtr;
+    long nativeLifecycle = mNativeLifecycle;
+    if (facade == null || nativePtr == 0 || nativeLifecycle == 0) {
+      LLog.e(TAG, "Load LynxML before inited");
+      return;
+    }
+    if (source == null) {
+      LLog.e(TAG, "Load LynxML with null source");
+      return;
+    }
+
+    if (mDevTool != null) {
+      mDevTool.attachToDebugBridge(url);
+    }
+    facade.setUrl(url);
+    facade.setCallback(callback);
+    byte[] sourceBytes = source.getBytes(StandardCharsets.UTF_8);
+    facade.setSize(sourceBytes.length);
+
+    long initDataNativePtr = 0;
+    String processorName = null;
+    boolean readOnly = false;
+    if (initData != null) {
+      initData.flush();
+      initDataNativePtr = initData.getNativePtr();
+      processorName = initData.processorName();
+      readOnly = initData.isReadOnly();
+      initData.markConsumed();
+    }
+
+    timingOption.markTiming(TimingConstants.FFI_START);
+    nativeLoadLynxML(nativePtr, nativeLifecycle, url, sourceBytes, initDataNativePtr, readOnly,
+        processorName, initData, timingOption.toJavaOnlyMap());
+  }
+
   private void loadTemplateBundle(TemplateBundle bundle, String url, TemplateData initData,
       boolean isPrePainting, int options, NativeFacade.Callback callback,
       TimingOption timingOption) {
@@ -4129,6 +4227,33 @@ public class LynxTemplateRender
     }
   }
 
+  private void runOnLayoutThread(Runnable runnable) {
+    if (runnable == null) {
+      return;
+    }
+    LynxLayoutProxy layoutProxy = getOrCreateLayoutProxy();
+    if (layoutProxy != null) {
+      layoutProxy.runOnLayoutThread(runnable);
+    }
+  }
+
+  @Nullable
+  private LynxLayoutProxy getOrCreateLayoutProxy() {
+    LynxLayoutProxy layoutProxy = mLayoutProxy;
+    if (layoutProxy != null) {
+      return layoutProxy;
+    }
+    synchronized (mNativeShellLifecycleLock) {
+      layoutProxy = mLayoutProxy;
+      if (layoutProxy == null && !mIsDestroyed.get() && mNativePtr != 0) {
+        layoutProxy = new LynxLayoutProxy(mNativePtr);
+        mLynxContext.setLayoutProxy(layoutProxy);
+        mLayoutProxy = layoutProxy;
+      }
+      return layoutProxy;
+    }
+  }
+
   private void initEngineAndLayoutProxies() {
     mEngineProxy = new LynxEngineProxy(mNativePtr);
     mNativeFacade.setEngineProxy(mEngineProxy);
@@ -4136,8 +4261,6 @@ public class LynxTemplateRender
       LLog.e(TAG, "mLynxContext is null, can not set LayoutProxy");
     } else {
       mLynxContext.setEngineProxy(mEngineProxy);
-      mLayoutProxy = new LynxLayoutProxy(mNativePtr);
-      mLynxContext.setLayoutProxy(mLayoutProxy);
     }
   }
 
@@ -4222,10 +4345,19 @@ public class LynxTemplateRender
   }
 
   private void registerMemoryUsageFetcherIfNeeded() {
+    if (EmbeddedMode.isBaseModeEnable(mEmbeddedMode)) {
+      return;
+    }
+    if (mMemoryUsageFetcher == null) {
+      mMemoryUsageFetcher = new LynxTemplateRenderMemoryUsageFetcher(this);
+    }
     LynxGlobalMemoryUsageCollector.getInstance().registerMemoryUsageFetcher(mMemoryUsageFetcher);
   }
 
   private void unregisterMemoryUsageFetcherIfNeeded() {
+    if (mMemoryUsageFetcher == null) {
+      return;
+    }
     LynxGlobalMemoryUsageCollector.getInstance().unregisterMemoryUsageFetcher(mMemoryUsageFetcher);
   }
 
@@ -4246,8 +4378,10 @@ public class LynxTemplateRender
   }
 
   private void destroyLynxEngine() {
-    if (!mIsDestroyed.compareAndSet(false, true)) {
-      return;
+    synchronized (mNativeShellLifecycleLock) {
+      if (!mIsDestroyed.compareAndSet(false, true)) {
+        return;
+      }
     }
     boolean shouldCacheLynxEngine = shouldCacheLynxEngine();
     unregisterMemoryUsageFetcherIfNeeded();
@@ -4291,8 +4425,10 @@ public class LynxTemplateRender
       mEngineProxy.destroy();
     }
 
-    if (mLayoutProxy != null) {
-      mLayoutProxy.destroy();
+    LynxLayoutProxy layoutProxy = mLayoutProxy;
+    mLayoutProxy = null;
+    if (layoutProxy != null) {
+      layoutProxy.destroy();
     }
     mTasmPlatformInvoker = null;
     mNativeFacade = null;
@@ -4321,15 +4457,18 @@ public class LynxTemplateRender
 
     @Override
     public void run() {
-      if ((mNativeLifecycle != 0) && (mNativePtr != 0)) {
-        if (nativeLifecycleTryTerminate(mNativeLifecycle)) {
-          nativeDestroy(mNativePtr);
-          mNativePtr = 0;
-          mNativeLifecycle = 0;
-          mRenderer = null;
-        } else {
-          // retry later
-          UIThreadUtils.runOnUiThread(this, 1);
+      LynxTemplateRender renderer = mRenderer;
+      if ((mNativeLifecycle != 0) && (mNativePtr != 0) && renderer != null) {
+        synchronized (renderer.mNativeShellLifecycleLock) {
+          if (nativeLifecycleTryTerminate(mNativeLifecycle)) {
+            nativeDestroy(mNativePtr);
+            mNativePtr = 0;
+            mNativeLifecycle = 0;
+            mRenderer = null;
+          } else {
+            // retry later
+            UIThreadUtils.runOnUiThread(this, 1);
+          }
         }
       }
       if (mNativeFacade != null) {
@@ -4669,6 +4808,10 @@ public class LynxTemplateRender
       boolean readOnly, String processorName, TemplateData templateData, int options,
       ReadableMap timingOption);
 
+  private static native void nativeLoadLynxML(long ptr, long lifecycle, String url, byte[] source,
+      long data, boolean readOnly, String processorName, TemplateData templateData,
+      ReadableMap timingOption);
+
   // FIXME(songshourui.null): only use templateData later
   private static native void nativeLoadTemplateBundleByPreParsedData(long ptr, long lifecycle,
       String url, long bundlePtr, boolean isPrePainting, long data, boolean readOnly,
@@ -4735,8 +4878,6 @@ public class LynxTemplateRender
 
   private static native void nativeTriggerEventBus(
       long ptr, long lifecycle, String name, ByteBuffer buffer, int length);
-
-  private static native boolean nativeShouldSendEventToMainThread(long ptr, long lifecycle);
 
   // fetch data in native
   private native void nativeGetDataAsync(long ptr, long lifecycle, int tag);

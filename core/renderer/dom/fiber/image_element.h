@@ -45,11 +45,12 @@ class ImageElement : public Element {
 
  protected:
   ImageElement(const ImageElement& element, bool clone_resolved_props)
-      : Element(element, clone_resolved_props) {}
+      : Element(element, clone_resolved_props),
+        has_auto_size_(element.has_auto_size_) {}
 
   void OnNodeAdded(Element* child) override;
 
-  void SetAttributeInternal(const base::String& key,
+  bool SetAttributeInternal(const base::String& key,
                             const lepus::Value& value) override;
 
   void ProcessAttributeForLayoutInElement(const base::String& key,

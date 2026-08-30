@@ -14,6 +14,7 @@
 #include "clay/gfx/graphics_context.h"
 #include "clay/ui/compositing/pending_layer.h"
 #include "clay/ui/compositing/pending_picture_layer.h"
+#include "gfx/geometry/transform_operations.h"
 
 namespace clay {
 
@@ -75,7 +76,7 @@ class PaintingContext {
   void PushBackdropFilter(std::shared_ptr<ImageFilter> backdrop_filter,
                           const FloatPoint& offset,
                           const PaintingContextCallback& painter);
-  void PushTransform(const TransformOperations& operations,
+  void PushTransform(const lynx::gfx::TransformOperations& operations,
                      const FloatPoint& origin, const float perspective,
                      const FloatPoint& offset,
                      const PaintingContextCallback& painter);
@@ -92,6 +93,10 @@ class PaintingContext {
                       const FloatRect& mask_rect, BlendMode blend_mode,
                       const FloatPoint& offset,
                       const PaintingContextCallback& painter);
+  void PushPictureMask(std::shared_ptr<Picture> picture,
+                       const FloatRect& mask_rect, BlendMode blend_mode,
+                       const FloatPoint& offset,
+                       const PaintingContextCallback& painter);
 
   // Container layer will contain picture layer and other layer subtree.
   void PushContainer(const FloatPoint& offset,

@@ -75,6 +75,9 @@ class LynxEventDispatcher : public EventDelegate {
 
   void OnSendCustomEvent(int view_id, const std::string& event_name,
                          clay::Value::Map args) override;
+  void OnSendCustomEventWithOptions(
+      int view_id, const std::string& event_name, clay::Value::Map args,
+      const EventDispatchOptions& options) override;
   void OnSendGlobalEvent(const std::string& event_name,
                          clay::Value args) override;
 
@@ -89,6 +92,8 @@ class LynxEventDispatcher : public EventDelegate {
 
   void CallJSIntersectionObserver(int observer_id, int callback_id,
                                   clay::Value params) override;
+  void OnExternalMemoryReport(int64_t total_size,
+                              int64_t garbage_size) override;
 
  private:
   std::shared_ptr<lynx::shell::LynxEngineProxy> engine_proxy_ = nullptr;

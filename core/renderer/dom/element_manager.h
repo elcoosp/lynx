@@ -77,6 +77,7 @@ class Element;
 class ComponentElement;
 class ImageElement;
 class ListElement;
+class ModifierElement;
 class NoneElement;
 class ScrollElement;
 class TextElement;
@@ -311,6 +312,9 @@ class ElementManager : public LayoutScheduler::LayoutSchedulerImpl {
   LYNX_EXPORT_FOR_DEVTOOL void SetInspectorElementObserver(
       const std::shared_ptr<InspectorElementObserver>
           &inspector_element_observer);
+  InspectorElementObserver *inspector_element_observer() const {
+    return inspector_element_observer_.get();
+  }
 
   void OnUpdateViewport(float width, int width_mode, float height,
                         int height_mode, bool need_layout);
@@ -790,6 +794,9 @@ class ElementManager : public LayoutScheduler::LayoutSchedulerImpl {
   bool EnablePropertyBasedSimpleStyle() const {
     return enable_property_based_simple_style_;
   }
+  bool EnableSimpleStyleNoPatchOptimization() const {
+    return enable_simple_style_no_patch_optimization_;
+  }
 
   void InsertDirtyContext(BaseElementContainer *stacking_context) {
     dirty_stacking_contexts_.insert(stacking_context);
@@ -1005,6 +1012,12 @@ class ElementManager : public LayoutScheduler::LayoutSchedulerImpl {
    * @return the refCounted type
    */
   fml::RefPtr<ViewElement> CreateFiberView();
+
+  /**
+   * create an internal Compose Modifier frame element
+   * @return the refCounted type
+   */
+  fml::RefPtr<ModifierElement> CreateFiberModifierElement();
 
   /**
    * create Text Element
@@ -1408,6 +1421,7 @@ class ElementManager : public LayoutScheduler::LayoutSchedulerImpl {
       std::shared_ptr<PipelineOptions> &option,
       base::MoveOnlyClosure<void, bool> patch_finish_callback,
       Element *root = nullptr);
+  void Repaint();
   void WillDestroy();
   void ReportElementStatistic();
   ElementManager(const ElementManager &) = delete;
@@ -1493,6 +1507,7 @@ class ElementManager : public LayoutScheduler::LayoutSchedulerImpl {
 
   bool enable_fiber_element_memory_reporter_{false};
   bool enable_property_based_simple_style_{false};
+  bool enable_simple_style_no_patch_optimization_{false};
 
   bool fix_list_callback_leak_flag_{true};
 

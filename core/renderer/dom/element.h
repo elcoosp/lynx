@@ -13,6 +13,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -197,14 +198,16 @@ class Element : public lepus::RefCounted,
   struct ActionParam {
     ActionParam(Action type, Element* parent, const fml::RefPtr<Element>& child,
                 int from, Element* ref_node, bool is_fixed = false,
-                bool has_z_index = false)
+                bool has_z_index = false,
+                fml::RefPtr<Element> source_parent = nullptr)
         : type_(type),
           parent_(parent),
           child_(child),
           index_(from),
           ref_node_(ref_node),
           is_fixed_(is_fixed),
-          has_z_index_(has_z_index) {}
+          has_z_index_(has_z_index),
+          source_parent_(std::move(source_parent)) {}
     Action type_;
     Element* parent_;
     fml::RefPtr<Element> child_;
@@ -212,6 +215,7 @@ class Element : public lepus::RefCounted,
     Element* ref_node_;
     bool is_fixed_;
     bool has_z_index_;
+    fml::RefPtr<Element> source_parent_;
   };
 
   void AppendActionParam(ActionParam action_param) {
@@ -437,6 +441,10 @@ class Element : public lepus::RefCounted,
   LYNX_EXPORT_FOR_DEVTOOL virtual void SetAttribute(
       const base::String& key, const lepus::Value& value,
       bool need_update_data_model = true);
+  // Tracks attributes written by the Modifier receiver separately so its next
+  // clear does not remove attributes owned by other Element APIs.
+  void SetModifierAttribute(const base::String& key, const lepus::Value& value);
+  void RemoveAllModifierAttributes();
   virtual void ResetAttribute(const base::String& key);
   void WillConsumeAttribute(const base::String& key, const lepus::Value& value);
 
@@ -840,6 +848,11 @@ class Element : public lepus::RefCounted,
   virtual void InsertNodeBeforeInternal(const fml::RefPtr<Element>& child,
                                         Element* ref_node,
                                         bool update_logical_children);
+  // Reparents a rendered child from a distinct parent to this Element. The
+  // caller guarantees that child and index belong to the same valid scoped
+  // tree. The target retains the render source until the deferred platform
+  // remove-and-insert operations have been generated.
+  void MoveNodeToIndex(const fml::RefPtr<Element>& child, int32_t index);
   virtual void ReplaceElements(
       const base::Vector<fml::RefPtr<Element>>& inserted,
       const base::Vector<fml::RefPtr<Element>>& removed,
@@ -1349,6 +1362,8 @@ class Element : public lepus::RefCounted,
 
   virtual bool is_wrapper() const { return false; }
 
+  virtual bool is_modifier() const { return false; }
+
   virtual bool is_component() const { return false; }
 
   virtual bool is_scroll_view() const { return false; }
@@ -1540,6 +1555,18 @@ class Element : public lepus::RefCounted,
   virtual bool GetEnableMultiTouchParamsCompatible() override;
 
   virtual float GetLayoutsUnitPerPx() override;
+
+  // Updates the latest platform scroll position in layout units. The value is
+  // consumed on the engine thread by Element point conversion.
+  void UpdateScrollOffset(float x, float y);
+  float scroll_offset_x() const { return scroll_offset_x_; }
+  float scroll_offset_y() const { return scroll_offset_y_; }
+
+  // Updates the latest platform-applied sticky translation in layout units.
+  // The value is consumed on the engine thread by Element point conversion.
+  void UpdateStickyTranslation(float x, float y);
+  float sticky_translation_x() const { return sticky_translation_x_; }
+  float sticky_translation_y() const { return sticky_translation_y_; }
 
   /**
    * Get computed style value by property key.
@@ -1733,7 +1760,9 @@ class Element : public lepus::RefCounted,
   virtual void OnNodeAdded(Element* child);
   virtual void OnNodeRemoved(Element* child);
 
-  virtual void SetAttributeInternal(const base::String& key,
+  void UpdateNodeInfo(int32_t node_info);
+  // Returns whether consuming the attribute should update the element.
+  virtual bool SetAttributeInternal(const base::String& key,
                                     const lepus::Value& value);
   virtual void MarkHasLayoutOnlyPropsIfNecessary(
       const base::String& attribute_key);
@@ -1766,6 +1795,7 @@ class Element : public lepus::RefCounted,
   void ApplyDynamicSimpleStylesWithoutTail(
       const tasm::StyleMap& dynamic_style_map,
       const tasm::StyleMap& base_style_map);
+  void MarkSimpleStyleDirty(uint32_t dirty_bits);
 
   void HandleKeyframePropsChange();
   void FinalizeSimpleStyleUpdate();
@@ -2203,6 +2233,10 @@ class Element : public lepus::RefCounted,
   float height_{0};
   float top_{0};
   float left_{0};
+  float scroll_offset_x_{0};
+  float scroll_offset_y_{0};
+  float sticky_translation_x_{0};
+  float sticky_translation_y_{0};
   std::array<float, 4> borders_{};
   std::array<float, 4> margins_{};
   std::array<float, 4> paddings_{};
@@ -2347,6 +2381,8 @@ class Element : public lepus::RefCounted,
   AttrUMap updated_attr_map_;
   base::auto_create_optional<BuiltinAttrMap> builtin_attr_map_;
   base::auto_create_optional<base::Vector<base::String>> reset_attr_vec_;
+  base::auto_create_optional<std::unordered_set<base::String>>
+      modifier_attribute_names_;
 
   fml::RefPtr<lepus::Dictionary> config_;
 
@@ -2373,6 +2409,16 @@ class Element : public lepus::RefCounted,
   std::unique_ptr<SLNode> sl_node_{nullptr};
 
  private:
+  // Updates logical and scoped ownership without enqueueing platform actions.
+  void AttachNodeToElementTree(const fml::RefPtr<Element>& child,
+                               Element* ref_node, int32_t index,
+                               bool update_logical_children);
+  void DetachNodeFromElementTree(const fml::RefPtr<Element>& child,
+                                 int32_t index, bool update_logical_children);
+  // Returns the original render source, consuming a pending move when repeated
+  // moves are coalesced before a flush.
+  fml::RefPtr<Element> TakeMoveSourceParent(const fml::RefPtr<Element>& child);
+
   void AttachToElementManagerInner(
       ElementManager* manager,
       const std::shared_ptr<CSSStyleSheetManager>& style_manager,

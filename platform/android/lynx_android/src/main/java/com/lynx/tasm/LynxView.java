@@ -551,10 +551,10 @@ public class LynxView extends UIBodyView implements ILynxSecurityTarget {
               + this.toString());
       return;
     }
-    if (enableAirStrictMode() || render.shouldSendEventToMainThread()) {
-      // In Air mode or when MTS handles main-thread events, send global event by triggerEventBus.
+    if (render.shouldSendEventToMainThread()) {
       triggerEventBus(name, params);
-    } else {
+    }
+    if (render.enableJSRuntime()) {
       render.sendGlobalEvent(name, params);
     }
   }
@@ -690,6 +690,32 @@ public class LynxView extends UIBodyView implements ILynxSecurityTarget {
       return;
     }
     mLynxTemplateRender.loadTemplate(meta);
+  }
+
+  /**
+   * EXPERIMENTAL API
+   * @apidoc
+   * @brief Loads a LynxML source document with initial template data.
+   *
+   * LynxML is a single-file template format that packs the main-thread script,
+   * background-thread script, and style of a card into one XML-like document.
+   * The source is parsed and built into a template bundle at load time.
+   * Both this API and the LynxML format are experimental and may change in
+   * future releases.
+   * @param source The complete contents of the LynxML file.
+   * @param url The URL used to resolve resources referenced by the template.
+   * @param data The initial data used to render the first screen.
+   */
+  @AnyThread
+  public void loadLynxML(@NonNull String source, @NonNull String url, @Nullable TemplateData data) {
+    if (source == null || url == null) {
+      return;
+    }
+    mUrl = url;
+    if (mLynxTemplateRender == null) {
+      return;
+    }
+    mLynxTemplateRender.loadLynxML(source, url, data);
   }
 
   /**

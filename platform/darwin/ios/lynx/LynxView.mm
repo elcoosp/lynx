@@ -12,6 +12,7 @@
 #import <Lynx/LynxEnv.h>
 #import <Lynx/LynxError.h>
 #import <Lynx/LynxErrorBehavior.h>
+#import <Lynx/LynxEventHandler+Internal.h>
 #import <Lynx/LynxHeroTransition.h>
 #import <Lynx/LynxLazyRegister.h>
 #import <Lynx/LynxLifecycleDispatcher.h>
@@ -27,6 +28,7 @@
 #import <Lynx/LynxThreadManager.h>
 #import <Lynx/LynxTraceEvent.h>
 #import <Lynx/LynxUIKitAPIAdapter.h>
+#import <Lynx/LynxUIOwner.h>
 #import <Lynx/LynxUIRendererProtocol.h>
 #import <Lynx/LynxView.h>
 #import <Lynx/LynxWeakProxy.h>
@@ -437,11 +439,24 @@
     UIView* view = [super hitTest:point withEvent:event];
     self.nestedScrollViewsChain =
         [LynxBaseScrollView generateNestedScrollChainWithHitTestTarget:view];
-    [_templateRender.lynxUIRenderer handleFocus:touchTarget
-                                         onView:view
-                                  withContainer:self
-                                       andPoint:point
-                                       andEvent:event];
+    id<LynxUIRendererProtocol> uiRenderer = _templateRender.lynxUIRenderer;
+    LynxEventHandler* eventHandler = uiRenderer.uiOwner.uiContext.eventHandler;
+    if (uiRenderer.uiOwner.uiContext.lynxContext.isFragmentLayerRenderOn) {
+      BOOL ignoreFocus =
+          eventHandler != nil &&
+          [_templateRender IsPlatformEventTargetIgnoreFocus:eventHandler.eventRootSign point:point];
+      [eventHandler handleFocusOnView:view
+                        withContainer:self
+                             andPoint:point
+                             andEvent:event
+                          ignoreFocus:ignoreFocus];
+    } else {
+      [uiRenderer handleFocus:touchTarget
+                       onView:view
+                withContainer:self
+                     andPoint:point
+                     andEvent:event];
+    }
     // If target eventThrough, return nil to let event through LynxView.
     CGPoint targetPoint = point;
     if (touchTarget.view) {
@@ -459,7 +474,15 @@
 #pragma mark - View
 
 - (void)updateScreenMetricsWithWidth:(CGFloat)width height:(CGFloat)height {
-  [_templateRender updateScreenMetricsWithWidth:width height:height];
+  [_templateRender updateScreenMetricsWithWidth:width height:height scale:0];
+}
+
+- (void)updateScreenMetricsWithWidth:(CGFloat)width height:(CGFloat)height scale:(CGFloat)scale {
+  [_templateRender updateScreenMetricsWithWidth:width height:height scale:scale];
+}
+
+- (void)updateScreenMetrics:(LynxScreenMetrics*)screenMetrics {
+  [_templateRender updateScreenMetrics:screenMetrics];
 }
 
 /**
@@ -817,10 +840,10 @@
                                                     name, [self hash]]
                      withLevel:DevToolLogLevelInfo];
   }
-  if ([_templateRender enableAirStrictMode] || [_templateRender shouldSendEventToMainThread]) {
-    // In Air mode or when MTS handles main-thread events, send global event by triggerEventBus.
+  if ([_templateRender shouldSendEventToMainThread]) {
     [self triggerEventBus:name withParams:params];
-  } else {
+  }
+  if (_templateRender.enableJSRuntime) {
     RUN_RENDER_SAFELY([_templateRender sendGlobalEvent:name withParams:params];);
   }
 }

@@ -180,8 +180,7 @@ public abstract class LynxContext extends LynxBaseContext implements ExceptionHa
 
   public LynxContext(Context base, DisplayMetrics screenMetrics) {
     super(base);
-    mVirtualScreenMetrics = new DisplayMetrics();
-    mVirtualScreenMetrics.setTo(screenMetrics);
+    mVirtualScreenMetrics = screenMetrics;
     if (sLynxTextService == null) {
       sLynxTextService = LynxServiceCenter.inst().getService(ILynxTextService.class);
     }
@@ -1581,7 +1580,9 @@ public abstract class LynxContext extends LynxBaseContext implements ExceptionHa
       LynxFrameRecorder.inst().clearFrameCallback(mInstanceId);
     }
     this.mInstanceId = instanceId;
-    syncFrameRecorderCallback();
+    if (!isEmbeddedModeOn()) {
+      syncFrameRecorderCallback();
+    }
   }
 
   private void syncFrameRecorderCallback() {
@@ -1632,12 +1633,10 @@ public abstract class LynxContext extends LynxBaseContext implements ExceptionHa
     return mImageCustomParams;
   }
 
-  @RestrictTo(RestrictTo.Scope.LIBRARY)
   public void setLynxImageConfig(LynxImageConfig imageConfig) {
     mLynxImageConfig = imageConfig;
   }
 
-  @RestrictTo(RestrictTo.Scope.LIBRARY)
   public LynxImageConfig getLynxImageConfig() {
     return mLynxImageConfig;
   }
@@ -1681,6 +1680,9 @@ public abstract class LynxContext extends LynxBaseContext implements ExceptionHa
   @RestrictTo(RestrictTo.Scope.LIBRARY)
   public void runOnLayoutThread(Runnable runnable) {
     if (runnable == null) {
+      return;
+    }
+    if (mLayoutProxy == null) {
       return;
     }
     LynxLayoutProxy layoutProxy = mLayoutProxy.get();

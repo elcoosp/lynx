@@ -167,6 +167,10 @@ void LynxTemplateRenderer::Reset(bool wait_for_runtime_detach) {
       settings_.enable_js_group_thread ? settings_.group_id : "";
   shell_option.enable_js_group_thread_ = settings_.enable_js_group_thread;
   shell_option.enable_js_ = settings_.enable_js;
+  // The manager belongs to this MTS shell and is recreated on every Reset().
+  auto native_module_manager = settings_.native_module_manager_creator
+                                   ? settings_.native_module_manager_creator()
+                                   : nullptr;
   shell_.reset(
       shell::LynxShellBuilder()
           .SetNativeFacade(std::move(native_facade))
@@ -188,6 +192,7 @@ void LynxTemplateRenderer::Reset(bool wait_for_runtime_detach) {
           .SetTasmPlatformInvoker(std::make_unique<TasmPlatformInvokerImpl>(
               weak_flag_->weak_from_this()))
           .SetPerformanceControllerPlatform(std::move(perf_controller_ptr_))
+          .SetNativeModuleManager(std::move(native_module_manager))
           .build());
 
   engine_proxy_ =
@@ -302,6 +307,39 @@ void LynxTemplateRenderer::LoadTemplate(
   options->enable_recycle_template_bundle = enable_recycle_template_bundle;
   options->enable_pre_painting = false;
   shell_->LoadTemplate(url, std::move(source), options, init_data);
+}
+
+void LynxTemplateRenderer::LoadLynxML(
+    const std::string& url, std::string source,
+    const std::shared_ptr<tasm::PipelineOptions>& pipeline_options,
+    const std::shared_ptr<tasm::TemplateData>& init_data) {
+  if (inspector_owner_) {
+    inspector_owner_->OnLoaded(url);
+  }
+
+  std::shared_ptr<tasm::PipelineOptions> options = nullptr;
+  if (!pipeline_options) {
+    options = std::make_shared<tasm::PipelineOptions>();
+    options->need_timestamps = true;
+    options->pipeline_origin = tasm::timing::kLoadBundle;
+    shell_->OnPipelineStart(options->pipeline_id, options->pipeline_origin,
+                            options->pipeline_start_timestamp);
+  } else {
+    options = pipeline_options;
+  }
+
+  UpdateGenericInfoWithUrl(url);
+  if (perf_controller_proxy_) {
+    perf_controller_proxy_->MarkTiming(
+        tasm::timing::TimestampKey(tasm::timing::kLoadBundleStart),
+        options->pipeline_id);
+    perf_controller_proxy_->MarkTiming(
+        tasm::timing::TimestampKey(tasm::timing::kFfiStart),
+        options->pipeline_id);
+  }
+
+  options->enable_pre_painting = false;
+  shell_->LoadLynxML(url, std::move(source), options, init_data);
 }
 
 void LynxTemplateRenderer::LoadTemplateBundle(

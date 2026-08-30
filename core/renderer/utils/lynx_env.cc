@@ -624,6 +624,10 @@ bool LynxEnv::EnablePlatformDataFix() {
   return enable_platform_data_fix;
 }
 
+bool LynxEnv::EnablePlatformDataAsyncConsumeActions() {
+  return GetBoolEnv(Key::ENABLE_PLATFORM_DATA_ASYNC_CONSUME_ACTIONS, true);
+}
+
 bool LynxEnv::EnableQuickJsThreadChecker() {
   static bool enable_quickjs_thread_checker =
       GetBoolEnv(Key::ENABLE_QUICKJS_THREAD_CHECKER, false);
@@ -702,12 +706,20 @@ bool LynxEnv::FixFiberReinsertDetachFromOldRenderParent() {
                     true);
 }
 
+bool LynxEnv::FixHarmonyFiberDestroyTargetOnly() {
+  return GetBoolEnv(Key::FIX_HARMONY_FIBER_DESTROY_TARGET_ONLY, true);
+}
+
 bool LynxEnv::EnableAnimationForwardUpdatePreservation() {
   return GetBoolEnv(Key::ENABLE_ANIMATION_FORWARD_UPDATE_PRESERVATION, false);
 }
 
 bool LynxEnv::EnableNewStylingPipeline() {
   return GetBoolEnv(Key::ENABLE_NEW_STYLING_PIPELINE, false);
+}
+
+bool LynxEnv::EnableSimpleStyleNoPatchOptimization() {
+  return GetBoolEnv(Key::ENABLE_SIMPLE_STYLE_NO_PATCH_OPTIMIZATION, false);
 }
 
 bool LynxEnv::EnableFrameNativeData() {

@@ -403,11 +403,19 @@ void LynxEventDispatcher::OnDragDropEvent(const std::string& event_name,
 void LynxEventDispatcher::OnSendCustomEvent(int view_id,
                                             const std::string& event_name,
                                             clay::Value::Map args) {
+  OnSendCustomEventWithOptions(view_id, event_name, std::move(args), {});
+}
+
+void LynxEventDispatcher::OnSendCustomEventWithOptions(
+    int view_id, const std::string& event_name, clay::Value::Map args,
+    const EventDispatchOptions& options) {
   if (!engine_proxy_) {
     return;
   }
+
   auto params = lynx::ClayValue(clay::Value{std::move(args)});
-  engine_proxy_->SendCustomEvent(event_name, view_id, params, "detail");
+  engine_proxy_->SendCustomEventWithOptions(
+      event_name, view_id, params, "detail", {.emergency = options.emergency});
 }
 
 void LynxEventDispatcher::OnSendGlobalEvent(const std::string& event_name,
@@ -439,6 +447,13 @@ void LynxEventDispatcher::OnFirstMeaningfulPaint() {
     return;
   }
   engine_proxy_->OnFirstMeaningfulPaint();
+}
+
+void LynxEventDispatcher::OnExternalMemoryReport(int64_t total_size,
+                                                 int64_t garbage_size) {
+  if (engine_proxy_) {
+    engine_proxy_->ReportExternalMemory({total_size, garbage_size});
+  }
 }
 
 void LynxEventDispatcher::OnOverlayEvent(int view_id, const char* overlay_id,

@@ -158,8 +158,15 @@ void PaintingContextDarwinRef::UpdateNodeReadyPatching(std::vector<int32_t> read
     [uiOwner_ onNodeReady:tag];
   }
   for (const auto& tag : remove_ids) {
+    [uiOwner_ cacheRemovedUIId:tag];
+  }
+  for (const auto& tag : remove_ids) {
     [uiOwner_ onNodeRemoved:tag];
   }
+}
+
+void PaintingContextDarwinRef::RequestExternalMemoryReport(int64_t delay_ms) {
+  [uiOwner_ requestExternalMemoryReport:delay_ms];
 }
 
 void PaintingContextDarwinRef::UpdateNodeReloadPatching(std::vector<int32_t> reload_ids) {
@@ -484,6 +491,8 @@ std::vector<float> PaintingContextDarwin::getBoundingClientOrigin(int id) {
 
 std::vector<float> PaintingContextDarwin::getWindowSize(int id) {
   std::vector<float> res;
+  // TODO(xiamengfei.moonface): [ResizableWindowSize] Check whether this should use window or
+  // physical screen metrics.
   CGSize size = UIScreen.mainScreen.bounds.size;
   res.push_back(size.width);
   res.push_back(size.height);
@@ -532,6 +541,8 @@ std::vector<float> PaintingContextDarwin::GetRectToWindow(int id) {
   LynxUI* ui = [uiOwner_ findUIBySign:id];
   if (ui != NULL) {
     CGRect re = [ui getRectToWindow];
+    // TODO(xiamengfei.moonface): [ResizableWindowScale] Check whether this should use window or
+    // physical screen metrics.
     int scale = UIScreen.mainScreen.scale;
     res.push_back(re.origin.x * scale);
     res.push_back(re.origin.y * scale);

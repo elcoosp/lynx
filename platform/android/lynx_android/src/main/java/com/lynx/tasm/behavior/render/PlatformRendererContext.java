@@ -39,6 +39,7 @@ import com.lynx.tasm.behavior.ui.scroll.AndroidScrollView;
 import com.lynx.tasm.behavior.utils.LynxUIMethodsExecutor;
 import com.lynx.tasm.event.EventsListener;
 import com.lynx.tasm.gesture.detector.GestureDetector;
+import com.lynx.tasm.performance.PerformanceController;
 import com.lynx.tasm.service.ILynxTextService.Page;
 import com.lynx.tasm.utils.DisplayMetricsHolder;
 import com.lynx.tasm.utils.UIThreadUtils;
@@ -64,11 +65,6 @@ public class PlatformRendererContext implements TextMeasurerProvider {
     public static final int kExtended = 8;
   }
 
-  public static final class PlatformEventHandlerState {
-    public static final int kNone = 0;
-    public static final int kEventThrough = 1;
-  }
-
   private static final int IMAGE_PAINT_INFO_MODE = 1;
   private static final int IMAGE_PAINT_INFO_BLUR_RADIUS = 2;
   private static final int IMAGE_PAINT_INFO_AUTO_SIZE = 3;
@@ -83,6 +79,8 @@ public class PlatformRendererContext implements TextMeasurerProvider {
   WeakReference<UIBody.UIBodyView> mRootView = null;
 
   HashMap<Integer, IRendererHost> mViewHolder = new HashMap<>();
+
+  @Nullable private PlatformFocusTarget mFocusedTarget = null;
 
   private LynxContext mContext;
   private BehaviorRegistry mBehaviorRegistry;
@@ -463,8 +461,104 @@ public class PlatformRendererContext implements TextMeasurerProvider {
     return null;
   }
 
+  void updatePlatformFocus(int targetSign, int rendererHostSign) {
+    PlatformFocusTarget nextTarget = resolvePlatformFocusTarget(targetSign, rendererHostSign);
+    PlatformFocusTarget previousTarget = mFocusedTarget;
+    if (previousTarget != null && previousTarget.isSameObject(nextTarget)) {
+      mFocusedTarget = nextTarget;
+      return;
+    }
+
+    boolean nextFocusable = nextTarget.isFocusable();
+    boolean previousFocusable = previousTarget != null && previousTarget.isFocusable();
+    // Keep the same ordering as the existing focus transition: focus the new target before
+    // notifying the previous target that it lost focus.
+    mFocusedTarget = nextTarget;
+    if (nextFocusable) {
+      nextTarget.onFocusChanged(true, previousFocusable);
+    }
+    if (previousFocusable) {
+      previousTarget.onFocusChanged(false, nextFocusable);
+    }
+  }
+
+  private PlatformFocusTarget resolvePlatformFocusTarget(int targetSign, int rendererHostSign) {
+    LynxUIOwner owner = mContext != null ? mContext.getLynxUIOwner() : null;
+    LynxBaseUI ui = owner != null ? owner.getNode(targetSign) : null;
+
+    IRendererHost host = mViewHolder.get(targetSign);
+    if (host == null) {
+      host = mViewHolder.get(rendererHostSign);
+    }
+    if (ui == null && host != null) {
+      Renderer renderer = host.getRenderer();
+      ui = renderer != null ? renderer.getUIHost() : null;
+    }
+    return new PlatformFocusTarget(targetSign, rendererHostSign, ui, host);
+  }
+
+  private static final class PlatformFocusTarget {
+    private final int mTargetSign;
+    private final int mRendererHostSign;
+    @Nullable private final LynxBaseUI mUI;
+    @Nullable private final IRendererHost mRendererHost;
+
+    PlatformFocusTarget(int targetSign, int rendererHostSign, @Nullable LynxBaseUI ui,
+        @Nullable IRendererHost rendererHost) {
+      mTargetSign = targetSign;
+      mRendererHostSign = rendererHostSign;
+      mUI = ui;
+      mRendererHost = rendererHost;
+    }
+
+    boolean isSameObject(PlatformFocusTarget target) {
+      Object object = getFocusObject();
+      Object targetObject = target.getFocusObject();
+      if (object != null || targetObject != null) {
+        return object == targetObject;
+      }
+      return mTargetSign == target.mTargetSign && mRendererHostSign == target.mRendererHostSign;
+    }
+
+    boolean containsSign(int sign) {
+      return mTargetSign == sign || mRendererHostSign == sign;
+    }
+
+    boolean isFocusable() {
+      if (mUI != null) {
+        return mUI.isFocusable();
+      }
+      View view = mRendererHost != null ? mRendererHost.getView() : null;
+      return view != null && view.isFocusable();
+    }
+
+    void onFocusChanged(boolean hasFocus, boolean isFocusTransition) {
+      if (mUI != null) {
+        mUI.onFocusChanged(hasFocus, isFocusTransition);
+        return;
+      }
+      View view = mRendererHost != null ? mRendererHost.getView() : null;
+      if (view == null) {
+        return;
+      }
+      if (hasFocus) {
+        view.requestFocus();
+      } else {
+        view.clearFocus();
+      }
+    }
+
+    @Nullable
+    private Object getFocusObject() {
+      return mUI != null ? mUI : mRendererHost;
+    }
+  }
+
   @CalledByNative
   public void destroyPlatformRenderer(int sign) {
+    if (mFocusedTarget != null && mFocusedTarget.containsSign(sign)) {
+      mFocusedTarget = null;
+    }
     LynxUIOwner owner = mContext.getLynxUIOwner();
     boolean shouldRemoveFromNativeParent = false;
     if (owner != null && owner.getNode(sign) != null) {
@@ -566,13 +660,26 @@ public class PlatformRendererContext implements TextMeasurerProvider {
     host.getRenderer().setLynxFrame(needClip, left, top, left + width, top + height, dx, dy);
 
     LynxUIOwner owner = mContext.getLynxUIOwner();
-    if (owner != null && owner.getNode(sign) != null) {
-      int layoutLeft = left + dx;
-      int layoutTop = top + dy;
-      owner.updateLayout(sign, layoutLeft, layoutTop, width, height, paddingLeft, paddingTop,
-          paddingRight, paddingBottom, marginLeft, marginTop, marginRight, marginBottom,
-          borderLeftWidth, borderTopWidth, borderRightWidth, borderBottomWidth, null, null, 0,
-          sign);
+    if (owner != null) {
+      LynxBaseUI ui = owner.getNode(sign);
+      if (ui != null) {
+        int layoutLeft = left + dx;
+        int layoutTop = top + dy;
+        if (sign == owner.getRootSign() && ui == mContext.getUIBody()) {
+          // The page root's content is laid out by the Renderer directly on the UIBodyView,
+          // so it must not go through the legacy UIOwner layout path. Only sync the minimal
+          // layout data on the UIBody without running any layout lifecycle: the fields are
+          // still read by the FSP snapshot, the intersection observer, accessibility bounds
+          // and requestUIInfo.
+          ui.updateLayoutSize(width, height);
+          ui.syncLayoutFrame(layoutLeft, layoutTop, width, height);
+        } else {
+          owner.updateLayout(sign, layoutLeft, layoutTop, width, height, paddingLeft, paddingTop,
+              paddingRight, paddingBottom, marginLeft, marginTop, marginRight, marginBottom,
+              borderLeftWidth, borderTopWidth, borderRightWidth, borderBottomWidth, null, null, 0,
+              sign);
+        }
+      }
     }
 
     host.requestLayoutForRenderer();
@@ -724,6 +831,14 @@ public class PlatformRendererContext implements TextMeasurerProvider {
   }
 
   @CalledByNative
+  void setNeedMarkPaintEndTiming(String pipelineId) {
+    PerformanceController perfController = mContext != null ? mContext.getPerfController() : null;
+    if (perfController != null) {
+      perfController.setNeedMarkPaintEndTiming(pipelineId);
+    }
+  }
+
+  @CalledByNative
   public void onNodeReadyBatch(int[] signs) {
     if (signs == null) {
       return;
@@ -855,6 +970,7 @@ public class PlatformRendererContext implements TextMeasurerProvider {
       nativeDestroy(mNativePtr);
     }
     mNativePtr = 0;
+    mFocusedTarget = null;
     mViewHolder.clear();
 
     for (Object value : mExtraDatas.values()) {

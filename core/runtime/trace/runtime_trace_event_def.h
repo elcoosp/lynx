@@ -774,6 +774,7 @@ inline constexpr const char* const FIBER_CREATE_COMPONENT =
  * @trace_description: Create a Fiber view element.
  */
 inline constexpr const char* const FIBER_CREATE_VIEW = "FiberCreateView";
+inline constexpr const char* const FIBER_CREATE_COMPOSE = "FiberCreateCompose";
 /**
  * @trace_description: Create a Fiber list element.
  */
@@ -833,6 +834,20 @@ inline constexpr const char* const FIBER_REMOVE_ELEMENT = "FiberRemoveElement";
  */
 inline constexpr const char* const FIBER_INSERT_ELEMENT_BEFORE =
     "FiberInsertElementBefore";
+/**
+ * @trace_description: Insert a Fiber element at a child index.
+ */
+inline constexpr const char* const FIBER_INSERT_ELEMENT_AT =
+    "FiberInsertElementAt";
+/**
+ * @trace_description: Remove Fiber elements from a child index range.
+ */
+inline constexpr const char* const FIBER_REMOVE_ELEMENTS_AT =
+    "FiberRemoveElementsAt";
+/**
+ * @trace_description: Move Fiber elements between child indexes.
+ */
+inline constexpr const char* const FIBER_MOVE_ELEMENTS = "FiberMoveElements";
 /**
  * @trace_description: Get the first child element of a Fiber element.
  */
@@ -1019,6 +1034,11 @@ inline constexpr const char* const FIBER_SET_PARSED_STYLES =
  * @trace_description: Add an event binding to a Fiber element.
  */
 inline constexpr const char* const FIBER_ADD_EVENT = "FiberAddEvent";
+/**
+ * @trace_description: Apply a Compose Modifier chain to a Fiber element.
+ */
+inline constexpr const char* const FIBER_SET_COMPOSE_MODIFIER =
+    "FiberSetComposeModifier";
 /**
  * @trace_description: Create a gesture detector instance for a Fiber element.
  */

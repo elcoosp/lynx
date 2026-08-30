@@ -114,6 +114,7 @@ class LynxDevToolMediator
   DECLARE_DEVTOOL_METHOD(GetSearchResults);
   DECLARE_DEVTOOL_METHOD(DiscardSearchResults);
   DECLARE_DEVTOOL_METHOD(GetOriginalNodeIndex);
+  DECLARE_DEVTOOL_METHOD(GetOriginalNodeSourceInfo);
   DECLARE_DEVTOOL_METHOD(ScrollIntoViewIfNeeded);
   DECLARE_DEVTOOL_METHOD(DOM_Focus);
   DECLARE_DEVTOOL_METHOD(DOMEnableDomTree);
@@ -124,6 +125,7 @@ class LynxDevToolMediator
   DECLARE_DEVTOOL_METHOD(CSS_Enable);
   DECLARE_DEVTOOL_METHOD(CSS_Disable);
   DECLARE_DEVTOOL_METHOD(GetMatchedStylesForNode);
+  DECLARE_DEVTOOL_METHOD(GetLayersForNode);
   DECLARE_DEVTOOL_METHOD(GetComputedStyleForNode);
   DECLARE_DEVTOOL_METHOD(GetInlineStylesForNode);
   DECLARE_DEVTOOL_METHOD(SetStyleTexts);
@@ -172,6 +174,13 @@ class LynxDevToolMediator
   DECLARE_DEVTOOL_METHOD(LynxGetViewLocationOnScreen)
   DECLARE_DEVTOOL_METHOD(LynxSendEventToVM)
   DECLARE_DEVTOOL_METHOD(GetScreenshot)
+
+  // GlobalProps domain -> tasm executor
+  DECLARE_DEVTOOL_METHOD(GlobalPropsEnable)
+  DECLARE_DEVTOOL_METHOD(GlobalPropsDisable)
+  DECLARE_DEVTOOL_METHOD(GlobalPropsGet)
+  DECLARE_DEVTOOL_METHOD(GlobalPropsReplace)
+  void GlobalPropsChanged();
 
   // Template domain
   DECLARE_DEVTOOL_METHOD(TemplateGetTemplateData)

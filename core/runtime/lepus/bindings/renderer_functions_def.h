@@ -69,6 +69,7 @@
   V(FiberCreateComponent)               \
   V(FiberCreateList)                    \
   V(FiberCreateView)                    \
+  V(FiberCreateCompose)                 \
   V(FiberCreateScrollView)              \
   V(FiberCreateText)                    \
   V(FiberCreateImage)                   \
@@ -79,6 +80,9 @@
   V(FiberAppendElement)                 \
   V(FiberRemoveElement)                 \
   V(FiberInsertElementBefore)           \
+  V(FiberInsertElementAt)               \
+  V(FiberRemoveElementsAt)              \
+  V(FiberMoveElements)                  \
   V(FiberFirstElement)                  \
   V(FiberLastElement)                   \
   V(FiberNextElement)                   \
@@ -122,6 +126,7 @@
   V(FiberSetEvents)                     \
   V(FiberGetEvent)                      \
   V(FiberGetEvents)                     \
+  V(FiberSetComposeModifier)            \
   V(FiberSetID)                         \
   V(FiberGetID)                         \
   V(FiberAddDataset)                    \

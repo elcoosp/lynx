@@ -88,6 +88,16 @@ void ExposeObserver::SetExposureHostVisible(bool visible) {
   exposure_host_visible_ = visible;
 }
 
+bool ExposeObserver::TryNotifyAppearWithoutGeometry() {
+  if (!available_ || !root_ || expose_attrs_.exposure_stoped ||
+      !exposure_host_visible_ ||
+      !expose_attrs_.exposure_should_notify_appear_ || IsExposed()) {
+    return false;
+  }
+  NotifyExposureEvent(true);
+  return true;
+}
+
 void ExposeObserver::NotifyAppearEvent(bool appear) {
   if (attached_view_ && attached_view_->page_view()) {
     const char* event_name = appear ? "uiappear" : "uidisappear";
@@ -106,8 +116,15 @@ void ExposeObserver::NotifyAppearEvent(bool appear) {
         CloneClayValue(attached_view_->GetDataSet());
     params[detail_attr::kDataSetCompat] =
         CloneClayValue(attached_view_->GetDataSet());
-    attached_view_->page_view()->SendCustomEvent(
-        attached_view_->GetCallbackId(), event_name, std::move(params));
+    auto* page_view = attached_view_->page_view();
+    const auto& page_children = page_view->GetChildren();
+    const bool is_page_first_child = attached_view_->Parent() == page_view &&
+                                     !page_children.empty() &&
+                                     page_children.front() == attached_view_;
+    EventDispatchOptions dispatch_options{.emergency =
+                                              appear && is_page_first_child};
+    page_view->SendCustomEvent(attached_view_->GetCallbackId(), event_name,
+                               std::move(params), dispatch_options);
   }
 }
 

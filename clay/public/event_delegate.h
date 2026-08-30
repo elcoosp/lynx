@@ -10,12 +10,17 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "clay/public/clay.h"
 #include "clay/public/style_types.h"
 #include "clay/public/value.h"
 
 namespace clay {
+
+struct EventDispatchOptions {
+  bool emergency{false};
+};
 
 class EventDelegate {
  public:
@@ -52,6 +57,11 @@ class EventDelegate {
   virtual void OnDrawEndEvent() = 0;
   virtual void OnSendCustomEvent(int view_id, const std::string& event_name,
                                  clay::Value::Map args) = 0;
+  virtual void OnSendCustomEventWithOptions(
+      int view_id, const std::string& event_name, clay::Value::Map args,
+      const EventDispatchOptions& options) {
+    OnSendCustomEvent(view_id, event_name, std::move(args));
+  }
   virtual void OnSendGlobalEvent(const std::string& event_name,
                                  clay::Value args) = 0;
   virtual void OnFirstMeaningfulPaint() = 0;
@@ -63,6 +73,7 @@ class EventDelegate {
   virtual void OnCallJSApiCallback(int callback_id, clay::Value value) = 0;
   virtual void CallJSIntersectionObserver(int observer_id, int callback_id,
                                           clay::Value params) = 0;
+  virtual void OnExternalMemoryReport(int64_t, int64_t) {}
 };
 
 }  // namespace clay

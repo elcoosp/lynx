@@ -31,6 +31,7 @@ class UINewImage : public UIBase,
                     const lepus::Value& value) override;
 
   void OnDrawBehind(OH_Drawing_Canvas* canvas, ArkUI_NodeHandle node) override;
+  void OnOverlayDraw(OH_Drawing_Canvas* canvas, ArkUI_NodeHandle node) override;
 
   void OnImageLoadSuccess(float image_width, float image_height) override;
   void OnImageMonitorInfo(const ImageMonitorInfo& data) override;
@@ -40,6 +41,8 @@ class UINewImage : public UIBase,
   void OnAnimationRepeat() override;
   void OnAnimationFinish() override;
   bool NeedMonitorInfo() override;
+
+  int64_t GetMemoryUsageBytes() const override;
 
  protected:
   UINewImage(LynxContext* context, int sign, const std::string& tag);
@@ -87,10 +90,12 @@ class UINewImage : public UIBase,
   bool autoplay_{true};
   int32_t loop_count_{0};
   std::unique_ptr<ImageNode> image_node_;
+  std::shared_ptr<SvgImageLoader> svg_image_loader_;
   bool has_src_{false};
   bool enable_image_load_callback_{false};  // for native side
   bool enable_report_info_{false};          // for frontend
   bool enable_redirect_url_{false};
+  bool svg_overlay_event_registered_{false};
 
   static std::unordered_map<std::string,
                             void (UINewImage::*)(const lepus::Value& value)>
@@ -116,6 +121,8 @@ class UINewImage : public UIBase,
   // destroyed. Callers must abort immediately if false is returned to prevent
   // UAF.
   bool LoadImage();
+  bool LoadSvgImage();
+  bool UpdateSvgImageLoader();
   void LoadImageFromService(const std::string& url,
                             const std::string& placeholder,
                             pub::LynxImageResponseOptions options = {});

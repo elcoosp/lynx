@@ -11,6 +11,21 @@ static NSInteger gTextareaLightTag = 23333;
 static CGFloat kLynxTextAreaEpsilonThreshold = 1.0f;
 static NSInteger kLynxTextAreaOutOfMaxlines = -1;
 
+@interface LynxTextViewLite : UITextView
+
+@property(nonatomic, assign) BOOL pasting;
+
+@end
+
+@implementation LynxTextViewLite
+
+- (void)paste:(id)sender {
+  self.pasting = YES;
+  [super paste:sender];
+}
+
+@end
+
 @interface LynxUIBaseInput (LynxDefaultValueInputEventSuppression)
 // Reuse the default-value input suppression flag owned by LynxUIBaseInput.m.
 // The flag stays private; this local declaration only makes the existing
@@ -41,7 +56,7 @@ static NSInteger kLynxTextAreaOutOfMaxlines = -1;
 }
 
 - (UITextView *)createView {
-  UITextView* textView = [[UITextView alloc] init];
+  LynxTextViewLite* textView = [[LynxTextViewLite alloc] init];
   textView.autoresizesSubviews = NO;
   textView.clipsToBounds = YES;
   textView.delegate = self;
@@ -51,14 +66,14 @@ static NSInteger kLynxTextAreaOutOfMaxlines = -1;
   textView.textContainer.lineFragmentPadding = 0;
 
   textView.tag = gTextareaLightTag++;
-  
+
   textView.showsVerticalScrollIndicator = NO;
-  
+
   kLynxTextAreaEpsilonThreshold = UIScreen.mainScreen.scale;
-  
+
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onWillShowKeyboard:) name:UIKeyboardWillShowNotification object:nil];
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onWillHideKeyboard:) name:UIKeyboardWillHideNotification object:nil];
-  
+
   return textView;
 }
 
@@ -207,6 +222,7 @@ LYNX_UI_METHOD(setValue) {
     line = 1;
   } else {
     CGFloat lineHeightEnumerator = firstRect.origin.y;
+    // TODO(xiamengfei.moonface): [ResizableWindowScale] Check whether this should use window or physical screen metrics.
     while (lastRect.origin.y - lineHeightEnumerator > 1.0 / UIScreen.mainScreen.scale) {
       line++;
       lineHeightEnumerator += self.inputParagraphStyle.minimumLineHeight ?: self.font.lineHeight + self.inputParagraphStyle.lineSpacing;
@@ -289,6 +305,7 @@ LYNX_UI_METHOD(setValue) {
   if (![[self getText] isEqualToString:(self.lastValue ? : @"")]) {
     [self sendInputEvent];
   }
+
   self.lastValue = [self getText];
 
 }
@@ -329,17 +346,16 @@ LYNX_UI_METHOD(setValue) {
 
 - (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
   if ([text isEqualToString:@"\n"] && textView.returnKeyType != UIReturnKeyDefault) {
-    // If the confirm-type is not "default"(next-line), send confirm manually, cause UITextView do not have the callback of `textFieldShouldReturn:`
     return [self inputViewShouldReturn:textView];
   }
-  
+
   // The last line needs to be filtered when it is '\n'. This is essentially to be compatible with a bug from UIKit.
   NSArray<NSString *> *currentLines = [textView.text componentsSeparatedByCharactersInSet:NSCharacterSet.newlineCharacterSet];
   NSArray<NSString *> *comingLines = [text componentsSeparatedByCharactersInSet:NSCharacterSet.newlineCharacterSet];
   if ( currentLines.count + comingLines.count - 1 > self.maxlines) {
     return NO;
   }
-  
+
   return [self inputView:textView shouldChangeCharactersInRange:range replacementString:text];
 }
 
@@ -353,7 +369,7 @@ LYNX_UI_METHOD(setValue) {
 
 - (CGSize)adjustViewSize:(CGSize)viewSize {
   if (self.placeholder.length) {
-    CGFloat width = self.placeholderView.bounds.size.width ? : UIScreen.mainScreen.bounds.size.width;
+    CGFloat width = self.placeholderView.bounds.size.width ? : self.context.screenMetrics.screenSize.width;
     CGSize placeholderSize = [self.placeholderView sizeThatFits:CGSizeMake(width, CGFLOAT_MAX)];
     viewSize.width = MAX(viewSize.width, placeholderSize.width);
     viewSize.height = MAX(viewSize.height, placeholderSize.height);

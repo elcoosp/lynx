@@ -35,11 +35,15 @@
 #include "core/renderer/dom/element.h"
 #include "core/renderer/dom/element_manager.h"
 #include "core/renderer/dom/fiber/block_element.h"
+#include "core/renderer/dom/fiber/compose_element_handle.h"
+#include "core/renderer/dom/fiber/compose_modifier_applicator.h"
+#include "core/renderer/dom/fiber/element_utils.h"
 #include "core/renderer/dom/fiber/for_element.h"
 #include "core/renderer/dom/fiber/frame_element.h"
 #include "core/renderer/dom/fiber/if_element.h"
 #include "core/renderer/dom/fiber/image_element.h"
 #include "core/renderer/dom/fiber/list_element.h"
+#include "core/renderer/dom/fiber/modifier_element.h"
 #include "core/renderer/dom/fiber/none_element.h"
 #include "core/renderer/dom/fiber/page_element.h"
 #include "core/renderer/dom/fiber/raw_text_element.h"
@@ -91,6 +95,7 @@
 #include "core/runtime/lepus/tasks/lepus_callback_manager.h"
 #include "core/runtime/lepus/tasks/lepus_raf_manager.h"
 #include "core/runtime/trace/runtime_trace_event_def.h"
+#include "core/services/feature_count/feature_counter.h"
 #include "core/services/timing_handler/timing_constants.h"
 #include "core/services/timing_handler/timing_constants_deprecated.h"
 #include "core/shared_data/white_board_delegate.h"
@@ -156,6 +161,29 @@ fml::RefPtr<Element> GetFiberElementFromValue(const lepus::Value& value) {
     return nullptr;
   }
   return fml::static_ref_ptr_cast<Element>(value.RefCounted());
+}
+
+bool ParseComposeElementKind(const lepus::Value& value, const char* function,
+                             ComposeElementKind* result) {
+  if (!value.IsNumber() || !std::isfinite(value.Number()) ||
+      std::trunc(value.Number()) != value.Number() ||
+      value.Number() < std::numeric_limits<int32_t>::min() ||
+      value.Number() > std::numeric_limits<int32_t>::max()) {
+    ElementAPIError("%s kind should be an integer", function);
+    return false;
+  }
+
+  const auto kind = static_cast<ComposeElementKind>(value.Number());
+  switch (kind) {
+    case ComposeElementKind::kView:
+    case ComposeElementKind::kText:
+    case ComposeElementKind::kImage:
+      *result = kind;
+      return true;
+    default:
+      ElementAPIError("%s kind should be View, Text or Image", function);
+      return false;
+  }
 }
 
 TemplateElement* GetTemplateElementFromValue(const lepus::Value& value) {
@@ -2837,6 +2865,28 @@ RENDERER_FUNCTION_CC(FiberCreateView) {
   RETURN(lepus::Value(std::move(element)));
 }
 
+RENDERER_FUNCTION_CC(FiberCreateCompose) {
+  // Use a scoped trace event so every early-return validation path stays
+  // balanced; the create notification carries no extra end-time arguments.
+  TRACE_EVENT(LYNX_TRACE_CATEGORY, FIBER_CREATE_COMPOSE);
+  CHECK_ARGC_GE(FiberCreateCompose, 2);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg0, 0, Number, FiberCreateCompose);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg1, 1, Number, FiberCreateCompose);
+
+  ComposeElementKind kind;
+  if (!ParseComposeElementKind(*arg1, "FiberCreateCompose", &kind)) {
+    RETURN_UNDEFINED();
+  }
+  auto& manager = GET_TASM_POINTER()->page_proxy()->element_manager();
+  auto handle = fml::AdoptRef<ComposeElementHandle>(
+      new ComposeElementHandle(manager.get(), kind));
+  auto content_element = handle->content_element();
+  content_element->SetParentComponentUniqueIdForFiber(
+      static_cast<int64_t>(arg0->Number()));
+  ON_NODE_CREATE(content_element);
+  RETURN(lepus::Value(std::move(handle)));
+}
+
 RENDERER_FUNCTION_CC(FiberCreateList) {
   TRACE_EVENT(LYNX_TRACE_CATEGORY, FIBER_CREATE_LIST);
   // parameter size >= 3
@@ -3212,6 +3262,167 @@ RENDERER_FUNCTION_CC(FiberInsertElementBefore) {
 
   ON_NODE_ADDED(child);
   RETURN(lepus::Value(std::move(child)));
+}
+
+RENDERER_FUNCTION_CC(FiberInsertElementAt) {
+  TRACE_EVENT(LYNX_TRACE_CATEGORY, FIBER_INSERT_ELEMENT_AT);
+  // parameter size = 3
+  // [0] Element -> parent element
+  // [1] Element -> child element
+  // [2] Number -> index
+  CHECK_ARGC_GE(FiberInsertElementAt, 3);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg0, 0, RefCounted,
+                                        FiberInsertElementAt);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg1, 1, RefCounted,
+                                        FiberInsertElementAt);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg2, 2, Number, FiberInsertElementAt);
+
+  // A handle parent resolves to its Content Element, while a handle child
+  // resolves to its current physical mount root. The single RefType branch in
+  // each resolver is dispatch, not validation; callers own the reference ABI.
+  auto parent = GetComposeContentOrFiberElementFromValue(*arg0);
+  auto child = GetComposeMountRootOrFiberElementFromValue(*arg1);
+  const auto index = static_cast<int32_t>(arg2->Number());
+  const int64_t child_count = static_cast<int64_t>(parent->GetChildCount());
+  if (index < 0 || static_cast<int64_t>(index) > child_count) {
+    ElementAPIError(
+        "FiberInsertElementAt index is out of bounds, index: %d, size: %lld",
+        index, static_cast<long long>(child_count));
+    RETURN_UNDEFINED();
+  }
+
+  parent->InsertNode(child, index);
+  ON_NODE_ADDED(child);
+  RETURN_UNDEFINED();
+}
+
+RENDERER_FUNCTION_CC(FiberRemoveElementsAt) {
+  TRACE_EVENT(LYNX_TRACE_CATEGORY, FIBER_REMOVE_ELEMENTS_AT);
+  // parameter size = 3
+  // [0] Element -> parent element
+  // [1] Number -> index
+  // [2] Number -> count
+  CHECK_ARGC_GE(FiberRemoveElementsAt, 3);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg0, 0, RefCounted,
+                                        FiberRemoveElementsAt);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg1, 1, Number, FiberRemoveElementsAt);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg2, 2, Number, FiberRemoveElementsAt);
+
+  auto parent = GetComposeContentOrFiberElementFromValue(*arg0);
+
+  const auto index = static_cast<int32_t>(arg1->Number());
+  const auto count = static_cast<int32_t>(arg2->Number());
+  const int64_t child_count = static_cast<int64_t>(parent->GetChildCount());
+  const int64_t range_end =
+      static_cast<int64_t>(index) + static_cast<int64_t>(count);
+  if (index < 0 || count < 0 || static_cast<int64_t>(index) > child_count ||
+      range_end > child_count) {
+    ElementAPIError(
+        "FiberRemoveElementsAt range is out of bounds, index: %d, count: %d, "
+        "size: %lld",
+        index, count, static_cast<long long>(child_count));
+    RETURN_UNDEFINED();
+  }
+
+  base::InlineVector<fml::RefPtr<Element>, 16> removed_elements;
+  for (int32_t offset = 0; offset < count; ++offset) {
+    const auto child_index =
+        static_cast<size_t>(static_cast<int64_t>(index) + offset);
+    auto* child = parent->GetChildAt(child_index);
+    if (child == nullptr) {
+      ElementAPIError(
+          "FiberRemoveElementsAt failed to resolve the complete child range");
+      RETURN_UNDEFINED();
+    }
+    removed_elements.emplace_back(fml::RefPtr<Element>(child));
+  }
+
+  for (const auto& child : removed_elements) {
+    ON_NODE_REMOVED(child);
+    parent->RemoveNode(child);
+  }
+  RETURN_UNDEFINED();
+}
+
+RENDERER_FUNCTION_CC(FiberMoveElements) {
+  TRACE_EVENT(LYNX_TRACE_CATEGORY, FIBER_MOVE_ELEMENTS);
+  // parameter size = 4
+  // [0] Element -> parent element
+  // [1] Number -> source index in the pre-change sequence
+  // [2] Number -> destination index in the pre-change sequence
+  // [3] Number -> count
+  CHECK_ARGC_GE(FiberMoveElements, 4);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg0, 0, RefCounted, FiberMoveElements);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg1, 1, Number, FiberMoveElements);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg2, 2, Number, FiberMoveElements);
+  CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg3, 3, Number, FiberMoveElements);
+
+  auto parent = GetComposeContentOrFiberElementFromValue(*arg0);
+
+  const auto from = static_cast<int32_t>(arg1->Number());
+  const auto to = static_cast<int32_t>(arg2->Number());
+  const auto count = static_cast<int32_t>(arg3->Number());
+  const int64_t child_count = static_cast<int64_t>(parent->GetChildCount());
+  const int64_t source_end =
+      static_cast<int64_t>(from) + static_cast<int64_t>(count);
+  if (from < 0 || to < 0 || count < 0 ||
+      static_cast<int64_t>(from) > child_count ||
+      static_cast<int64_t>(to) > child_count || source_end > child_count) {
+    ElementAPIError(
+        "FiberMoveElements range is out of bounds, from: %d, to: %d, count: "
+        "%d, size: %lld",
+        from, to, count, static_cast<long long>(child_count));
+    RETURN_UNDEFINED();
+  }
+
+  if (count == 0 || from == to || static_cast<int64_t>(to) == source_end) {
+    RETURN_UNDEFINED();
+  }
+  if (from < to && static_cast<int64_t>(to) < source_end) {
+    ElementAPIError(
+        "FiberMoveElements destination overlaps the source range, from: %d, "
+        "to: %d, count: %d",
+        from, to, count);
+    RETURN_UNDEFINED();
+  }
+
+  const int64_t destination =
+      from > to ? static_cast<int64_t>(to)
+                : static_cast<int64_t>(to) - static_cast<int64_t>(count);
+  const int64_t destination_end = destination + static_cast<int64_t>(count);
+  if (destination < 0 || destination > child_count - count ||
+      destination_end - 1 > std::numeric_limits<int32_t>::max()) {
+    ElementAPIError(
+        "FiberMoveElements destination is out of bounds, from: %d, to: %d, "
+        "count: %d, destination: %lld, size: %lld",
+        from, to, count, static_cast<long long>(destination),
+        static_cast<long long>(child_count));
+    RETURN_UNDEFINED();
+  }
+
+  base::InlineVector<fml::RefPtr<Element>, 16> moving_elements;
+  for (int32_t offset = 0; offset < count; ++offset) {
+    const auto child_index =
+        static_cast<size_t>(static_cast<int64_t>(from) + offset);
+    auto* child = parent->GetChildAt(child_index);
+    if (child == nullptr) {
+      ElementAPIError(
+          "FiberMoveElements failed to resolve the complete source range");
+      RETURN_UNDEFINED();
+    }
+    moving_elements.emplace_back(fml::RefPtr<Element>(child));
+  }
+
+  for (const auto& child : moving_elements) {
+    ON_NODE_REMOVED(child);
+    parent->RemoveNode(child, false);
+  }
+  for (int32_t offset = 0; offset < count; ++offset) {
+    const auto& child = moving_elements[offset];
+    parent->InsertNode(child, static_cast<int32_t>(destination + offset));
+    ON_NODE_ADDED(child);
+  }
+  RETURN_UNDEFINED();
 }
 
 RENDERER_FUNCTION_CC(FiberFirstElement) {
@@ -3926,6 +4137,10 @@ RENDERER_FUNCTION_CC(FiberCloneElement) {
 
   const std::shared_ptr<CSSStyleSheetManager>& style_sheet_manager =
       self->style_sheet_manager(DEFAULT_ENTRY_NAME);
+  // Count the usage of __CloneElement. If the feature counter of the next
+  // release shows no usage, remove the element clone related logic.
+  report::FeatureCounter::Instance()->Count(
+      report::LynxFeature::CPP_ELEMENT_CLONE);
   return lepus::Value(TreeResolver::CloneElements(element, style_sheet_manager,
                                                   clone_resolved_props, depth));
 }
@@ -3984,7 +4199,7 @@ RENDERER_FUNCTION_CC(FiberSetAttribute) {
   // [2] any -> value
   CHECK_ARGC_GE(FiberSetAttribute, 3);
   CONVERT_ARG_AND_CHECK_FOR_ELEMENT_API(arg0, 0, RefCounted, FiberSetAttribute);
-  auto element = fml::static_ref_ptr_cast<Element>(arg0->RefCounted());
+  auto element = GetComposeContentOrFiberElementFromValue(*arg0);
   CONVERT_ARG(arg1, 1);
   CONVERT_ARG(arg2, 2);
   uint32_t type = static_cast<uint32_t>(arg1->Number());
@@ -4202,7 +4417,20 @@ RENDERER_FUNCTION_CC(FiberAddInlineStyle) {
   if (UNLIKELY(id == CSSPropertyID::kPropertyStart)) {
     id = CSSProperty::GetPropertyID(arg1->String());
   }
-  element->SetStyle(id, arg2->ToLepusValue());
+  const lepus::Value value = arg2->ToLepusValue();
+  element->SetStyle(id, value);
+
+  // TODO(luochangan.adrian): Consider merging this observation path into
+  // DOM.attributeModified, but changing its emission timing may be a breaking
+  // change.
+  EXEC_EXPR_FOR_INSPECTOR({
+    if (CSSProperty::IsPropertyValid(id)) {
+      auto* observer = element->element_manager()->inspector_element_observer();
+      if (observer != nullptr) {
+        observer->OnAddInlineStyle(element->impl_id(), id, value);
+      }
+    }
+  });
 
   ON_NODE_MODIFIED(element);
   RETURN_UNDEFINED();
@@ -4637,6 +4865,42 @@ RENDERER_FUNCTION_CC(FiberSetEvents) {
   });
 
   ON_NODE_MODIFIED(element);
+  RETURN_UNDEFINED();
+}
+
+// Adapts the LEPUS binding to ModifierElement. The owner retains its physical
+// root entirely in native code; callers keep only the stable opaque handle.
+RENDERER_FUNCTION_CC(FiberSetComposeModifier) {
+  TRACE_EVENT(LYNX_TRACE_CATEGORY, FIBER_SET_COMPOSE_MODIFIER);
+  // parameter size = 2
+  // [0] RefCounted -> Modifier owner element
+  // [1] Object | Null | Undefined -> modifier chain tail node
+  CHECK_ARGC_GE(FiberSetComposeModifier, 2);
+  CONVERT_ARG(arg0, 0);
+  CONVERT_ARG(arg1, 1);
+
+  auto handle =
+      fml::static_ref_ptr_cast<ComposeElementHandle>(arg0->RefCounted());
+  if (!arg1->IsObject() && !arg1->IsEmpty()) {
+    ElementAPIError(
+        "FiberSetComposeModifier: param 1 should be an Object, null or "
+        "undefined");
+    RETURN_UNDEFINED();
+  }
+  auto owner = handle->content_element();
+  CHECK_ILLEGAL_ATTRIBUTE_CONFIG(owner, FiberSetComposeModifier);
+
+  auto result =
+      ComposeModifierApplicator::Apply(handle.get(), *arg1, LEPUS_CONTEXT());
+  if (!result.success) {
+    ElementAPIError(
+        "FiberSetComposeModifier: invalid Modifier plan for owner %d at "
+        "chain position %zu: %s",
+        owner->impl_id(), result.error_position, result.error_message.c_str());
+    RETURN_UNDEFINED();
+  }
+
+  ON_NODE_MODIFIED(owner);
   RETURN_UNDEFINED();
 }
 
@@ -5258,6 +5522,14 @@ RENDERER_FUNCTION_CC(FiberFlushElementTree) {
         if (element) {
           element->AsyncResolveSubtreeProperty();
         }
+        EXEC_EXPR_FOR_INSPECTOR({
+          auto* observer = self->page_proxy()
+                               ->element_manager()
+                               ->inspector_element_observer();
+          if (observer != nullptr) {
+            observer->OnFiberFlushElementTree();
+          }
+        });
         RETURN_UNDEFINED();
       }
     }
@@ -5321,6 +5593,13 @@ RENDERER_FUNCTION_CC(FiberFlushElementTree) {
                         ctx.event()->add_debug_annotations(
                             PIPELINE_ID, current_option->pipeline_id);
                       });
+  EXEC_EXPR_FOR_INSPECTOR({
+    auto* observer =
+        self->page_proxy()->element_manager()->inspector_element_observer();
+    if (observer != nullptr) {
+      observer->OnFiberFlushElementTree();
+    }
+  });
   RETURN_UNDEFINED();
 }
 

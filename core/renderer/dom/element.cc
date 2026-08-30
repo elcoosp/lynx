@@ -245,6 +245,7 @@ Element::Element(const Element& element, bool clone_resolved_props)
       updated_attr_map_(element.updated_attr_map_),
       builtin_attr_map_(element.builtin_attr_map_),
       reset_attr_vec_(element.reset_attr_vec_),
+      modifier_attribute_names_(element.modifier_attribute_names_),
       part_id_(element.part_id_) {
   if (element.base_css_style() != nullptr) {
     base_css_style_ = std::make_unique<starlight::ComputedCSSStyle>(
@@ -832,7 +833,8 @@ void Element::ResetAttribute(const base::String& key) {
       if (auto fragment = fragment_impl()) {
         if (name == PlatformEventPropName::kEventThrough ||
             name == PlatformEventPropName::kEventThroughActiveRegions ||
-            name == PlatformEventPropName::kEventsPassThrough) {
+            name == PlatformEventPropName::kEventsPassThrough ||
+            name == PlatformEventPropName::kIgnoreFocus) {
           fragment->SetEventProp(name, lepus::Value());
         } else {
           fragment->SetEventProp(name, lepus::Value(0));
@@ -925,6 +927,30 @@ void Element::SetAttribute(const base::String& key, const lepus::Value& value,
     }
   }
   MarkDirty(kDirtyAttr);
+}
+
+void Element::SetModifierAttribute(const base::String& key,
+                                   const lepus::Value& value) {
+  // Drop any pending reset for this key: ConsumeAllAttributes applies updates
+  // before resets, so a stale reset would wipe the value we set this frame.
+  if (!value.IsEmpty() && reset_attr_vec_.has_value()) {
+    auto& reset_attributes = *reset_attr_vec_;
+    reset_attributes.erase(
+        std::remove(reset_attributes.begin(), reset_attributes.end(), key),
+        reset_attributes.end());
+  }
+  SetAttribute(key, value);
+  modifier_attribute_names_->insert(key);
+}
+
+void Element::RemoveAllModifierAttributes() {
+  if (!modifier_attribute_names_.has_value()) {
+    return;
+  }
+  for (const auto& key : *modifier_attribute_names_) {
+    SetAttribute(key, lepus::Value());
+  }
+  modifier_attribute_names_.reset();
 }
 
 void Element::SetBuiltinAttribute(ElementBuiltInAttributeEnum key,
@@ -2568,6 +2594,17 @@ void Element::EnsureTagInfo() {
   }
 }
 
+void Element::UpdateNodeInfo(int32_t node_info) {
+  // Only refresh cached node info before the painting node is created. Initial
+  // node info is resolved lazily by EnsureTagInfo().
+  if (layout_node_type_ == kLayoutNodeTypeNotInit || has_painting_node_) {
+    return;
+  }
+  layout_node_type_ = (node_info & 0xFFFF);
+  create_node_async_ = ((node_info & 0x10000) > 0);
+  need_process_direction_ = ((node_info & 0x20000) > 0);
+}
+
 void Element::TransitionToNativeView() {
   // If already layout only or is virtual, do not need create ui for this
   // element.
@@ -2807,6 +2844,16 @@ bool Element::GetEnableMultiTouchParamsCompatible() {
 
 float Element::GetLayoutsUnitPerPx() {
   return element_manager_->GetLynxEnvConfig().LayoutsUnitPerPx();
+}
+
+void Element::UpdateScrollOffset(float x, float y) {
+  scroll_offset_x_ = x;
+  scroll_offset_y_ = y;
+}
+
+void Element::UpdateStickyTranslation(float x, float y) {
+  sticky_translation_x_ = x;
+  sticky_translation_y_ = y;
 }
 
 starlight::LayoutResultForRendering Element::layout_result() {
@@ -3227,10 +3274,7 @@ void Element::SetStyle(CSSPropertyID id, const lepus::Value& value) {
       if (value.IsEmpty()) {
         data_model()->ResetInlineStyle(id);
       } else {
-        data_model()->SetInlineStyle(id,
-                                     value.IsNumber()
-                                         ? std::to_string(value.Number())
-                                         : value.ToString(),
+        data_model()->SetInlineStyle(id, value,
                                      element_manager_->GetCSSParserConfigs());
       }
     }

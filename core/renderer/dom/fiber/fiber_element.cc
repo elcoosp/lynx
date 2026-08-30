@@ -343,17 +343,6 @@ bool Element::NewPipelineStyleMutationPlan::NeedsSemanticCommit() const {
          font_size_context_changed || root_font_size_context_changed;
 }
 
-event::EventListener::Options GetEventListenerOptions(
-    const base::String &type) {
-  const bool is_capture = type.str() == EVENT_TYPE_CAPTURE;
-  const bool is_capture_catch = type.str() == EVENT_TYPE_CAPTURE_CATCH;
-  const bool is_bubble_catch = type.str() == EVENT_TYPE_CATCH;
-  const bool is_global_bind = type.str() == EVENT_TYPE_GLOBAL;
-  return event::EventListener::Options(
-      is_capture || is_capture_catch, false, false, false,
-      is_capture_catch || is_bubble_catch, is_global_bind);
-}
-
 Element::NewPipelineStyleResolveResult Element::ResolveComputedStyles(
     const starlight::ComputedCSSStyle *previous_final_style,
     double old_font_size, double old_root_font_size) {
@@ -1205,6 +1194,14 @@ void Element::DispatchAsyncResolveProperty() {
 
 #pragma region simple styling
 
+void Element::MarkSimpleStyleDirty(uint32_t dirty_bits) {
+  if (!element_manager_ ||
+      !element_manager_->EnableSimpleStyleNoPatchOptimization()) {
+    dirty_bits |= kDirtyForceUpdate;
+  }
+  MarkDirty(dirty_bits);
+}
+
 void Element::SetStyleObjects(
     std::unique_ptr<style::StyleObject *, style::StyleObjectArrayDeleter>
         style_objects) {
@@ -1212,7 +1209,7 @@ void Element::SetStyleObjects(
 
   style_objects_ = std::move(style_objects);
 
-  MarkDirty(kDirtyForceUpdate | kDirtyStyleObjects);
+  MarkSimpleStyleDirty(kDirtyStyleObjects);
 }
 
 void Element::ReplaceDynamicSimpleStyles(
@@ -1226,7 +1223,7 @@ void Element::ReplaceDynamicSimpleStyles(
   }
 
   dynamic_simple_object_ = std::move(new_style_object);
-  MarkDirty(kDirtyForceUpdate | kDirtyDynamicStyleObjects);
+  MarkSimpleStyleDirty(kDirtyDynamicStyleObjects);
 }
 
 void Element::AddDynamicSimpleStyles(tasm::StyleMap &&new_styles) {
@@ -1246,12 +1243,12 @@ void Element::AddDynamicSimpleStyles(tasm::StyleMap &&new_styles) {
   if (!dynamic_simple_object_) {
     dynamic_simple_object_ =
         style::CreateDynamicStyleObjectRef(std::move(new_styles));
-    MarkDirty(kDirtyForceUpdate | kDirtyDynamicStyleObjects);
+    MarkSimpleStyleDirty(kDirtyDynamicStyleObjects);
     return;
   }
 
   dynamic_simple_object_->MergeStyleMap(std::move(new_styles));
-  MarkDirty(kDirtyForceUpdate | kDirtyDynamicStyleObjects);
+  MarkSimpleStyleDirty(kDirtyDynamicStyleObjects);
 }
 
 void Element::RemoveDynamicSimpleStyleKV(tasm::CSSPropertyID id) {
@@ -1271,7 +1268,7 @@ void Element::RemoveDynamicSimpleStyleKV(tasm::CSSPropertyID id) {
   if (dynamic_simple_object_->Properties().empty()) {
     dynamic_simple_object_ = nullptr;
   }
-  MarkDirty(kDirtyForceUpdate | kDirtyDynamicStyleObjects);
+  MarkSimpleStyleDirty(kDirtyDynamicStyleObjects);
 }
 
 void Element::AddDynamicSimpleStyleKV(tasm::CSSPropertyID id,
@@ -1287,12 +1284,12 @@ void Element::AddDynamicSimpleStyleKV(tasm::CSSPropertyID id,
     dynamic_styles.insert_or_assign(id, std::move(value));
     dynamic_simple_object_ =
         style::CreateDynamicStyleObjectRef(std::move(dynamic_styles));
-    MarkDirty(kDirtyForceUpdate | kDirtyDynamicStyleObjects);
+    MarkSimpleStyleDirty(kDirtyDynamicStyleObjects);
     return;
   }
 
   dynamic_simple_object_->UpdateStyleMap(id, std::move(value));
-  MarkDirty(kDirtyForceUpdate | kDirtyDynamicStyleObjects);
+  MarkSimpleStyleDirty(kDirtyDynamicStyleObjects);
 }
 
 void Element::ApplySimpleStyleWithoutTail(const tasm::CSSPropertyID id,
@@ -1308,14 +1305,22 @@ void Element::ApplySimpleStyleWithoutTail(const tasm::CSSPropertyID id,
 
   if (value.IsEmpty()) {
     if (id == kPropertyIDFontSize) {
+      const auto previous_font_size = GetFontSize();
       ResetFontSize();
+      if (base::FloatsNotEqual(previous_font_size, GetFontSize())) {
+        MarkDirty(kDirtyForceUpdate);
+      }
     }
     ResetStyleInternal(id);
     return;
   }
 
   if (id == kPropertyIDFontSize) {
+    const auto previous_font_size = GetFontSize();
     SetFontSize(value);
+    if (base::FloatsNotEqual(previous_font_size, GetFontSize())) {
+      MarkDirty(kDirtyForceUpdate);
+    }
     dirty_ &= ~kDirtyFontSize;
   } else {
     SetStyleInternal(id, value);
@@ -1373,7 +1378,10 @@ void Element::FinalizeSimpleStyleUpdate() {
   }
   EXEC_EXPR_FOR_INSPECTOR(
       element_manager()->OnElementNodeSetForInspector(this););
-  MarkDirty(kDirtyForceUpdate);
+  if (!element_manager_->EnableSimpleStyleNoPatchOptimization() ||
+      prop_bundle_ || layout_bundle_ || computed_css_style()->IsDirty()) {
+    MarkDirty(kDirtyForceUpdate);
+  }
 }
 
 void Element::UpdateSimpleStyles(tasm::StyleMap &&style_map) {
@@ -1559,11 +1567,7 @@ void Element::InsertNodeBeforeInternal(const fml::RefPtr<Element> &child,
     old_parent->LogNodeInfo();
     old_parent->RemoveNode(child);
   }
-  if (update_logical_children) {
-    InsertLogicalChildBefore(child, ref_node);
-  }
-  // FIXME(linxs): use linked element to reduce the Element index calculation
-  AddChildAt(child, index);
+  AttachNodeToElementTree(child, ref_node, index, update_logical_children);
 
   // the insert Action should be inserted to Child, should make sure the child
   // has been flushed
@@ -1585,9 +1589,60 @@ void Element::InsertNodeBeforeInternal(const fml::RefPtr<Element> &child,
   MarkDirty(kDirtyTree);
 }
 
+void Element::AttachNodeToElementTree(const fml::RefPtr<Element> &child,
+                                      Element *ref_node, int32_t index,
+                                      bool update_logical_children) {
+  if (update_logical_children) {
+    InsertLogicalChildBefore(child, ref_node);
+  }
+  // FIXME(linxs): use linked element to reduce the Element index calculation
+  AddChildAt(child, index);
+}
+
 void Element::InsertNodeBefore(const fml::RefPtr<Element> &child,
                                const fml::RefPtr<Element> &reference_child) {
   InsertNodeBeforeInternal(child, reference_child.get());
+}
+
+fml::RefPtr<Element> Element::TakeMoveSourceParent(
+    const fml::RefPtr<Element> &child) {
+  auto pending_move =
+      std::find_if(action_param_list_.begin(), action_param_list_.end(),
+                   [&child](const ActionParam &param) {
+                     return param.type_ == Action::kMoveAct &&
+                            param.child_.get() == child.get();
+                   });
+  if (pending_move == action_param_list_.end()) {
+    return fml::RefPtr<Element>(this);
+  }
+
+  auto source_parent = std::move(pending_move->source_parent_);
+  action_param_list_.erase(pending_move);
+  return source_parent;
+}
+
+void Element::MoveNodeToIndex(const fml::RefPtr<Element> &child,
+                              int32_t index) {
+  auto *immediate_source = child->parent();
+  const int32_t source_index = immediate_source->IndexOf(child.get());
+  Element *ref_node = index < static_cast<int32_t>(scoped_children_.size())
+                          ? scoped_children_[index].get()
+                          : nullptr;
+  auto source_parent = immediate_source->TakeMoveSourceParent(child);
+
+  immediate_source->DetachNodeFromElementTree(child, source_index, true);
+  AttachNodeToElementTree(child, ref_node, index, true);
+  action_param_list_.emplace_back(
+      Action::kMoveAct, this, child, index, ref_node, child->is_fixed(),
+      child->ZIndex() != 0, std::move(source_parent));
+
+  if (IsCSSInheritanceEnabled()) {
+    child->MarkDirty(kDirtyPropagateInherited);
+  }
+  if (ref_node && HasAdjacentSiblingRulesInStyleSheets()) {
+    ref_node->MarkStyleDirty(false);
+  }
+  MarkDirty(kDirtyTree);
 }
 
 void Element::RemoveNode(const fml::RefPtr<Element> &raw_child, bool destroy) {
@@ -1603,9 +1658,6 @@ void Element::RemoveNodeInternal(const fml::RefPtr<Element> &child,
     return;
   }
 
-  // Capture next sibling before removal for next-sibling combinator (A + B).
-  Element *next_sibling_of_removed = child->next_sibling();
-
   // the Remove Action should be inserted to Parent, due to child has been
   // removed from element tree here
   if (has_to_store_insert_remove_actions_) {
@@ -1613,6 +1665,15 @@ void Element::RemoveNodeInternal(const fml::RefPtr<Element> &child,
                                     nullptr, child->is_fixed(),
                                     child->ZIndex() != 0);
   }
+
+  DetachNodeFromElementTree(child, index, update_logical_children);
+}
+
+void Element::DetachNodeFromElementTree(const fml::RefPtr<Element> &child,
+                                        int32_t index,
+                                        bool update_logical_children) {
+  // Capture next sibling before removal for next-sibling combinator (A + B).
+  Element *next_sibling_of_removed = child->next_sibling();
 
   // take care: NotifyNodeRemoved after removeAction inserted!
   OnNodeRemoved(child.get());
@@ -3380,8 +3441,31 @@ void Element::PrepareAndGenerateChildrenActions() {
       }
     }
 
-    for (const auto &param : action_param_list_) {
+    for (auto &param : action_param_list_) {
       switch (param.type_) {
+        case Action::kMoveAct: {
+          auto *param_child = ResolveTemplateRootForAction(param.child_.get());
+          auto *param_ref = ResolveTemplateRootForAction(param.ref_node_);
+          auto *source_parent = param.source_parent_.get();
+          if (source_parent == nullptr ||
+              param_child->render_parent() != source_parent) {
+            LOGE("FiberElement move lost its render source");
+            DCHECK(false);
+            break;
+          }
+
+          PrepareChildForInsertion(param_child);
+          if (!param.is_fixed_ || IsFixedNewOrUnifiedEnabled()) {
+            source_parent->HandleRemoveChildAction(param_child);
+            HandleInsertChildAction(param_child, static_cast<int>(param.index_),
+                                    param_ref);
+          } else {
+            source_parent->RemoveFixedElement(param_child);
+            InsertFixedElement(param_child, param_ref);
+          }
+          param.source_parent_ = nullptr;
+        } break;
+
         case Action::kInsertChildAct: {
           auto *param_child = ResolveTemplateRootForAction(param.child_.get());
           auto *param_ref = ResolveTemplateRootForAction(param.ref_node_);
@@ -3772,8 +3856,7 @@ bool Element::ConsumeAllAttributes() {
                   UpdateTraceDebugInfo(ctx.event());
                 });
     for (const auto &attr : updated_attr_map_) {
-      SetAttributeInternal(attr.first, attr.second);
-      need_update = true;
+      need_update |= SetAttributeInternal(attr.first, attr.second);
     }
     if (reset_attr_vec_.has_value()) {
       for (const auto &attr : *reset_attr_vec_) {
@@ -3806,9 +3889,20 @@ void Element::PerformElementContainerCreateOrUpdate(bool need_update,
     FlushProps();
     dirty_ &= ~kDirtyCreated;
   } else if (need_update || dirty_ & kDirtyForceUpdate) {
-    if (prop_bundle_) {
+    if (EnableFragmentLayerRender()) {
+      // FLR bypasses UpdateLayoutNodeProps() below, so keep a customized
+      // layout node synchronized when this update carries a PropBundle.
+      if (prop_bundle_ && customized_layout_node_) {
+        customized_layout_node_->UpdateLayoutNodeProps(prop_bundle_);
+      }
+      if (!is_virtual()) {
+        // FLR consumes styles from ComputedCSSStyle directly, so a style-only
+        // update may not create a PropBundle. Always update the Fragment to
+        // re-evaluate whether it needs a platform layer.
+        element_container()->UpdatePaintingNode(TendToFlatten(), prop_bundle_);
+      }
+    } else if (prop_bundle_) {
       UpdateLayoutNodeProps(prop_bundle_);
-
       if (!is_virtual()) {
         UpdateFiberElement();
       }
@@ -3860,13 +3954,13 @@ void Element::MarkHasLayoutOnlyPropsIfNecessary(
   has_layout_only_props_ = false;
 }
 
-void Element::SetAttributeInternal(const base::String &key,
+bool Element::SetAttributeInternal(const base::String &key,
                                    const lepus::Value &value) {
   if (key.IsEqual(kLazyBundleUrl)) {
     if (value.IsString()) {
       set_entry_name(value.String());
     }
-    return;
+    return true;
   }
 
   WillConsumeAttribute(key, value);
@@ -3943,6 +4037,7 @@ void Element::SetAttributeInternal(const base::String &key,
     }
     SetStyle(attr_styles);
 #endif
+  return true;
 }
 
 void Element::SetNativeProps(
@@ -5254,6 +5349,11 @@ void Element::UpdateDynamicElementStyleRecursively(uint32_t style,
     if (StyleResolver::FragmentsHasMediaQueries(fragment)) {
       MarkStyleDirty(true);
     }
+  }
+
+  if (IsOverlay() && (style & DynamicCSSStylesManager::kUpdateScreenMetrics)) {
+    inner_force_update |= true;
+    MarkLayoutDirty();
   }
 
   if ((dynamic_style_flags_ > 0 || inner_force_update) && !is_wrapper()) {

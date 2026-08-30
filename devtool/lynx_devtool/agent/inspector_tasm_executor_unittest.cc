@@ -15,6 +15,7 @@
 #include <initializer_list>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -33,9 +34,12 @@
 #include "core/renderer/dom/element_manager.h"
 #include "core/renderer/dom/fiber/component_element.h"
 #include "core/renderer/dom/fiber/page_element.h"
+#include "core/renderer/dom/fiber/wrapper_element.h"
 #include "core/renderer/dom/vdom/radon/radon_component.h"
 #include "core/renderer/tasm/react/testing/mock_painting_context.h"
+#include "core/renderer/template_assembler.h"
 #include "core/shell/testing/mock_tasm_delegate.h"
+#include "core/template_bundle/template_codec/binary_decoder/page_config.h"
 #include "devtool/base_devtool/native/public/devtool_status.h"
 #include "devtool/base_devtool/native/test/message_sender_mock.h"
 #include "devtool/base_devtool/native/test/mock_receiver.h"
@@ -129,6 +133,7 @@ struct MediaRuleForTest {
   tasm::CSSPropertyID property_id;
   std::string value;
   std::string media_text;
+  std::vector<std::string> layer_path;
 };
 
 struct SupportsRuleForTest {
@@ -159,12 +164,20 @@ std::shared_ptr<tasm::SharedCSSFragment> CreateMediaCSSFragment(
 
   size_t index = 0;
   for (const auto& rule : rules) {
+    css::CascadeLayer* layer = nullptr;
+    if (!rule.layer_path.empty()) {
+      fragment->SetEnableCSSRule(true);
+      layer =
+          fragment->GetOrCreateRootLayer()->GetOrAddSubLayer(rule.layer_path);
+    }
     auto condition_rule =
         fml::MakeRefCounted<css::ConditionRule>(fragment.get());
     condition_rule->SetMediaQueries(
         css::MediaQueryParser::ParseMediaQuerySet(rule.media_text));
-    condition_rule->AddStyleRule(fml::MakeRefCounted<css::StyleRule>(
-        CreateSelectorArray(rule.selector), tokens[index++]));
+    condition_rule->AddStyleRule(
+        fml::MakeRefCounted<css::StyleRule>(CreateSelectorArray(rule.selector),
+                                            tokens[index++]),
+        layer);
     fragment->AddConditionRule(std::move(condition_rule));
   }
 
@@ -262,7 +275,7 @@ MediaQueryTestDom BuildMediaQueryTestDom(
       lynx::base::String("TestComp"),
       lynx::base::String("/index/components/TestComp"));
   dom.component->style_sheet_ =
-      std::make_unique<tasm::CSSFragmentDecorator>(dom.fragment.get());
+      std::make_unique<tasm::CSSFragmentDecorator>(dom.fragment.get(), manager);
   devtool::ElementInspector::InitForInspector(
       std::make_tuple(dom.component.get()));
   dom.page->InsertNode(dom.component);
@@ -369,6 +382,37 @@ class InspectorTasmExecutorTest : public ::testing::Test {
     ASSERT_EQ(f.wait_for(std::chrono::seconds(5)), std::future_status::ready);
   }
 
+  Json::Value ReceivedMessage() {
+    Json::Value message;
+    Json::Reader reader;
+    EXPECT_TRUE(reader.parse(
+        devtool::MockReceiver::GetInstance().received_message_.second,
+        message));
+    return message;
+  }
+
+  std::unique_ptr<lynx::tasm::TemplateAssembler> CreateTemplateAssembler() {
+    lynx::tasm::LynxEnvConfig lynx_env_config(
+        kWidth, kHeight, kDefaultLayoutsUnitPerPx,
+        kDefaultPhysicalPixelsPerLayoutUnit);
+    auto manager = std::make_unique<lynx::tasm::ElementManager>(
+        std::make_unique<lynx::tasm::MockPaintingContext>(),
+        tasm_mediator_.get(), lynx_env_config);
+    return std::make_unique<lynx::tasm::TemplateAssembler>(
+        *tasm_mediator_.get(), std::move(manager), tasm_mediator_.get(), 0);
+  }
+
+  void InsertTemplateEntry(lynx::tasm::TemplateAssembler* tasm,
+                           const std::string& entry_name,
+                           const std::string& debug_metadata_url) {
+    auto entry = std::make_shared<lynx::tasm::TemplateEntry>();
+    entry->template_bundle_.page_configs_ =
+        std::make_shared<lynx::tasm::PageConfig>();
+    entry->template_bundle_.page_configs_->SetDebugMetadataUrl(
+        debug_metadata_url);
+    tasm->template_entries_[entry_name] = entry;
+  }
+
  private:
   std::shared_ptr<devtool::InspectorTasmExecutor> element_executor_;
   std::shared_ptr<devtool::LynxDevToolMediator> devtool_mediator_;
@@ -379,6 +423,59 @@ class InspectorTasmExecutorTest : public ::testing::Test {
   std::shared_ptr<::testing::NiceMock<lynx::tasm::test::MockTasmDelegate>>
       tasm_mediator_;
 };
+
+TEST_F(InspectorTasmExecutorTest, GlobalPropsEnableDisableCase) {
+  Json::Value message(Json::ValueType::objectValue);
+  message["id"] = 1;
+
+  element_executor_->GlobalPropsEnable(message_sender_, message);
+  EXPECT_TRUE(element_executor_->IsGlobalPropsEnabled());
+  Json::Value response = ReceivedMessage();
+  EXPECT_EQ(response["id"], 1);
+  EXPECT_TRUE(response["result"].isObject());
+
+  element_executor_->GlobalPropsDisable(message_sender_, message);
+  EXPECT_FALSE(element_executor_->IsGlobalPropsEnabled());
+}
+
+TEST_F(InspectorTasmExecutorTest, GlobalPropsGetWithoutTasmReturnsEmptyObject) {
+  Json::Value message(Json::ValueType::objectValue);
+  message["id"] = 3;
+
+  element_executor_->GlobalPropsGet(message_sender_, message);
+
+  Json::Value response = ReceivedMessage();
+  EXPECT_EQ(response["id"], 3);
+  EXPECT_TRUE(response["result"]["globalProps"].isObject());
+  EXPECT_TRUE(response["result"]["globalProps"].empty());
+  EXPECT_EQ(response["result"]["timestamp"].asUInt64(), 0u);
+}
+
+TEST_F(InspectorTasmExecutorTest, GlobalPropsReplaceRejectsInvalidParams) {
+  Json::Value message(Json::ValueType::objectValue);
+  message["id"] = 4;
+  Json::Value array(Json::ValueType::arrayValue);
+  message["params"]["globalProps"] = array;
+  element_executor_->GlobalPropsReplace(message_sender_, message);
+
+  Json::Value response = ReceivedMessage();
+  EXPECT_EQ(response["error"]["code"], devtool::kInvalidParams);
+  EXPECT_EQ(response["error"]["message"], "globalProps must be an object");
+}
+
+TEST_F(InspectorTasmExecutorTest,
+       GlobalPropsChangedEmitsReplaceMarkerWithTimestamp) {
+  element_executor_->global_props_enabled_ = true;
+
+  element_executor_->GlobalPropsChanged();
+  FlushDevtoolTasks();
+
+  Json::Value event = ReceivedMessage();
+  EXPECT_EQ(event["method"], "GlobalProps.changed");
+  EXPECT_GT(event["params"]["timestamp"].asUInt64(), 0u);
+  EXPECT_EQ(event["params"]["changes"].size(), 1u);
+  EXPECT_EQ(event["params"]["changes"][0]["operation"], "replace");
+}
 
 TEST_F(InspectorTasmExecutorTest, SetDevtoolPlatformAbilityCase) {
   LOGI("InspectorTasmExecutorTest SetDevtoolPlatformAbilityCase start");
@@ -418,6 +515,82 @@ TEST_F(InspectorTasmExecutorTest, LayerTreeDisableCase) {
   EXPECT_TRUE(is_valid_json);
   EXPECT_EQ(res["id"], 6);
   EXPECT_FALSE(element_executor_->layer_tree_enabled_);
+}
+
+TEST_F(InspectorTasmExecutorTest, GetLayersForNodeReturnsCanonicalLayerTree) {
+  auto dom = BuildMediaQueryTestDom(manager_.get(),
+                                    {{".layered",
+                                      tasm::CSSPropertyID::kPropertyIDWidth,
+                                      "10px",
+                                      "(min-width: 1000px)",
+                                      {"framework", "components"}}});
+  dom.fragment->GetOrCreateRootLayer()->GetOrAddSubLayer({"unused"});
+  element_executor_->element_root_ = dom.element.get();
+
+  auto response_sender = std::make_shared<RecordingMessageSender>();
+  Json::Value message(Json::ValueType::objectValue);
+  message["id"] = 100;
+  message["params"]["nodeId"] =
+      devtool::ElementInspector::NodeId(dom.element.get());
+  element_executor_->GetLayersForNode(response_sender, message);
+
+  ASSERT_EQ(response_sender->json_messages_.size(), 1U);
+  const Json::Value& response = response_sender->json_messages_[0].second;
+  EXPECT_EQ(response["id"].asInt(), 100);
+  EXPECT_TRUE(response["error"].isNull());
+  const Json::Value& root_layer = response["result"]["rootLayer"];
+  EXPECT_EQ(root_layer["name"].asString(), "implicit outer layer");
+  EXPECT_EQ(root_layer["order"].asUInt(), 3U);
+  ASSERT_EQ(root_layer["subLayers"].size(), 2U);
+  EXPECT_EQ(root_layer["subLayers"][0]["name"].asString(), "framework");
+  EXPECT_EQ(root_layer["subLayers"][0]["order"].asUInt(), 1U);
+  ASSERT_EQ(root_layer["subLayers"][0]["subLayers"].size(), 1U);
+  EXPECT_EQ(root_layer["subLayers"][0]["subLayers"][0]["name"].asString(),
+            "components");
+  EXPECT_EQ(root_layer["subLayers"][0]["subLayers"][0]["order"].asUInt(), 0U);
+  EXPECT_EQ(root_layer["subLayers"][1]["name"].asString(), "unused");
+  EXPECT_EQ(root_layer["subLayers"][1]["order"].asUInt(), 2U);
+}
+
+TEST_F(InspectorTasmExecutorTest,
+       GetLayersForNodeHandlesNodesWithoutLayersAndErrors) {
+  auto dom = BuildMediaQueryTestDom(
+      manager_.get(), {{".plain", tasm::CSSPropertyID::kPropertyIDWidth, "10px",
+                        "(min-width: 1000px)"}});
+  element_executor_->element_root_ = dom.element.get();
+  auto response_sender = std::make_shared<RecordingMessageSender>();
+
+  Json::Value node_without_layers(Json::ValueType::objectValue);
+  node_without_layers["id"] = 101;
+  node_without_layers["params"]["nodeId"] =
+      devtool::ElementInspector::NodeId(dom.element.get());
+  element_executor_->GetLayersForNode(response_sender, node_without_layers);
+  ASSERT_EQ(response_sender->json_messages_.size(), 1U);
+  const Json::Value& root_layer =
+      response_sender->json_messages_[0].second["result"]["rootLayer"];
+  EXPECT_EQ(root_layer["name"].asString(), "implicit outer layer");
+  EXPECT_EQ(root_layer["order"].asUInt(), 0U);
+  EXPECT_FALSE(root_layer.isMember("subLayers"));
+
+  response_sender->json_messages_.clear();
+  Json::Value invalid_params(Json::ValueType::objectValue);
+  invalid_params["id"] = 102;
+  element_executor_->GetLayersForNode(response_sender, invalid_params);
+  ASSERT_EQ(response_sender->json_messages_.size(), 1U);
+  EXPECT_EQ(response_sender->json_messages_[0].second["error"]["code"].asInt(),
+            devtool::kInvalidParams);
+
+  response_sender->json_messages_.clear();
+  Json::Value missing_node(Json::ValueType::objectValue);
+  missing_node["id"] = 103;
+  missing_node["params"]["nodeId"] = 999999;
+  element_executor_->GetLayersForNode(response_sender, missing_node);
+  ASSERT_EQ(response_sender->json_messages_.size(), 1U);
+  EXPECT_EQ(response_sender->json_messages_[0].second["error"]["code"].asInt(),
+            devtool::kServerError);
+  EXPECT_EQ(
+      response_sender->json_messages_[0].second["error"]["message"].asString(),
+      "Node is not an Element");
 }
 
 TEST_F(InspectorTasmExecutorTest, GetMediaQueriesReturnsMediaRules) {
@@ -912,6 +1085,123 @@ TEST_F(InspectorTasmExecutorTest,
   EXPECT_EQ(computed_style[static_cast<Json::ArrayIndex>(border_index)]["value"]
                 .asString(),
             "4px");
+}
+
+TEST_F(InspectorTasmExecutorTest, GetOriginalNodeSourceInfoCase) {
+  auto tasm = CreateTemplateAssembler();
+  InsertTemplateEntry(tasm.get(), lynx::tasm::DEFAULT_ENTRY_NAME,
+                      "https://example.com/page-debug-metadata.json");
+  element_executor_->tasm_ = tasm.get();
+
+  auto element = manager_->CreateFiberElement("view");
+  lynx::devtool::ElementInspector::InitForInspector(
+      std::make_tuple(element.get()));
+  element->SetNodeIndex(42);
+  element_executor_->element_root_ = element.get();
+
+  Json::Value message;
+  message["id"] = 21;
+  message["params"]["nodeId"] =
+      lynx::devtool::ElementInspector::NodeId(element.get());
+
+  element_executor_->GetOriginalNodeSourceInfo(message_sender_, message);
+
+  Json::Value response = ReceivedMessage();
+  EXPECT_EQ(response["id"].asInt(), 21);
+  EXPECT_EQ(response["result"]["nodeId"].asInt(),
+            lynx::devtool::ElementInspector::NodeId(element.get()));
+  EXPECT_EQ(response["result"]["tag"].asString(), "view");
+  EXPECT_EQ(response["result"]["nodeIndex"].asUInt(), 42U);
+  EXPECT_EQ(response["result"]["debugMetadataUrl"].asString(),
+            "https://example.com/page-debug-metadata.json");
+  EXPECT_TRUE(response["result"]["lazyBundleUrl"].isNull());
+}
+
+TEST_F(InspectorTasmExecutorTest,
+       GetOriginalNodeSourceInfoReturnsWrapperTagCase) {
+  auto tasm = CreateTemplateAssembler();
+  InsertTemplateEntry(tasm.get(), lynx::tasm::DEFAULT_ENTRY_NAME,
+                      "https://example.com/page-debug-metadata.json");
+  element_executor_->tasm_ = tasm.get();
+
+  auto wrapper = manager_->CreateFiberWrapperElement();
+  lynx::devtool::ElementInspector::InitForInspector(
+      std::make_tuple(wrapper.get()));
+  element_executor_->element_root_ = wrapper.get();
+
+  Json::Value message;
+  message["id"] = 22;
+  message["params"]["nodeId"] =
+      lynx::devtool::ElementInspector::NodeId(wrapper.get());
+
+  element_executor_->GetOriginalNodeSourceInfo(message_sender_, message);
+
+  Json::Value response = ReceivedMessage();
+  EXPECT_EQ(response["id"].asInt(), 22);
+  EXPECT_EQ(response["result"]["tag"].asString(), "wrapper");
+  EXPECT_EQ(response["result"]["debugMetadataUrl"].asString(),
+            "https://example.com/page-debug-metadata.json");
+  EXPECT_TRUE(response["result"]["lazyBundleUrl"].isNull());
+}
+
+TEST_F(InspectorTasmExecutorTest,
+       GetOriginalNodeSourceInfoUsesLazyBundleUrlCase) {
+  constexpr const char kLazyBundleUrl[] =
+      "https://example.com/lazy-card.template.js";
+  auto tasm = CreateTemplateAssembler();
+  InsertTemplateEntry(tasm.get(), lynx::tasm::DEFAULT_ENTRY_NAME,
+                      "https://example.com/page-debug-metadata.json");
+  InsertTemplateEntry(tasm.get(), kLazyBundleUrl,
+                      "https://example.com/component-debug-metadata.json");
+  element_executor_->tasm_ = tasm.get();
+
+  auto page = manager_->CreateFiberPage("page", 0);
+  auto component = manager_->CreateFiberComponent(
+      "component-id", 0, kLazyBundleUrl, "Component", "/component");
+  page->InsertNode(component);
+  auto child = manager_->CreateFiberElement("text");
+  lynx::devtool::ElementInspector::InitForInspector(
+      std::make_tuple(child.get()));
+  child->SetParentComponentUniqueIdForFiber(
+      static_cast<int64_t>(component->impl_id()));
+  component->InsertNode(child);
+  page->FlushActionsAsRoot();
+  child->SetNodeIndex(24);
+  element_executor_->element_root_ = child.get();
+
+  Json::Value message;
+  message["id"] = 23;
+  message["params"]["nodeId"] =
+      lynx::devtool::ElementInspector::NodeId(child.get());
+
+  element_executor_->GetOriginalNodeSourceInfo(message_sender_, message);
+
+  Json::Value response = ReceivedMessage();
+  EXPECT_EQ(response["id"].asInt(), 23);
+  EXPECT_EQ(response["result"]["tag"].asString(), "text");
+  EXPECT_EQ(response["result"]["nodeIndex"].asUInt(), 24U);
+  EXPECT_EQ(response["result"]["debugMetadataUrl"].asString(),
+            "https://example.com/component-debug-metadata.json");
+  EXPECT_EQ(response["result"]["lazyBundleUrl"].asString(), kLazyBundleUrl);
+}
+
+TEST_F(InspectorTasmExecutorTest,
+       GetOriginalNodeSourceInfoMissingNodeReturnsEmptyResultCase) {
+  auto element = manager_->CreateFiberElement("view");
+  lynx::devtool::ElementInspector::InitForInspector(
+      std::make_tuple(element.get()));
+  element_executor_->element_root_ = element.get();
+
+  Json::Value message;
+  message["id"] = 24;
+  message["params"]["nodeId"] = 99999;
+
+  element_executor_->GetOriginalNodeSourceInfo(message_sender_, message);
+
+  Json::Value response = ReceivedMessage();
+  EXPECT_EQ(response["id"].asInt(), 24);
+  EXPECT_TRUE(response["error"].isNull());
+  EXPECT_TRUE(response["result"].empty());
 }
 
 TEST_F(InspectorTasmExecutorTest, SendLayerTreeDidChangeEventCase) {

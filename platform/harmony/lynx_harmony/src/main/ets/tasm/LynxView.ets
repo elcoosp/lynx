@@ -750,11 +750,10 @@ export struct LynxView {
     if (!this.templateRenderer) {
       return;
     }
-    if (this.enableAirStrictMode || this.templateRenderer.shouldSendEventToMainThread()) {
+    if (this.templateRenderer.shouldSendEventToMainThread()) {
       this.templateRenderer.triggerEventBus(name, params);
-    } else {
-      this.templateRenderer.callJSFunction('GlobalEventEmitter', 'emit', [name, params]);
     }
+    this.templateRenderer.sendGlobalEvent(name, params);
   }
 
   private reportLynxError(error: LynxError) {
@@ -902,6 +901,10 @@ export struct LynxView {
         this.reportLynxError(lynxError);
         return;
       }
+      if (res.bundle) {
+        this.loadTemplateInternal(timingOption, res.bundle, undefined);
+        return;
+      }
       if (res.binary == undefined) {
         const errorMsg = 'loadTemplate error: empty binary.';
         LLog.e(TAG, errorMsg);
@@ -939,6 +942,19 @@ export struct LynxView {
 
   private loadTemplateInternal(timingOption: TimingOption, bundle?: TemplateBundle, buffer?: ArrayBuffer) {
     if (!this.templateRenderer) {
+      return;
+    }
+    if (bundle && !bundle.isValid()) {
+      const bundleErrorMessage = bundle.getErrorMessage();
+      const errorMsg = bundleErrorMessage.length > 0
+        ? 'loadTemplate error: ' + bundleErrorMessage
+        : 'loadTemplate error: invalid TemplateBundle.';
+      LLog.e(TAG, errorMsg);
+      let lynxError = LynxError.createLynxError(
+        LynxSubErrorCode.E_APP_BUNDLE_LOAD_BAD_BUNDLE,
+        errorMsg);
+      lynxError.setTemplateUrl(this.url);
+      this.reportLynxError(lynxError);
       return;
     }
     TraceEvent.beginSection(TraceCategory.Lynx, TraceEventDef.LYNX_VIEW_LOAD);

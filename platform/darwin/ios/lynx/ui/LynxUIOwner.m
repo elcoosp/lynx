@@ -4,6 +4,7 @@
 #import <Lynx/LUIErrorHandling.h>
 #import <Lynx/LynxBaseInspectorOwner.h>
 #import <Lynx/LynxComponentRegistry.h>
+#import <Lynx/LynxContext+Private.h>
 #import <Lynx/LynxEnv+Internal.h>
 #import <Lynx/LynxEnv.h>
 #import <Lynx/LynxEventHandler.h>
@@ -118,6 +119,9 @@ extern NSString* const kDefaultComponentID;
 // Record used components in LynxView.
 @property(nonatomic) NSMutableSet<NSString*>* componentSet;
 @property(nonatomic) NSMutableDictionary<NSString*, NSHashTable<LynxUI*>*>* a11yIDHolder;
+@property(nonatomic) NSMutableSet<NSNumber*>* externalMemoryReportCandidateIds;
+@property(nonatomic) BOOL externalMemoryReportPending;
+- (int64_t)externalMemoryUsageRecursively:(LynxUI*)ui;
 @end
 
 @implementation LynxUIOwner {
@@ -168,6 +172,7 @@ extern NSString* const kDefaultComponentID;
     }
     _componentSet = [[NSMutableSet alloc] init];
     _a11yIDHolder = [[NSMutableDictionary alloc] init];
+    _externalMemoryReportCandidateIds = [[NSMutableSet alloc] init];
     _a11yMutationList = [[NSMutableArray alloc] init];
     _foregroundListeners = [[NSMutableArray alloc] init];
     // make sure singleton `LynxEnv` is already initialized
@@ -859,6 +864,7 @@ extern NSString* const kDefaultComponentID;
                      [UI_OWNER_REMOVE stringByAppendingString:node.tagName ?: @""])
 
   [_uiHolder removeObjectForKey:@(node.sign)];
+  [_externalMemoryReportCandidateIds removeObject:@(node.sign)];
   [self removeLynxUIFromNameLynxUIMap:node];
   [_uiContext removeUIFromExposedMap:node];
   [node removeChildrenExposureUI];
@@ -1138,6 +1144,7 @@ extern NSString* const kDefaultComponentID;
 - (void)releaseUI {
   _hasRootAttached = NO;
   [_uiHolder removeAllObjects];
+  [_externalMemoryReportCandidateIds removeAllObjects];
   [_uisThatHasNewLayout removeAllObjects];
   [_uisThatHasOperations removeAllObjects];
   [_a11yIDHolder removeAllObjects];
@@ -1180,6 +1187,64 @@ extern NSString* const kDefaultComponentID;
     }
   }];
   return [uiMemUsage copy];
+}
+
+- (LynxExternalMemorySnapshot)getExternalMemorySnapshot {
+  __block LynxExternalMemorySnapshot snapshot = {0, 0};
+  NSDictionary<NSNumber*, LynxUI*>* uiHolderSnapshot = [_uiHolder copy];
+  [uiHolderSnapshot enumerateKeysAndObjectsUsingBlock:^(NSNumber* _Nonnull key, LynxUI* _Nonnull ui,
+                                                        BOOL* _Nonnull stop) {
+    (void)key;
+    (void)stop;
+    snapshot.totalSize += [ui memoryUsageBytes];
+  }];
+  // Keep candidates for the lifetime of their holder entries. Parented candidates may belong to a
+  // detached candidate subtree, so skip them without discarding them.
+  for (NSNumber* sign in _externalMemoryReportCandidateIds) {
+    LynxUI* ui = uiHolderSnapshot[sign];
+    if (ui == nil) {
+      continue;
+    }
+    if (ui.parent != nil) {
+      continue;
+    }
+    snapshot.garbageSize += [self externalMemoryUsageRecursively:ui];
+  }
+  return snapshot;
+}
+
+- (void)cacheRemovedUIId:(NSInteger)removeId {
+  [_externalMemoryReportCandidateIds addObject:@(removeId)];
+}
+
+- (int64_t)externalMemoryUsageRecursively:(LynxUI*)ui {
+  int64_t size = [ui memoryUsageBytes];
+  for (LynxUI* child in ui.children) {
+    size += [self externalMemoryUsageRecursively:child];
+  }
+  return size;
+}
+
+- (void)requestExternalMemoryReport:(int64_t)delayMs {
+  if (_externalMemoryReportPending) {
+    return;
+  }
+  _externalMemoryReportPending = YES;
+  __weak typeof(self) weakSelf = self;
+  dispatch_after(
+      dispatch_time(DISPATCH_TIME_NOW, delayMs * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf == nil) {
+          return;
+        }
+        strongSelf.externalMemoryReportPending = NO;
+        if (strongSelf.uiContext.lynxContext.hasLynxViewDestroyed) {
+          return;
+        }
+        LynxExternalMemorySnapshot snapshot = [strongSelf getExternalMemorySnapshot];
+        [strongSelf.uiContext.lynxContext reportExternalMemoryWithTotalSize:snapshot.totalSize
+                                                                garbageSize:snapshot.garbageSize];
+      });
 }
 
 - (LynxMeaningfulContentSnapshot*)getMeaningfulPaintingContents {

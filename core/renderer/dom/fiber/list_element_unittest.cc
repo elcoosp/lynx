@@ -199,6 +199,53 @@ TEST_F(ListElementTest, ResolveEnableNativeListUsesListContainerName) {
   EXPECT_EQ(list_element_->GetPlatformNodeTag().str(), list::kListContainer);
 }
 
+TEST_F(ListElementTest, ScrollViewNewArchRedirectsListContainerName) {
+  list_element_->SetAttribute(base::String(list::kCustomLisName),
+                              lepus::Value(list::kListContainer));
+  list_element_->SetAttribute(base::String(kScrollNewArch),
+                              lepus::Value(kTrue));
+
+  list_element_->ResolveEnableNativeList();
+  list_element_->ResolvePlatformNodeTag();
+
+  EXPECT_TRUE(list_element_->DisableListPlatformImplementation());
+  EXPECT_EQ(list_element_->GetPlatformNodeTag().str(), kListScrollNewArch);
+}
+
+TEST_F(ListElementTest, ScrollViewNewArchRedirectsConfiguredListContainer) {
+  page_config_->SetEnableNativeList(TernaryBool::TRUE_VALUE);
+  list_element_->SetAttribute(base::String(kScrollNewArch),
+                              lepus::Value(kTrue));
+
+  list_element_->ResolveEnableNativeList();
+  list_element_->ResolvePlatformNodeTag();
+
+  EXPECT_TRUE(list_element_->DisableListPlatformImplementation());
+  EXPECT_EQ(list_element_->GetPlatformNodeTag().str(), kListScrollNewArch);
+}
+
+TEST_F(ListElementTest, ScrollViewNewArchDefaultsToFalse) {
+  page_config_->SetEnableNativeList(TernaryBool::TRUE_VALUE);
+
+  list_element_->ResolveEnableNativeList();
+  list_element_->ResolvePlatformNodeTag();
+
+  EXPECT_EQ(list_element_->GetPlatformNodeTag().str(), list::kListContainer);
+}
+
+TEST_F(ListElementTest, ScrollViewNewArchDoesNotRedirectCustomList) {
+  list_element_->SetAttribute(base::String(list::kCustomLisName),
+                              lepus::Value("my-list"));
+  list_element_->SetAttribute(base::String(kScrollNewArch),
+                              lepus::Value(kTrue));
+
+  list_element_->ResolveEnableNativeList();
+  list_element_->ResolvePlatformNodeTag();
+
+  EXPECT_FALSE(list_element_->DisableListPlatformImplementation());
+  EXPECT_EQ(list_element_->GetPlatformNodeTag().str(), "my-list");
+}
+
 TEST_F(ListElementTest, ResolveEnableNativeListUsesCustomListNameFirst) {
   // custom-list-name has higher priority than config and env. A non
   // list-container value should keep the platform implementation even when the
@@ -275,6 +322,38 @@ TEST_F(ListElementTest, ResolveEnableNativeListUsesEnvFalseFallback) {
   EXPECT_FALSE(list_element_->DisableListPlatformImplementation());
   EXPECT_FALSE(list_element_->enable_native_list_only_from_env_);
   EXPECT_EQ(list_element_->GetPlatformNodeTag().str(), list::kList);
+}
+
+TEST_F(ListElementTest,
+       PrepareForCreateOrUpdateUsesNativeListEnvWithoutAttributes) {
+  ScopedExternalBoolEnv enable_native_list_env(LynxEnv::Key::ENABLE_NATIVE_LIST,
+                                               true);
+  page_config_->SetEnableNativeList(TernaryBool::UNDEFINE_VALUE);
+
+  ASSERT_TRUE(manager_->GetEnableNativeListFromEnv());
+  ASSERT_FALSE(list_element_->AttrDirty());
+
+  list_element_->PrepareForCreateOrUpdate();
+
+  EXPECT_TRUE(list_element_->DisableListPlatformImplementation());
+  EXPECT_TRUE(list_element_->enable_native_list_only_from_env_);
+  EXPECT_EQ(list_element_->GetPlatformNodeTag().str(), list::kListContainer);
+}
+
+TEST_F(ListElementTest,
+       PrepareForCreateOrUpdateUsesPageConfigWithoutAttributes) {
+  ScopedExternalBoolEnv enable_native_list_env(LynxEnv::Key::ENABLE_NATIVE_LIST,
+                                               false);
+  page_config_->SetEnableNativeList(TernaryBool::TRUE_VALUE);
+
+  ASSERT_FALSE(manager_->GetEnableNativeListFromEnv());
+  ASSERT_FALSE(list_element_->AttrDirty());
+
+  list_element_->PrepareForCreateOrUpdate();
+
+  EXPECT_TRUE(list_element_->DisableListPlatformImplementation());
+  EXPECT_FALSE(list_element_->enable_native_list_only_from_env_);
+  EXPECT_EQ(list_element_->GetPlatformNodeTag().str(), list::kListContainer);
 }
 
 TEST_F(ListElementTest, NewStylingInternalListReplaysListAxisGap) {

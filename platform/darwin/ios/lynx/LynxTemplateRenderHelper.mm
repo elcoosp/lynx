@@ -8,6 +8,7 @@
 #import <Lynx/LynxBaseConfigurator+Internal.h>
 #import <Lynx/LynxConfig+Internal.h>
 #import <Lynx/LynxContext+Internal.h>
+#import <Lynx/LynxContext+Private.h>
 #import <Lynx/LynxEngine.h>
 #import <Lynx/LynxEngineProxy+Native.h>
 #import <Lynx/LynxEngineProxy.h>
@@ -24,6 +25,7 @@
 #import <Lynx/LynxLog.h>
 #import <Lynx/LynxProviderRegistry.h>
 #import <Lynx/LynxResourceModule.h>
+#import <Lynx/LynxScreenMetrics.h>
 #import <Lynx/LynxService.h>
 #import <Lynx/LynxServiceExtensionProtocol.h>
 #import <Lynx/LynxSetModule.h>
@@ -560,6 +562,16 @@ bool HasNativePaintingCtxPlatformRef(lynx::tasm::PaintingCtxPlatformImpl* painti
   /// UIRenderer
   [self setUpUIRendererWithBuilder:builder screenSize:screenSize];
 
+  if ([_lynxUIRenderer respondsToSelector:@selector(updateScreenMetrics:)]) {
+    LynxScreenMetrics* screenMetrics =
+        [[LynxScreenMetrics alloc] initWithScreenSize:builder.screenSize scale:builder.screenScale];
+    [_lynxUIRenderer updateScreenMetrics:screenMetrics];
+  }
+  if (_isEngineInitFromReusePool &&
+      [_lynxUIRenderer respondsToSelector:@selector(updateViewportMetrics:)]) {
+    [_lynxUIRenderer updateViewportMetrics:nil];
+  }
+
   /// LynxShell
   [self setUpLynxShellWithLastInstanceId:kUnknownInstanceId];
 
@@ -569,6 +581,7 @@ bool HasNativePaintingCtxPlatformRef(lynx::tasm::PaintingCtxPlatformImpl* painti
 
 - (void)setUpUIRendererWithBuilder:(LynxViewBuilder*)builder screenSize:(CGSize)screenSize {
   _context = [[LynxContext alloc] initWithContainerView:_containerView];
+  _context.engineProxy = _lynxEngineProxy;
   _context.enableJSRuntime = _enableJSRuntime;
   [_context setEmbeddedMode:_embeddedMode];
   [self setUpResourceProviderWithBuilder:builder];

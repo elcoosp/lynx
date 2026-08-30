@@ -11,8 +11,10 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "base/include/float_comparison.h"
+#include "base/include/fml/time/time_delta.h"
 #include "base/include/platform/harmony/napi_util.h"
 #include "base/trace/native/trace_event.h"
 #include "core/base/harmony/harmony_trace_event_def.h"
@@ -218,6 +220,16 @@ void UIOwner::DestroyUI(int parent, int child, int index) {
   }
   UIBase* ui = child_it->second.get();
   MarkHasUIOperationsBottomUp(ui);
+  if (enable_fiber_target_only_destroy_) {
+    // Fiber may move descendants after their former parent is destroyed. Keep
+    // those descendants alive in the holder, but detach every direct child so
+    // neither the C++ tree nor the ArkUI tree retains the destroyed target.
+    for (auto* direct_child : ui->Children()) {
+      direct_child->RemoveFromParent();
+    }
+    DestroyTarget(ui);
+    return;
+  }
   DestroySubTree(ui);
 }
 
@@ -238,6 +250,50 @@ void UIOwner::OnNodeRemoved(int sign) {
   }
 }
 
+void UIOwner::UpdateNodeReadyPatching(const std::vector<int32_t>& ready_ids,
+                                      const std::vector<int32_t>& remove_ids) {
+  external_memory_report_candidate_ids_.insert(remove_ids.begin(),
+                                               remove_ids.end());
+  for (int32_t id : ready_ids) {
+    OnNodeReady(id);
+  }
+  for (int32_t id : remove_ids) {
+    OnNodeRemoved(id);
+  }
+}
+
+ExternalMemorySnapshot UIOwner::GetExternalMemorySnapshot() {
+  ExternalMemorySnapshot snapshot;
+  for (const auto& entry : ui_holder_) {
+    if (entry.second != nullptr) {
+      snapshot.total_size += entry.second->GetMemoryUsageBytes();
+    }
+  }
+  // Keep candidates for the lifetime of their holder entries. Parented
+  // candidates may belong to a detached candidate subtree, so skip them
+  // without discarding them.
+  for (int32_t candidate : external_memory_report_candidate_ids_) {
+    const auto ui = ui_holder_.find(candidate);
+    if (ui == ui_holder_.end() || ui->second == nullptr) {
+      continue;
+    }
+    if (ui->second->Parent() != nullptr) {
+      continue;
+    }
+    snapshot.garbage_size +=
+        GetExternalMemoryUsageRecursively(ui->second.get());
+  }
+  return snapshot;
+}
+
+int64_t UIOwner::GetExternalMemoryUsageRecursively(UIBase* root) const {
+  int64_t size = root->GetMemoryUsageBytes();
+  for (UIBase* child : root->Children()) {
+    size += GetExternalMemoryUsageRecursively(child);
+  }
+  return size;
+}
+
 void UIOwner::OnNodeRemovedRecursively(UIBase* root) {
   if (!root) {
     return;
@@ -252,18 +308,23 @@ void UIOwner::DestroySubTree(UIBase* root) {
   for (auto* child : root->Children()) {
     DestroySubTree(child);
   }
-  if (root == root_.get()) {
+  DestroyTarget(root);
+}
+
+void UIOwner::DestroyTarget(UIBase* target) {
+  if (target == root_.get()) {
     root_ui_created_ = false;
   }
-  root->OnDestroy();
-  root->RemoveFromParent();
-  AddOrRemoveUIFromExclusiveSet(root->Sign(), false);
-  ResetKeyboardAvoidingTargetIfNeeded(root->Sign());
-  keyboard_event_observers_.erase(root->Sign());
-  if (root->NeedWindowStateChangeEvent()) {
-    window_state_listeners_.erase(root);
+  target->OnDestroy();
+  target->RemoveFromParent();
+  AddOrRemoveUIFromExclusiveSet(target->Sign(), false);
+  ResetKeyboardAvoidingTargetIfNeeded(target->Sign());
+  keyboard_event_observers_.erase(target->Sign());
+  if (target->NeedWindowStateChangeEvent()) {
+    window_state_listeners_.erase(target);
   }
-  ui_holder_.erase(root->Sign());
+  external_memory_report_candidate_ids_.erase(target->Sign());
+  ui_holder_.erase(target->Sign());
 }
 
 UIRoot* UIOwner::Root() {
@@ -814,6 +875,8 @@ napi_value UIOwner::Destroy(napi_env env, napi_callback_info info) {
   obj->layout_changed_nodes_.clear();
   obj->keyboard_event_observers_.clear();
   obj->window_state_listeners_.clear();
+  obj->external_memory_report_candidate_ids_.clear();
+  obj->external_memory_report_pending_ = false;
   obj->keyboard_avoiding_active_owner_ = kInvalidKeyboardAvoidingSign;
   obj->keyboard_avoiding_last_event_owner_ = kInvalidKeyboardAvoidingSign;
   obj->keyboard_height_ = 0.f;
@@ -1207,6 +1270,10 @@ void UIOwner::SetHasTouchPseudo(bool has_touch_pseudo) {
   event_dispatcher_->SetHasTouchPseudo(has_touch_pseudo);
 }
 
+void UIOwner::SetEnableFiberTargetOnlyDestroy(bool enable) {
+  enable_fiber_target_only_destroy_ = enable;
+}
+
 void UIOwner::SetLongPressDuration(int32_t long_press_duration) {
   event_dispatcher_->SetLongPressDuration(long_press_duration);
 }
@@ -1374,6 +1441,34 @@ void UIOwner::RunTaskOnTASMThread(base::closure task) const {
 
 const fml::RefPtr<fml::TaskRunner>& UIOwner::GetUITaskRunner() const {
   return context_->GetUITaskRunner();
+}
+
+void UIOwner::RequestExternalMemoryReport(int64_t delay_ms) {
+  if (destroyed_ || context_ == nullptr || external_memory_report_pending_) {
+    return;
+  }
+  const auto& task_runner = GetUITaskRunner();
+  if (task_runner == nullptr) {
+    return;
+  }
+
+  external_memory_report_pending_ = true;
+  std::weak_ptr<LynxContext> weak_context = context_;
+  task_runner->PostDelayedTask(
+      [weak_context]() {
+        auto context = weak_context.lock();
+        auto* owner = context != nullptr ? context->GetUIOwner() : nullptr;
+        if (owner == nullptr || owner->Destroyed()) {
+          return;
+        }
+        owner->external_memory_report_pending_ = false;
+        auto snapshot = owner->GetExternalMemorySnapshot();
+        auto engine_proxy = context->GetEngineProxy();
+        if (engine_proxy != nullptr) {
+          engine_proxy->ReportExternalMemory(snapshot);
+        }
+      },
+      fml::TimeDelta::FromMilliseconds(delay_ms));
 }
 
 const std::shared_ptr<base::VSyncMonitor>& UIOwner::VSyncMonitor() {

@@ -20,6 +20,8 @@ devtool_agent_shared_sources = [
   "domain_agent/inspector_debugger_agent.h",
   "domain_agent/inspector_dom_agent_ng.cc",
   "domain_agent/inspector_dom_agent_ng.h",
+  "domain_agent/inspector_global_props_agent.cc",
+  "domain_agent/inspector_global_props_agent.h",
   "domain_agent/inspector_heap_profiler_agent.cc",
   "domain_agent/inspector_heap_profiler_agent.h",
   "domain_agent/inspector_input_agent.cc",
@@ -126,6 +128,7 @@ devtool_source_set("agent") {
   sources = devtool_agent_shared_sources + devtool_agent_ng_sources
   deps = [
     "../../../base/src:base_log_headers",
+    "../input",
     "//third_party/zlib",
   ]
   public_configs = [ ":common_config" ]

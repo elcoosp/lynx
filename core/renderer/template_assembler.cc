@@ -240,6 +240,7 @@ TemplateAssembler::TemplateAssembler(
 TemplateAssembler::~TemplateAssembler() {
   LOGI(GetLogContext() << " TemplateAssembler::Release url:" << url_
                        << " this:" << this);
+  ForEachEntry([](const auto& entry) { entry->DetachNapiEnvironment(); });
 };
 
 void TemplateAssembler::TriggerVmGC() {
@@ -267,6 +268,9 @@ void TemplateAssembler::UpdateGlobalProps(
   LOGI(GetLogContext() << " UpdateGlobalProps " << data.GetLength()
                        << " this: " << this);
   global_props_ = data;
+  if (inspector_common_observer_) {
+    inspector_common_observer_->OnGlobalPropsUpdated();
+  }
   if (template_loaded_) {
     NotifyGlobalPropsChanged(data);
     UpdateGlobalPropsToContext(data);
@@ -287,7 +291,7 @@ void TemplateAssembler::UpdateGlobalProps(
     }
     DispatchEventFromEngineToCoreContext(
         context, kUpdateGlobalProps,
-        runtime::kMessageEventTypeUpdateGlobalProps, data);
+        runtime::kMessageEventTypeUpdateGlobalProps, false, data);
   } else {
     // Update `__globalProps` for LazyBundle, used only in Radon.
     ForEachEntry([card_entry = this->FindEntry(DEFAULT_ENTRY_NAME).get(),
@@ -308,6 +312,11 @@ void TemplateAssembler::SetLepusObserver(
   lepus_observer_ = observer;
   ForEachEntry(
       [&observer](const auto& entry) { entry->SetLepusObserver(observer); });
+}
+
+void TemplateAssembler::SetInspectorCommonObserver(
+    const std::shared_ptr<InspectorCommonObserver>& observer) {
+  inspector_common_observer_ = observer;
 }
 
 void TemplateAssembler::UpdateGlobalPropsWithDefaultProps(
@@ -383,7 +392,8 @@ void TemplateAssembler::DidDecodeTemplate(
   }
 
   if (post_js) {
-    if (entry && EnableDataProcessorOnJs()) {
+    if (entry && EnableDataProcessorOnJs() &&
+        ShouldPostDataToJs(entry->GetVm())) {
       // If EnableDataProcessorOnJs is enabled, JS can be loaded after decoding
       // the template. And, before doing this, the int template data and cache
       // template data should be set in advance for the default entry, making it
@@ -660,9 +670,9 @@ void TemplateAssembler::UpdateTemplate(
     }
 
     auto& context = FindEntry(tasm::DEFAULT_ENTRY_NAME)->GetVm();
-    DispatchEventFromEngineToCoreContext(context, kUpdatePage,
-                                         runtime::kMessageEventTypeUpdatePage,
-                                         data.GetValue(), std::move(options));
+    DispatchEventFromEngineToCoreContext(
+        context, kUpdatePage, runtime::kMessageEventTypeUpdatePage, false,
+        data.GetValue(), std::move(options));
 
     if (!update_page_option.reload_template &&
         pipeline_options->need_timestamps) {
@@ -731,7 +741,7 @@ void TemplateAssembler::RenderTemplateForFiber(
   if (!page_proxy_.IsWaitingSSRHydrate()) {
     auto& context = card->GetVm();
     DispatchEventFromEngineToCoreContext(
-        context, kRenderPage, runtime::kMessageEventTypeRenderPage,
+        context, kRenderPage, runtime::kMessageEventTypeRenderPage, false,
         data.GetValue(), std::move(render_options));
   } else {
     // When Hydrating SSR page, the extreme_parsed_style flag has to be cleared
@@ -752,7 +762,7 @@ void TemplateAssembler::RenderTemplateForFiber(
                                  lepus::Value(page_ref));
 
       DispatchEventFromEngineToCoreContext(
-          context, kRenderPage, runtime::kMessageEventTypeRenderPage,
+          context, kRenderPage, runtime::kMessageEventTypeRenderPage, false,
           data.GetValue(), std::move(render_options));
     }
   }
@@ -1017,7 +1027,6 @@ void TemplateAssembler::LoadTemplateInternal(
 
   // Get page template entry
   auto card = FindEntry(DEFAULT_ENTRY_NAME);
-  SetShouldSendEventToMainThread(false);
 
   // In radon/radon-diff mode, if template_data == nullptr &&
   // global_props_.IsNil() && page_proxy_.GetDefaultPageData().IsEmpty(), the
@@ -1045,9 +1054,8 @@ void TemplateAssembler::LoadTemplateInternal(
       BindMTSRuntimeThread();
     }
     const auto& context = card->GetVm();
-    auto* mts_context = context ? context->GetMTSContext() : nullptr;
-    SetShouldSendEventToMainThread(mts_context &&
-                                   mts_context->EnableSendEventToMainThread());
+    delegate_.OnShouldSendEventToMainThreadChanged(
+        ShouldSendEventToMainThread());
 
     // After decode template, exec some aftercare
     // 1. ssr actions
@@ -1215,7 +1223,7 @@ void TemplateAssembler::ReloadTemplate(
       auto& context = card->GetVm();
       DispatchEventFromEngineToCoreContext(
           context, kRemoveComponents,
-          runtime::kMessageEventTypeRemoveComponents);
+          runtime::kMessageEventTypeRemoveComponents, false);
     }
   } else {
     page_proxy_.RemoveOldComponentBeforeReload();
@@ -1293,7 +1301,7 @@ void TemplateAssembler::ReloadFromJS(
         auto& context = card->GetVm();
         DispatchEventFromEngineToCoreContext(
             context, kRemoveComponents,
-            runtime::kMessageEventTypeRemoveComponents);
+            runtime::kMessageEventTypeRemoveComponents, false);
       }
     } else {
       // trigger old components's unmount lifecycle;
@@ -1676,6 +1684,18 @@ void TemplateAssembler::OnScriptingEnd() {
   if (context->GetOptions()->created_in_on_scripting_start_) {
     context->GetOptions()->created_in_on_scripting_start_ = false;
     RunPixelPipeline();
+  }
+}
+
+void TemplateAssembler::OnNapiEnvironmentAttached(void* env) {
+  if (lepus_module_manager_ != nullptr) {
+    lepus_module_manager_->AttachOpaqueContext(env);
+  }
+}
+
+void TemplateAssembler::OnNapiEnvironmentDetached(void* env) {
+  if (lepus_module_manager_ != nullptr) {
+    lepus_module_manager_->DetachOpaqueContext(env);
   }
 }
 
@@ -2259,6 +2279,9 @@ void TemplateAssembler::OnLynxEvent(const lepus::Value& event_detail) {
 TemplateData TemplateAssembler::GenerateTemplateDataPostedToJs(
     const TemplateData& value) {
   TRACE_EVENT(LYNX_TRACE_CATEGORY, CONVERT_VALUE_WITH_READ_ONLY);
+  if (!enable_bts_runtime_) {
+    return TemplateData();
+  }
   if (EnableDataProcessorOnJs()) {
     return TemplateData::CopyPlatformData(value);
   } else {
@@ -2291,9 +2314,9 @@ void TemplateAssembler::UpdateMetaData(
       auto& context = FindEntry(DEFAULT_ENTRY_NAME)->GetVm();
       if (context != nullptr) {
         lepus::Value options = update_page_option.ToLepusValue();
-        DispatchEventFromEngineToCoreContext(context, kUpdateMetaData,
-                                             kUpdateMetaData, data.GetValue(),
-                                             global_props, options);
+        DispatchEventFromEngineToCoreContext(
+            context, kUpdateMetaData, kUpdateMetaData, false, data.GetValue(),
+            global_props, options);
       }
       return;
     }
@@ -2583,7 +2606,7 @@ void TemplateAssembler::SendFontScaleChanged(float scale) {
   }
   std::string str_event_name = kOnFontScaleChanged.c_str();
   DispatchEventFromEngineToCoreContext(context, str_event_name, str_event_name,
-                                       lepus_args);
+                                       true, lepus_args);
 }
 
 void TemplateAssembler::SendGlobalEvent(const std::string& name,
@@ -2626,7 +2649,7 @@ void TemplateAssembler::SendGlobalEvent(const std::string& name,
     LOGE("TemplateAssembler::SendGlobalEvent since the context is null!!");
     return;
   }
-  DispatchEventFromEngineToCoreContext(context, name, name, info);
+  DispatchEventFromEngineToCoreContext(context, name, name, true, info);
 }
 
 void TemplateAssembler::SetFontScale(float scale) {
@@ -2687,7 +2710,7 @@ void TemplateAssembler::OnScreenMetricsSet(float width, float height,
   if (EnableFiberArch()) {
     auto& context = FindEntry(tasm::DEFAULT_ENTRY_NAME)->GetVm();
     if (context != nullptr) {
-      result = context->Call(
+      result = context->TryCall(
           BASE_STATIC_STRING(kProcessData), input,
           lepus::Value(BASE_STATIC_STRING(SCREEN_METRICS_OVERRIDER)));
     }
@@ -3081,7 +3104,7 @@ void TemplateAssembler::OnI18nResourceChanged(const std::string& new_data) {
   }
   std::string str_event_name = kOnI18nResourceReady.c_str();
   DispatchEventFromEngineToCoreContext(context, str_event_name, str_event_name,
-                                       lepus_args);
+                                       true, lepus_args);
 }
 
 void TemplateAssembler::OnI18nResourceFailed() {
@@ -3106,7 +3129,7 @@ void TemplateAssembler::OnI18nResourceFailed() {
   }
   std::string str_event_name = kOnI18nResourceFailed.c_str();
   DispatchEventFromEngineToCoreContext(context, str_event_name, str_event_name,
-                                       lepus_args);
+                                       true, lepus_args);
 }
 
 void TemplateAssembler::UpdateI18nResource(const std::string& key,
@@ -3241,6 +3264,10 @@ bool TemplateAssembler::IsRTS2Native() {
   return context && context->IsRTSNativeContext();
 }
 
+bool TemplateAssembler::ShouldSendEventToMainThread() {
+  return !enable_bts_runtime_ || IsRTS() || IsRTS2Native();
+}
+
 void TemplateAssembler::SetCSSVariables(
     const std::string& component_id, const std::string& id_selector,
     const lepus::Value& properties,
@@ -3367,7 +3394,7 @@ void TemplateAssembler::TriggerEventBus(const std::string& name,
   if (ShouldSendEventToMainThread()) {
     auto& context = FindEntry(DEFAULT_ENTRY_NAME)->GetVm();
     if (context != nullptr) {
-      DispatchEventFromEngineToCoreContext(context, name, name, params);
+      DispatchEventFromEngineToCoreContext(context, name, name, true, params);
     }
   }
   // lynx air supports lepus
@@ -3380,10 +3407,11 @@ void TemplateAssembler::TriggerEventBus(const std::string& name,
   BASE_STATIC_STRING_DECL(kCallLepusModuleMethod, "callLepusModuleMethod");
   ForEachEntry([&kGlobalEventEmitter, &kToggle, &kCallLepusModuleMethod, &name,
                 &params](const auto& entry) {
-    if (entry->GetVm()) {
-      entry->GetVm()->Call(kCallLepusModuleMethod,
-                           lepus::Value(kGlobalEventEmitter),
-                           lepus::Value(kToggle), lepus::Value(name), params);
+    const auto& context = entry->GetVm();
+    if (context) {
+      context->TryCall(kCallLepusModuleMethod,
+                       lepus::Value(kGlobalEventEmitter), lepus::Value(kToggle),
+                       lepus::Value(name), params);
     }
   });
 }

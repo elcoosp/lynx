@@ -7,6 +7,7 @@
 
 #include "core/renderer/dom/fragment/fragment.h"
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <string>
@@ -210,6 +211,19 @@ class TestNativePaintingCtxPlatformRef : public NativePaintingCtxPlatformRef {
     return scrollable_signs.count(sign) > 0;
   }
 
+  const DisplayList* GetDisplayListForRenderer(int32_t sign) const {
+    auto it = renderers_.find(sign);
+    if (it == renderers_.end() || it->second == nullptr) {
+      return nullptr;
+    }
+    return &static_cast<PlatformRendererImpl*>(it->second.get())
+                ->GetDisplayList();
+  }
+
+  void SetNeedMarkPaintEndTiming(const tasm::PipelineID& pipeline_id) override {
+    paint_end_pipeline_ids.push_back(pipeline_id);
+  }
+
   void UseCurrentThreadAsTaskRunnerForTest() {
     fml::MessageLoop::EnsureInitializedForCurrentThread();
     event_target_task_runner_ = fml::MessageLoop::GetCurrent().GetTaskRunner();
@@ -218,6 +232,7 @@ class TestNativePaintingCtxPlatformRef : public NativePaintingCtxPlatformRef {
   std::unordered_map<int32_t, std::array<float, 2>> scroll_offsets;
   std::unordered_set<int32_t> scrollable_signs;
   std::vector<int32_t> destroyed_image_keys;
+  std::vector<tasm::PipelineID> paint_end_pipeline_ids;
 
  protected:
   void DestroyImageOnPlatformThread(int32_t image_key) override {
@@ -251,7 +266,6 @@ class TestNativePaintingContext : public NativePaintingContext {
 
   void SetPlatformRef(TestNativePaintingCtxPlatformRef* ref) { ref_ = ref; }
 
-  void OnFirstScreen() override {}
   void FinishTasmOperation(
       const std::shared_ptr<PipelineOptions>& options) override {}
   void FinishLayoutOperation(
@@ -275,10 +289,21 @@ class TestNativePaintingContext : public NativePaintingContext {
                                            init_config);
     }
   }
-  void UpdateDisplayList(int id, DisplayList list) override {
+  void EnqueueDisplayList(int id, DisplayList list) override {
     operations.emplace_back("update_display_list");
     if (ref_) {
       ref_->UpdateDisplayList(id, std::move(list));
+    }
+  }
+  void EnqueueDisplayLists(DisplayListUpdateBatch batch) override {
+    display_list_batch_sizes.push_back(batch.size());
+    display_list_batch_capacities.push_back(batch.capacity());
+    auto& ids = display_list_batch_ids.emplace_back();
+    for (const auto& update : batch) {
+      ids.push_back(update.id);
+    }
+    for (auto& update : batch) {
+      EnqueueDisplayList(update.id, std::move(update.display_list));
     }
   }
   fml::RefPtr<PaintImage> CreateImage(
@@ -299,7 +324,8 @@ class TestNativePaintingContext : public NativePaintingContext {
   }
   void UpdateTextBundle(int id, intptr_t bundle) override {}
   void DestroyTextBundle(int id) override {}
-  void ReconstructEventTargetTreeRecursively() override {
+  void EnqueueReconstructEventTargetTreeRecursively() override {
+    operations.emplace_back("reconstruct_event_target_tree");
     if (ref_) {
       ref_->ReconstructEventTargetTreeRecursively();
     }
@@ -311,6 +337,9 @@ class TestNativePaintingContext : public NativePaintingContext {
   }
 
   std::vector<std::string> operations;
+  std::vector<size_t> display_list_batch_sizes;
+  std::vector<size_t> display_list_batch_capacities;
+  std::vector<std::vector<int>> display_list_batch_ids;
   std::vector<CreatedImage> created_images_;
   bool fail_image_creation_{false};
 
@@ -332,6 +361,16 @@ class NativeMockPaintingContext : public MockPaintingContext,
   }
 
   NativePaintingContext* CastToNativeCtx() override { return this; }
+
+  void FinishTasmOperation(
+      const std::shared_ptr<PipelineOptions>& options) override {
+    TestNativePaintingContext::FinishTasmOperation(options);
+  }
+
+  void FinishLayoutOperation(
+      const std::shared_ptr<PipelineOptions>& options) override {
+    TestNativePaintingContext::FinishLayoutOperation(options);
+  }
 
   TestNativePaintingCtxPlatformRef* GetNativePlatformRef() {
     return static_cast<TestNativePaintingCtxPlatformRef*>(platform_ref_.get());
@@ -391,6 +430,7 @@ TEST_F(FragmentDrawTest, DrawViewRecordsFinalOffsetWithRenderOffset) {
   layout.offset_ = starlight::FloatPoint(5.f, 6.f);
   layout.size_ = FloatSize(30.f, 40.f);
   fragment.UpdateLayout(layout);
+  fragment.UpdateLayout(5.f, 6.f);
   fragment.render_offset_[0] = 10.f;
   fragment.render_offset_[1] = 20.f;
 
@@ -406,6 +446,419 @@ TEST_F(FragmentDrawTest, DrawViewRecordsFinalOffsetWithRenderOffset) {
   EXPECT_FLOAT_EQ(view_item.payload.draw_view.offset_x, 15.f);
   EXPECT_FLOAT_EQ(view_item.payload.draw_view.offset_y, 26.f);
   EXPECT_FALSE(reader.HasNext());
+}
+
+TEST_F(FragmentDrawTest, DrawSubmitsPlatformLayersInOneBatch) {
+  auto page = manager->CreateFiberPage("0", 0);
+  auto child = manager->CreateFiberView();
+  child->MarkAsDirectChildOfCompatibleComponent(true);
+  page->InsertNode(child);
+  page->FlushActionsAsRoot();
+
+  auto options = std::make_shared<PipelineOptions>();
+  manager->OnPatchFinish(options);
+
+  auto* page_fragment = page->fragment_impl();
+  auto* child_fragment = child->fragment_impl();
+  ASSERT_NE(page_fragment, nullptr);
+  ASSERT_NE(child_fragment, nullptr);
+  ASSERT_TRUE(page_fragment->has_platform_renderer_);
+
+  auto* native_context = static_cast<NativeMockPaintingContext*>(
+      manager->painting_context()->impl());
+  native_context->GetNativePlatformRef()->CreatePlatformRenderer(
+      child_fragment->id(), PlatformRendererType::kView, nullptr);
+  child_fragment->has_platform_renderer_ = true;
+  page_fragment->UpdateLayout(0, 0);
+  ASSERT_EQ(page_fragment->PlatformLayerCount(), 2u);
+  native_context->display_list_batch_sizes.clear();
+  native_context->display_list_batch_capacities.clear();
+  native_context->display_list_batch_ids.clear();
+  native_context->operations.clear();
+  manager->MarkNeedReconstructEventTargetTreeForExposure();
+
+  manager->Repaint();
+
+  ASSERT_THAT(native_context->display_list_batch_sizes,
+              ::testing::ElementsAre(2u));
+  EXPECT_THAT(native_context->display_list_batch_capacities,
+              ::testing::ElementsAre(2u));
+  ASSERT_EQ(native_context->display_list_batch_ids.size(), 1u);
+  EXPECT_THAT(
+      native_context->display_list_batch_ids[0],
+      ::testing::ElementsAre(child_fragment->id(), page_fragment->id()));
+  EXPECT_THAT(
+      native_context->operations,
+      ::testing::ElementsAre("update_display_list", "update_display_list",
+                             "reconstruct_event_target_tree"));
+}
+
+TEST_F(FragmentDrawTest, ZIndexChangeKeepsLayerOffsetWithoutRelayout) {
+  auto page = manager->CreateFiberPage("0", 0);
+  auto outer = manager->CreateFiberView();
+  auto inner = manager->CreateFiberView();
+  auto layer = manager->CreateFiberView();
+  layer->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(1));
+  page->InsertNode(outer);
+  outer->InsertNode(inner);
+  inner->InsertNode(layer);
+  page->FlushActionsAsRoot();
+  auto initial_options = std::make_shared<PipelineOptions>();
+  manager->OnPatchFinish(initial_options);
+
+  auto* page_fragment = page->fragment_impl();
+  auto* outer_fragment = outer->fragment_impl();
+  auto* inner_fragment = inner->fragment_impl();
+  auto* layer_fragment = layer->fragment_impl();
+  ASSERT_NE(page_fragment, nullptr);
+  ASSERT_NE(outer_fragment, nullptr);
+  ASSERT_NE(inner_fragment, nullptr);
+  ASSERT_NE(layer_fragment, nullptr);
+  ASSERT_EQ(layer_fragment->fragment_parent(), page_fragment);
+  ASSERT_EQ(layer_fragment->fragment_from_element_parent(), inner_fragment);
+
+  auto set_layout = [](Element* element, Fragment* fragment, float left,
+                       float top) {
+    element->left_ = left;
+    element->top_ = top;
+    starlight::LayoutResultForRendering layout;
+    layout.offset_ = starlight::FloatPoint(left, top);
+    layout.size_ = FloatSize(100.f, 40.f);
+    fragment->UpdateLayout(layout);
+  };
+  set_layout(page.get(), page_fragment, 0.f, 0.f);
+  set_layout(outer.get(), outer_fragment, 32.f, 7.f);
+  set_layout(inner.get(), inner_fragment, 31.f, 11.f);
+  set_layout(layer.get(), layer_fragment, 3.f, 5.f);
+  page_fragment->UpdateLayout(0.f, 0.f);
+
+  auto expect_layer_offset = [&](bool folded_into_layout_offset) {
+    DisplayListBuilder builder;
+    page_fragment->DrawChildren(builder);
+    auto items = CollectDisplayListItems(builder.Build());
+    auto it = std::find_if(items.begin(), items.end(), [&](const auto& item) {
+      return item.type == DisplayListOpType::kDrawView &&
+             item.payload.draw_view.view_id == layer_fragment->id();
+    });
+    ASSERT_NE(it, items.end());
+    EXPECT_FLOAT_EQ(it->payload.draw_view.offset_x, 66.f);
+    EXPECT_FLOAT_EQ(it->payload.draw_view.offset_y, 23.f);
+
+    auto* platform_ref = static_cast<NativeMockPaintingContext*>(
+                             manager->painting_context()->impl())
+                             ->GetNativePlatformRef();
+    const DisplayList* layer_display_list =
+        platform_ref->GetDisplayListForRenderer(layer_fragment->id());
+    ASSERT_NE(layer_display_list, nullptr);
+    const float* render_offset = layer_display_list->GetRenderOffset();
+    EXPECT_FLOAT_EQ(render_offset[0], folded_into_layout_offset ? 0.f : 63.f);
+    EXPECT_FLOAT_EQ(render_offset[1], folded_into_layout_offset ? 0.f : 18.f);
+
+    DisplayListReader layer_reader(*layer_display_list);
+    ASSERT_TRUE(layer_reader.HasNext());
+    const auto& begin_item = layer_reader.Next();
+    ASSERT_EQ(begin_item.type, DisplayListOpType::kBegin);
+    EXPECT_FLOAT_EQ(begin_item.payload.begin.x,
+                    folded_into_layout_offset ? 66.f : 3.f);
+    EXPECT_FLOAT_EQ(begin_item.payload.begin.y,
+                    folded_into_layout_offset ? 23.f : 5.f);
+  };
+
+  expect_layer_offset(true);
+
+  auto flush_style_update = [&]() {
+    page->FlushActionsAsRoot();
+    auto options = std::make_shared<PipelineOptions>();
+    manager->OnPatchFinish(options);
+    page_fragment->Draw();
+  };
+
+  layer->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(2));
+  flush_style_update();
+  ASSERT_EQ(layer_fragment->fragment_parent(), page_fragment);
+  ASSERT_EQ(layer_fragment->fragment_from_element_parent(), inner_fragment);
+  expect_layer_offset(true);
+
+  layer->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(0));
+  flush_style_update();
+  ASSERT_EQ(layer_fragment->fragment_parent(), inner_fragment);
+  ASSERT_EQ(layer_fragment->fragment_from_element_parent(), nullptr);
+  expect_layer_offset(false);
+
+  layer->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(1));
+  flush_style_update();
+  ASSERT_EQ(layer_fragment->fragment_parent(), page_fragment);
+  ASSERT_EQ(layer_fragment->fragment_from_element_parent(), inner_fragment);
+  expect_layer_offset(true);
+}
+
+TEST_F(FragmentDrawTest, ZIndexCreatesLayerWithOffsetWithoutRelayout) {
+  auto page = manager->CreateFiberPage("0", 0);
+  auto outer = manager->CreateFiberView();
+  auto inner = manager->CreateFiberView();
+  auto layer = manager->CreateFiberView();
+  page->InsertNode(outer);
+  outer->InsertNode(inner);
+  inner->InsertNode(layer);
+  page->FlushActionsAsRoot();
+  auto initial_options = std::make_shared<PipelineOptions>();
+  manager->OnPatchFinish(initial_options);
+
+  auto* page_fragment = page->fragment_impl();
+  auto* outer_fragment = outer->fragment_impl();
+  auto* inner_fragment = inner->fragment_impl();
+  auto* layer_fragment = layer->fragment_impl();
+  ASSERT_FALSE(layer_fragment->has_platform_renderer_);
+
+  auto set_layout = [](Element* element, Fragment* fragment, float left,
+                       float top) {
+    element->left_ = left;
+    element->top_ = top;
+    starlight::LayoutResultForRendering layout;
+    layout.offset_ = starlight::FloatPoint(left, top);
+    layout.size_ = FloatSize(100.f, 40.f);
+    fragment->UpdateLayout(layout);
+  };
+  set_layout(page.get(), page_fragment, 0.f, 0.f);
+  set_layout(outer.get(), outer_fragment, 32.f, 7.f);
+  set_layout(inner.get(), inner_fragment, 31.f, 11.f);
+  set_layout(layer.get(), layer_fragment, 3.f, 5.f);
+  page_fragment->UpdateLayout(0.f, 0.f);
+
+  auto* native_context = static_cast<NativeMockPaintingContext*>(
+      manager->painting_context()->impl());
+  native_context->display_list_batch_sizes.clear();
+  native_context->display_list_batch_capacities.clear();
+  layer->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(1));
+  page->FlushActionsAsRoot();
+  auto update_options = std::make_shared<PipelineOptions>();
+  manager->OnPatchFinish(update_options);
+  manager->Repaint();
+  EXPECT_THAT(native_context->display_list_batch_sizes,
+              ::testing::ElementsAre(2u));
+  EXPECT_THAT(native_context->display_list_batch_capacities,
+              ::testing::ElementsAre(2u));
+  ASSERT_TRUE(layer_fragment->has_platform_renderer_);
+  ASSERT_EQ(layer_fragment->fragment_parent(), page_fragment);
+  ASSERT_EQ(layer_fragment->fragment_from_element_parent(), inner_fragment);
+
+  DisplayListBuilder builder;
+  page_fragment->DrawChildren(builder);
+  auto items = CollectDisplayListItems(builder.Build());
+  auto view_it =
+      std::find_if(items.begin(), items.end(), [&](const auto& item) {
+        return item.type == DisplayListOpType::kDrawView &&
+               item.payload.draw_view.view_id == layer_fragment->id();
+      });
+  ASSERT_NE(view_it, items.end());
+  EXPECT_FLOAT_EQ(view_it->payload.draw_view.offset_x, 66.f);
+  EXPECT_FLOAT_EQ(view_it->payload.draw_view.offset_y, 23.f);
+
+  auto* platform_ref = static_cast<NativeMockPaintingContext*>(
+                           manager->painting_context()->impl())
+                           ->GetNativePlatformRef();
+  const DisplayList* layer_display_list =
+      platform_ref->GetDisplayListForRenderer(layer_fragment->id());
+  ASSERT_NE(layer_display_list, nullptr);
+  EXPECT_FLOAT_EQ(layer_display_list->GetRenderOffset()[0], 0.f);
+  EXPECT_FLOAT_EQ(layer_display_list->GetRenderOffset()[1], 0.f);
+  DisplayListReader layer_reader(*layer_display_list);
+  ASSERT_TRUE(layer_reader.HasNext());
+  const auto& begin_item = layer_reader.Next();
+  ASSERT_EQ(begin_item.type, DisplayListOpType::kBegin);
+  EXPECT_FLOAT_EQ(begin_item.payload.begin.x, 66.f);
+  EXPECT_FLOAT_EQ(begin_item.payload.begin.y, 23.f);
+}
+
+TEST_F(FragmentDrawTest, ZIndexFlattenImageAndTextIncludeAncestorOffset) {
+  auto page = manager->CreateFiberPage("0", 0);
+  auto outer = manager->CreateFiberView();
+  auto image = manager->CreateFiberImage("image");
+  auto text = manager->CreateFiberText("text");
+  image->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(1));
+  text->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(2));
+  page->InsertNode(outer);
+  outer->InsertNode(image);
+  outer->InsertNode(text);
+  page->FlushActionsAsRoot();
+
+  auto* page_fragment = page->fragment_impl();
+  auto* outer_fragment = outer->fragment_impl();
+  auto* image_fragment = image->fragment_impl();
+  auto* text_fragment = text->fragment_impl();
+  ASSERT_TRUE(image->TendToFlatten());
+  ASSERT_TRUE(text->TendToFlatten());
+  ASSERT_FALSE(image_fragment->has_platform_renderer_);
+  ASSERT_FALSE(text_fragment->has_platform_renderer_);
+  ASSERT_EQ(image_fragment->fragment_parent(), page_fragment);
+  ASSERT_EQ(text_fragment->fragment_parent(), page_fragment);
+
+  auto set_layout = [](Element* element, Fragment* fragment, float left,
+                       float top) {
+    element->left_ = left;
+    element->top_ = top;
+    starlight::LayoutResultForRendering layout;
+    layout.offset_ = starlight::FloatPoint(left, top);
+    layout.size_ = FloatSize(100.f, 40.f);
+    fragment->UpdateLayout(layout);
+  };
+  set_layout(page.get(), page_fragment, 0.f, 0.f);
+  set_layout(outer.get(), outer_fragment, 32.f, 7.f);
+  set_layout(image.get(), image_fragment, 3.f, 5.f);
+  set_layout(text.get(), text_fragment, 4.f, 6.f);
+  page_fragment->UpdateLayout(0.f, 0.f);
+
+  DisplayListBuilder builder;
+  page_fragment->DrawChildren(builder);
+  auto items = CollectDisplayListItems(builder.Build());
+  auto find_begin = [&](int32_t id) {
+    return std::find_if(items.begin(), items.end(), [&](const auto& item) {
+      return item.type == DisplayListOpType::kBegin &&
+             item.payload.begin.id == id;
+    });
+  };
+  auto image_begin = find_begin(image_fragment->id());
+  auto text_begin = find_begin(text_fragment->id());
+  ASSERT_NE(image_begin, items.end());
+  ASSERT_NE(text_begin, items.end());
+  EXPECT_FLOAT_EQ(image_begin->payload.begin.x, 35.f);
+  EXPECT_FLOAT_EQ(image_begin->payload.begin.y, 12.f);
+  EXPECT_FLOAT_EQ(text_begin->payload.begin.x, 36.f);
+  EXPECT_FLOAT_EQ(text_begin->payload.begin.y, 13.f);
+}
+
+TEST_F(FragmentDrawTest, NonZeroZIndexChangeResortsSiblings) {
+  auto page = manager->CreateFiberPage("0", 0);
+  auto lower = manager->CreateFiberView();
+  auto higher = manager->CreateFiberView();
+  lower->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(1));
+  higher->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(2));
+  page->InsertNode(lower);
+  page->InsertNode(higher);
+  page->FlushActionsAsRoot();
+  auto initial_options = std::make_shared<PipelineOptions>();
+  manager->OnPatchFinish(initial_options);
+
+  auto* page_fragment = page->fragment_impl();
+  auto* lower_fragment = lower->fragment_impl();
+  auto* higher_fragment = higher->fragment_impl();
+  ASSERT_EQ(page_fragment->children_.size(), 2u);
+  EXPECT_EQ(page_fragment->children_[0], lower_fragment);
+  EXPECT_EQ(page_fragment->children_[1], higher_fragment);
+
+  lower->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(3));
+  page->FlushActionsAsRoot();
+  EXPECT_EQ(lower_fragment->old_z_index(), 3);
+  EXPECT_TRUE(page_fragment->NeedSortZChild());
+  auto update_options = std::make_shared<PipelineOptions>();
+  manager->OnPatchFinish(update_options);
+  ASSERT_EQ(page_fragment->children_.size(), 2u);
+  EXPECT_EQ(page_fragment->children_[0], higher_fragment);
+  EXPECT_EQ(page_fragment->children_[1], lower_fragment);
+}
+
+TEST_F(FragmentDrawTest,
+       ZIndexAcrossPlatformAncestorAndStackingContextKeepsOffset) {
+  auto page = manager->CreateFiberPage("0", 0);
+  auto outer = manager->CreateFiberView();
+  auto inner = manager->CreateFiberView();
+  auto layer = manager->CreateFiberView();
+  page->InsertNode(outer);
+  outer->MarkAsDirectChildOfCompatibleComponent(true);
+  outer->InsertNode(inner);
+  inner->InsertNode(layer);
+  page->FlushActionsAsRoot();
+  auto initial_options = std::make_shared<PipelineOptions>();
+  manager->OnPatchFinish(initial_options);
+
+  auto* page_fragment = page->fragment_impl();
+  auto* outer_fragment = outer->fragment_impl();
+  auto* inner_fragment = inner->fragment_impl();
+  auto* layer_fragment = layer->fragment_impl();
+  ASSERT_TRUE(outer_fragment->has_platform_renderer_);
+  ASSERT_FALSE(outer->IsStackingContextNode());
+
+  auto set_layout = [](Element* element, Fragment* fragment, float left,
+                       float top) {
+    element->left_ = left;
+    element->top_ = top;
+    starlight::LayoutResultForRendering layout;
+    layout.offset_ = starlight::FloatPoint(left, top);
+    layout.size_ = FloatSize(100.f, 40.f);
+    fragment->UpdateLayout(layout);
+  };
+  set_layout(page.get(), page_fragment, 0.f, 0.f);
+  set_layout(outer.get(), outer_fragment, 32.f, 7.f);
+  set_layout(inner.get(), inner_fragment, 31.f, 11.f);
+  set_layout(layer.get(), layer_fragment, 3.f, 5.f);
+  page_fragment->UpdateLayout(0.f, 0.f);
+
+  auto flush_without_layout = [&]() {
+    page->FlushActionsAsRoot();
+    auto options = std::make_shared<PipelineOptions>();
+    manager->OnPatchFinish(options);
+    page_fragment->Draw();
+  };
+  auto expect_layer_display_list = [&](float begin_x, float begin_y,
+                                       float render_x, float render_y) {
+    EXPECT_FLOAT_EQ(layer_fragment->LayoutResult().layout_result.offset_.X(),
+                    3.f);
+    EXPECT_FLOAT_EQ(layer_fragment->LayoutResult().layout_result.offset_.Y(),
+                    5.f);
+    auto* platform_ref = static_cast<NativeMockPaintingContext*>(
+                             manager->painting_context()->impl())
+                             ->GetNativePlatformRef();
+    const DisplayList* layer_display_list =
+        platform_ref->GetDisplayListForRenderer(layer_fragment->id());
+    ASSERT_NE(layer_display_list, nullptr);
+    EXPECT_FLOAT_EQ(layer_display_list->GetRenderOffset()[0], render_x);
+    EXPECT_FLOAT_EQ(layer_display_list->GetRenderOffset()[1], render_y);
+    DisplayListReader reader(*layer_display_list);
+    ASSERT_TRUE(reader.HasNext());
+    const auto& begin = reader.Next();
+    ASSERT_EQ(begin.type, DisplayListOpType::kBegin);
+    EXPECT_FLOAT_EQ(begin.payload.begin.x, begin_x);
+    EXPECT_FLOAT_EQ(begin.payload.begin.y, begin_y);
+  };
+
+  layer->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(1));
+  flush_without_layout();
+  ASSERT_EQ(layer_fragment->fragment_parent(), page_fragment);
+  expect_layer_display_list(66.f, 23.f, 0.f, 0.f);
+
+  outer->SetStyle(CSSPropertyID::kPropertyIDOpacity, lepus::Value(0.5));
+  flush_without_layout();
+  ASSERT_TRUE(outer->IsStackingContextNode());
+  ASSERT_EQ(layer_fragment->fragment_parent(), outer_fragment);
+  expect_layer_display_list(34.f, 16.f, 0.f, 0.f);
+
+  layer->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(0));
+  flush_without_layout();
+  ASSERT_EQ(layer_fragment->fragment_parent(), inner_fragment);
+  expect_layer_display_list(3.f, 5.f, 31.f, 11.f);
+}
+
+TEST_F(FragmentDrawTest, ReinsertZIndexDescendantUsesAncestorStackingContext) {
+  auto page = manager->CreateFiberPage("0", 0);
+  auto outer = manager->CreateFiberView();
+  auto layer = manager->CreateFiberView();
+  layer->SetStyle(CSSPropertyID::kPropertyIDZIndex, lepus::Value(1));
+  page->InsertNode(outer);
+  outer->InsertNode(layer);
+  page->FlushActionsAsRoot();
+
+  auto* page_fragment = page->fragment_impl();
+  auto* layer_fragment = layer->fragment_impl();
+  ASSERT_EQ(layer_fragment->fragment_parent(), page_fragment);
+
+  page->RemoveNode(outer);
+  page->FlushActionsAsRoot();
+  ASSERT_EQ(layer_fragment->fragment_parent(), nullptr);
+
+  page->InsertNode(outer);
+  page->FlushActionsAsRoot();
+  EXPECT_EQ(layer_fragment->fragment_parent(), page_fragment);
+  EXPECT_NE(layer_fragment->fragment_parent(), layer_fragment);
 }
 
 TEST_F(FragmentTest, CreateLayerIfNeededWritesFlattenInitData) {
@@ -1352,16 +1805,17 @@ TEST_F(FragmentTest, ImageModeUpdateRecreatesOnlyForEffectiveChanges) {
 
   element->SetAttributeInternal("mode", lepus::Value("aspectFill"));
   fragment.UpdatePaintingNode(true, nullptr);
+  EXPECT_EQ(native_painting_context.created_images_.size(), 1u);
+  EXPECT_TRUE(fragment.NeedRedraw());
+  fragment.behavior_->OnUpdateLayout(fragment.LayoutResult());
   ASSERT_EQ(native_painting_context.created_images_.size(), 2u);
   EXPECT_EQ(native_painting_context.created_images_.back().mode,
             ImageFitMode::kAspectFill);
-  EXPECT_TRUE(fragment.NeedRedraw());
-
-  fragment.behavior_->OnUpdateLayout(fragment.LayoutResult());
-  EXPECT_EQ(native_painting_context.created_images_.size(), 2u);
 
   element->SetAttributeInternal("mode", lepus::Value("unsupported"));
   fragment.UpdatePaintingNode(true, nullptr);
+  EXPECT_EQ(native_painting_context.created_images_.size(), 2u);
+  fragment.behavior_->OnUpdateLayout(fragment.LayoutResult());
   ASSERT_EQ(native_painting_context.created_images_.size(), 3u);
   EXPECT_EQ(native_painting_context.created_images_.back().mode,
             ImageFitMode::kScaleToFill);
@@ -1396,9 +1850,11 @@ TEST_F(FragmentTest, ImageBlurRadiusUpdateRecreatesImage) {
   element->SetAttributeInternal("blur-radius", lepus::Value("5px"));
   fragment.UpdatePaintingNode(true, nullptr);
 
+  EXPECT_EQ(native_painting_context.created_images_.size(), 1u);
+  EXPECT_TRUE(fragment.NeedRedraw());
+  fragment.behavior_->OnUpdateLayout(fragment.LayoutResult());
   ASSERT_EQ(native_painting_context.created_images_.size(), 2u);
   EXPECT_EQ(native_painting_context.created_images_.back().blur_radius, "5px");
-  EXPECT_TRUE(fragment.NeedRedraw());
 }
 
 TEST_F(FragmentTest, ImagePaintInfoAttributesReachNativePaintingContext) {
@@ -1458,24 +1914,23 @@ TEST_F(FragmentTest, ImageSrcUpdateInvalidatesWithoutDuplicateImageCreation) {
             ImageFitMode::kScaleToFill);
   ASSERT_FALSE(fragment.NeedRedraw());
 
-  // When: src changes and the same-size update, layout, and draw path runs.
+  // When: src changes on a repaint-only update without a layout pass.
   element->SetAttributeInternal("src", lepus::Value("image-src://updated"));
   fragment.UpdatePaintingNode(true, nullptr);
 
-  // Then: the attribute update has already refreshed and invalidated the image.
+  // Then: the attribute update only invalidates; draw performs one request.
   EXPECT_TRUE(fragment.NeedRedraw());
-  ASSERT_EQ(native_painting_context.created_images_.size(), 2u);
-  EXPECT_EQ(native_painting_context.created_images_.back().src,
-            "image-src://updated");
-  const int32_t updated_image_key =
-      native_painting_context.created_images_.back().image_key;
+  ASSERT_EQ(native_painting_context.created_images_.size(), 1u);
 
-  fragment.behavior_->OnUpdateLayout(fragment.LayoutResult());
   DisplayListBuilder updated_builder;
   fragment.OnDraw(updated_builder);
   DisplayList updated_list = updated_builder.Build();
 
   EXPECT_EQ(native_painting_context.created_images_.size(), 2u);
+  EXPECT_EQ(native_painting_context.created_images_.back().src,
+            "image-src://updated");
+  const int32_t updated_image_key =
+      native_painting_context.created_images_.back().image_key;
   EXPECT_FALSE(fragment.NeedRedraw());
   ASSERT_EQ(updated_list.Images().size(), 1u);
   ASSERT_NE(updated_list.Images()[0], nullptr);
@@ -1501,15 +1956,15 @@ TEST_F(FragmentTest, ImageSrcUpdateRecreatesForChangedLayoutSize) {
   // When: src changes before the following layout changes the content size.
   element->SetAttributeInternal("src", lepus::Value("image-src://updated"));
   fragment.UpdatePaintingNode(true, nullptr);
-  ASSERT_EQ(native_painting_context.created_images_.size(), 2u);
+  ASSERT_EQ(native_painting_context.created_images_.size(), 1u);
 
   starlight::LayoutResultForRendering updated_layout;
   updated_layout.size_ = FloatSize(120.f, 80.f);
   fragment.UpdateLayout(updated_layout);
   fragment.behavior_->OnUpdateLayout(fragment.LayoutResult());
 
-  // Then: the image is recreated once with the updated dimensions and retained.
-  ASSERT_EQ(native_painting_context.created_images_.size(), 3u);
+  // Then: the image is recreated once with the final dimensions and retained.
+  ASSERT_EQ(native_painting_context.created_images_.size(), 2u);
   const auto& updated_image = native_painting_context.created_images_.back();
   EXPECT_EQ(updated_image.src, "image-src://updated");
   EXPECT_FLOAT_EQ(updated_image.width, 120.f);
@@ -1518,6 +1973,7 @@ TEST_F(FragmentTest, ImageSrcUpdateRecreatesForChangedLayoutSize) {
   DisplayListBuilder updated_builder;
   fragment.OnDraw(updated_builder);
   DisplayList updated_list = updated_builder.Build();
+  EXPECT_EQ(native_painting_context.created_images_.size(), 2u);
   ASSERT_EQ(updated_list.Images().size(), 1u);
   ASSERT_NE(updated_list.Images()[0], nullptr);
   EXPECT_EQ(updated_list.Images()[0]->image_key_, updated_image.image_key);
@@ -1570,14 +2026,15 @@ TEST_F(FragmentTest, ImageSrcResetCreatesEmptyReplacement) {
   element->ResetAttribute(BASE_STATIC_STRING(kSrc));
   fragment.UpdatePaintingNode(true, nullptr);
 
-  // Then: an empty replacement clears the old retained image and redraws.
-  ASSERT_EQ(native_painting_context.created_images_.size(), 2u);
-  EXPECT_TRUE(native_painting_context.created_images_.back().src.empty());
+  // Then: draw creates one empty replacement and clears the retained image.
+  ASSERT_EQ(native_painting_context.created_images_.size(), 1u);
   EXPECT_TRUE(fragment.NeedRedraw());
 
   DisplayListBuilder updated_builder;
   fragment.OnDraw(updated_builder);
   DisplayList updated_list = updated_builder.Build();
+  ASSERT_EQ(native_painting_context.created_images_.size(), 2u);
+  EXPECT_TRUE(native_painting_context.created_images_.back().src.empty());
   ASSERT_EQ(updated_list.Images().size(), 1u);
   ASSERT_NE(updated_list.Images()[0], nullptr);
   EXPECT_EQ(updated_list.Images()[0]->image_key_,
@@ -1662,12 +2119,18 @@ TEST_F(FragmentTest, TestDrawNodeCapacity) {
   EXPECT_TRUE(root->element_container()->is_fragment());
   static_cast<Fragment*>(root->element_container())->UpdateLayout(0, 0);
   EXPECT_EQ(
+      static_cast<Fragment*>(root->element_container())->PlatformLayerCount(),
+      1u);
+  EXPECT_EQ(
       static_cast<Fragment*>(root->element_container())->draw_node_capacity_,
       5);
 
   static_cast<Fragment*>(root_child_0->element_container())
       ->has_platform_renderer_ = true;
   static_cast<Fragment*>(root->element_container())->UpdateLayout(0, 0);
+  EXPECT_EQ(
+      static_cast<Fragment*>(root->element_container())->PlatformLayerCount(),
+      2u);
   EXPECT_EQ(
       static_cast<Fragment*>(root->element_container())->draw_node_capacity_,
       2);
@@ -2064,11 +2527,16 @@ TEST_F(FragmentDrawTest, FragmentLayerRenderFinishesLayoutAfterDisplayList) {
   fragment->has_platform_renderer_ = true;
 
   auto options = std::make_shared<PipelineOptions>();
+  options->need_timestamps = true;
   native_context->operations.clear();
   page->Layout(options);
 
   EXPECT_TRUE(options->has_layout);
   EXPECT_TRUE(native_context->operations.empty());
+  ASSERT_EQ(manager->painting_context()->options_for_timing_.size(), 1u);
+  auto additional_options = std::make_shared<PipelineOptions>();
+  additional_options->need_timestamps = true;
+  manager->painting_context()->AppendOptionsForTiming(additional_options);
 
   fragment->Draw();
   fragment->FinishLayoutOperation(options);
@@ -2076,6 +2544,10 @@ TEST_F(FragmentDrawTest, FragmentLayerRenderFinishesLayoutAfterDisplayList) {
   ASSERT_EQ(native_context->operations.size(), 2u);
   EXPECT_EQ(native_context->operations[0], "update_display_list");
   EXPECT_EQ(native_context->operations[1], "finish_layout");
+  EXPECT_TRUE(manager->painting_context()->options_for_timing_.empty());
+  EXPECT_THAT(native_ref->paint_end_pipeline_ids,
+              ::testing::ElementsAre(options->pipeline_id,
+                                     additional_options->pipeline_id));
 }
 
 }  // namespace tasm

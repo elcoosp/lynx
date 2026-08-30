@@ -24,6 +24,10 @@
 #define UNDEFINED_INT NSUIntegerMax
 #define UNDEFINED_FLOAT CGFLOAT_MIN
 
+@protocol LynxPasteAwareInput <NSObject>
+@property(nonatomic, assign) BOOL pasting;
+@end
+
 @interface LynxUIBaseInput () <LynxFontFaceObserver, LynxKeyboardEventObserver>
 
 @property (nonatomic, strong) NSString *preValue;
@@ -35,6 +39,7 @@
 @property (nonatomic, assign) BOOL enableHoldKeyboard;
 @property (nonatomic, assign) BOOL shouldSuppressInputEvent;
 @property (nonatomic, assign) BOOL defaultValueConsumed;
+
 @end
 
 static const NSTimeInterval kLynxInputKeyboardDefaultAnimationDuration = 0.3;
@@ -560,9 +565,9 @@ LYNX_UI_METHOD(setSelectionRange) {
   if (self.shouldSuppressInputEvent) {
     return YES;
   }
-  
+
   [self sendInputEvent];
-  
+
   return YES;
 }
 
@@ -570,6 +575,8 @@ LYNX_UI_METHOD(setSelectionRange) {
   if (self.shouldSuppressInputEvent) {
     return;
   }
+  id<LynxPasteAwareInput> input = (id<LynxPasteAwareInput>)self.view;
+  BOOL isPasting = input.pasting;
   if (!self.sendComposingInputEvent) {
     NSString *curValue = [self getText];
     if (![curValue isEqualToString:self.preValue]) {
@@ -577,6 +584,7 @@ LYNX_UI_METHOD(setSelectionRange) {
         @"value" : curValue,
         @"selectionStart": @(self.view.isFirstResponder ? [self.view offsetFromPosition:self.view.beginningOfDocument toPosition:self.view.selectedTextRange.start] : -1),
         @"selectionEnd": @(self.view.isFirstResponder ? [self.view offsetFromPosition:self.view.beginningOfDocument toPosition:self.view.selectedTextRange.end] : -1),
+        @"inputType": isPasting ? @"paste" : @"normal",
       }];
       self.preValue = curValue;
     }
@@ -585,13 +593,15 @@ LYNX_UI_METHOD(setSelectionRange) {
       @"value" : [self getText],
       @"selectionStart": @(self.view.isFirstResponder ? [self.view offsetFromPosition:self.view.beginningOfDocument toPosition:self.view.selectedTextRange.start] : -1),
       @"selectionEnd": @(self.view.isFirstResponder ? [self.view offsetFromPosition:self.view.beginningOfDocument toPosition:self.view.selectedTextRange.end] : -1),
-      @"isComposing" : @([self.view markedTextRange] != nil)
+      @"isComposing" : @([self.view markedTextRange] != nil),
+      @"inputType": isPasting ? @"paste" : @"normal",
     };
     if (![curInputData isEqual:self.preInputData]) {
       [self emitEvent:@"input" detail:curInputData];
       self.preInputData = curInputData;
     }
   }
+  input.pasting = NO;
 }
 
 - (void)setCollapsedSelectionForInput:(id<UITextInput>)input offset:(NSInteger)offset {
@@ -652,31 +662,26 @@ LYNX_UI_METHOD(setSelectionRange) {
 }
 
 - (BOOL)inputView:(id<UITextInput>)input shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
-  if (!self.readonly) {
-      [self emitEvent:@"beforeinput" detail:@{
-        @"value" : [self getText],
-        @"cursor": @(range.location),
-        @"length": @(range.length),
-        @"replace" : string ? : @"",
-        @"isComposing" : @([self isComposing])
-      }];
+  BOOL shouldChange = !self.readonly;
+  if (shouldChange) {
+    [self emitEvent:@"beforeinput" detail:@{
+      @"value" : [self getText],
+      @"cursor": @(range.location),
+      @"length": @(range.length),
+      @"replace" : string ? : @"",
+      @"isComposing" : @([self isComposing])
+    }];
     NSString *currentText = self.getText;
     NSUInteger newLength = [currentText length] + [string length] - range.length;
     if (newLength > self.maxLength) {
-      if ([self handleOverflowReplacementForInput:input
-                                      currentText:currentText
-                                            range:range
-                                replacementString:string ? : @""]) {
-        return NO;
-      }
-      // MAX
-      return NO;
+      [self handleOverflowReplacementForInput:input
+                                  currentText:currentText
+                                        range:range
+                            replacementString:string ? : @""];
+      shouldChange = NO;
     }
-  } else {
-    return NO;
   }
-  
-  return YES;
+  return shouldChange;
 }
 
 - (void)inputWillBeFilteredFrom:(NSString *)source to:(NSString *)dest {
@@ -782,15 +787,32 @@ LYNX_UI_METHOD(setSelectionRange) {
   return !self.readonly;
 }
 
-
 - (void)onWillShowKeyboard:(NSNotification *)notification {
-  
   CGRect keyboardFrame = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
   
-  CGFloat keyboardHeight = keyboardFrame.size.height;
   
+  
+  id<UICoordinateSpace> screenCoordinateSpace = self.context.lynxContext.getLynxView.window.screen.coordinateSpace;
+
+  CGRect keyboardRectInApp = [self.context.lynxContext.getLynxView.window convertRect:keyboardFrame fromCoordinateSpace:screenCoordinateSpace];
+
+  CGRect overlap = CGRectIntersection(self.context.lynxContext.getLynxView.window.bounds, keyboardRectInApp);
+
+
+  CGFloat keyboardHeight = 0;
+  if (!CGRectIsNull(overlap)) {
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+      keyboardHeight = overlap.size.height;
+    } else {
+      CGFloat gapBetweenAppWindowSizeOverKeyboardWindowSize = self.context.lynxContext.getLynxView.window.bounds.size.height - CGRectGetMaxY(keyboardFrame);
+      keyboardHeight = CGRectGetMaxY(self.context.lynxContext.getLynxView.window.bounds) - CGRectGetMinY(keyboardRectInApp) - gapBetweenAppWindowSizeOverKeyboardWindowSize/2;
+    }
+  }
+
+//  CGFloat keyboardHeight = keyboardFrame.size.height;
+
   CGFloat safeAreaBottom = 0;
-  
+
   if (@available(iOS 11.0, *)) {
     safeAreaBottom = self.view.safeAreaInsets.bottom;
   }
@@ -838,7 +860,7 @@ LYNX_UI_METHOD(setSelectionRange) {
   if ([node isKindOfClass:LynxUIBaseInputShadowNode.class]) {
     CGSize preSize = node.uiSize;
     
-    CGFloat width = self.view.bounds.size.width ? : UIScreen.mainScreen.bounds.size.width;
+    CGFloat width = self.view.bounds.size.width ? : self.context.screenMetrics.screenSize.width;
     [self.view sizeThatFits:CGSizeMake(0, 0)];
     CGSize updatedSize = [self.view sizeThatFits:CGSizeMake(width, CGFLOAT_MAX)];
     // Measure an empty input as a single text line. UITextView's empty-text size may handle

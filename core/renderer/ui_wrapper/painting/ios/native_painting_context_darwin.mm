@@ -43,11 +43,30 @@ std::array<float, 4> CopyMetrics(const float *source) {
   return result;
 }
 
+LynxURL *CreateImageURL(const base::String &url, CGSize image_size,
+                        LynxImageRequestType request_type) {
+  if (url.empty()) {
+    return nil;
+  }
+  NSString *url_string = [[NSString alloc] initWithUTF8String:url.c_str()];
+  NSURL *ns_url = [[NSURL alloc] initWithString:url_string];
+  if (ns_url == nil) {
+    return nil;
+  }
+  LynxURL *image_url = [[LynxURL alloc] init];
+  image_url.url = ns_url;
+  image_url.imageSize = image_size;
+  image_url.type = request_type;
+  return image_url;
+}
+
 }  // namespace
 
-NativePaintingCtxDarwin::NativePaintingCtxDarwin(LynxUIOwner *owner, void *textra)
-    : context_(
-          std::make_unique<PlatformRendererContextDarwin>([owner tryGetContainerView], owner)) {
+NativePaintingCtxDarwin::NativePaintingCtxDarwin(LynxUIOwner *owner,
+                                                 LynxComponentScopeRegistry *component_registry,
+                                                 void *textra)
+    : context_(std::make_unique<PlatformRendererContextDarwin>([owner tryGetContainerView], owner,
+                                                               component_registry)) {
   platform_ref_ = std::make_shared<NativePaintingCtxPlatformDarwinRef>(
       std::make_unique<PlatformRendererDarwinFactory>(context_.get()));
 
@@ -247,10 +266,6 @@ void NativePaintingCtxDarwin::FinishTasmOperation(const std::shared_ptr<Pipeline
 
 void NativePaintingCtxDarwin::FinishLayoutOperation(
     const std::shared_ptr<PipelineOptions> &options) {
-  if (!has_first_screen_) {
-    return;
-  }
-
   __weak LynxUIOwner *ui_owner = context_ != nullptr ? context_->GetUIOwner() : nil;
   Enqueue(
       [ui_owner, weak_queue = std::weak_ptr<shell::DynamicUIOperationQueue>(queue_), options]() {
@@ -265,12 +280,6 @@ void NativePaintingCtxDarwin::FinishLayoutOperation(
         }
       });
 
-  if (options->need_timestamps && !options->pipeline_id.empty()) {
-    Enqueue([ref = platform_ref_, pipeline_id = options->pipeline_id]() {
-      ref->SetNeedMarkPaintEndTiming(pipeline_id);
-    });
-  }
-
   if (queue_ != nullptr &&
       options->native_update_data_order_ == queue_->GetNativeUpdateDataOrder()) {
     queue_->UpdateStatus(shell::UIOperationStatus::LAYOUT_FINISH);
@@ -278,8 +287,6 @@ void NativePaintingCtxDarwin::FinishLayoutOperation(
 }
 
 void NativePaintingCtxDarwin::Flush() { queue_->Flush(); }
-
-void NativePaintingCtxDarwin::OnFirstScreen() { has_first_screen_ = true; }
 
 void NativePaintingCtxDarwin::CreatePlatformRenderer(
     int id, PlatformRendererType type, const fml::RefPtr<PropBundle> &init_data,
@@ -299,10 +306,17 @@ void NativePaintingCtxDarwin::CreatePlatformExtendedRenderer(
   });
 }
 
-void NativePaintingCtxDarwin::UpdateDisplayList(int id, DisplayList display_list) {
-  Enqueue([ref = platform_ref_, id, dl = std::move(display_list)]() {
+void NativePaintingCtxDarwin::EnqueueDisplayList(int id, DisplayList display_list) {
+  Enqueue([ref = platform_ref_, id, dl = std::move(display_list)]() mutable {
     std::static_pointer_cast<NativePaintingCtxPlatformDarwinRef>(ref)->UpdateDisplayList(
-        id, std::move(const_cast<DisplayList &>(dl)));
+        id, std::move(dl));
+  });
+}
+
+void NativePaintingCtxDarwin::EnqueueDisplayLists(DisplayListUpdateBatch batch) {
+  Enqueue([ref = platform_ref_, batch = std::move(batch)]() mutable {
+    std::static_pointer_cast<NativePaintingCtxPlatformDarwinRef>(ref)->UpdateDisplayLists(
+        std::move(batch));
   });
 }
 
@@ -325,7 +339,7 @@ void NativePaintingCtxDarwin::DestroyTextBundle(int id) {
   });
 }
 
-void NativePaintingCtxDarwin::ReconstructEventTargetTreeRecursively() {
+void NativePaintingCtxDarwin::EnqueueReconstructEventTargetTreeRecursively() {
   auto platform_ref = std::static_pointer_cast<NativePaintingCtxPlatformRef>(platform_ref_);
   if (platform_ref && platform_ref->HasScheduledEventTargetTreeUpdate()) {
     return;
@@ -358,14 +372,15 @@ fml::RefPtr<PaintImage> NativePaintingCtxDarwin::CreateImage(int id, base::Strin
                                                              int32_t event_mask,
                                                              bool disable_default_resize) {
   static_cast<void>(disable_default_resize);
-  LynxURL *sourceUrl = [[LynxURL alloc] init];
-  sourceUrl.url = [[NSURL alloc] initWithString:[[NSString alloc] initWithUTF8String:src.c_str()]];
-  sourceUrl.imageSize = CGSizeMake(width, height);
+  CGSize image_size = CGSizeMake(width, height);
+  LynxURL *source_url = CreateImageURL(src, image_size, LynxImageRequestSrc);
+  LynxURL *placeholder_url =
+      CreateImageURL(paint_info.placeholder, image_size, LynxImageRequestPlaceholder);
   int32_t image_key = GenerateUniqueImageKey();
 
   [context_->GetRendererContext() createImageManager:id
-                                       withSourceURL:sourceUrl
-                                   andPlaceholderURL:nil
+                                       withSourceURL:source_url
+                                   andPlaceholderURL:placeholder_url
                                            paintInfo:paint_info
                                            eventMask:event_mask
                                             imageKey:image_key];
